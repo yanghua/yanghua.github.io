@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>iosUITableView封装之下拉-上提-图片异步加载 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="# 写在前面做过移动端开发的人都知道，列表控件是最常用的控件之一。iOS里的列表控件是UITableView，其实Apple的开发人员对于UITableView的设计已经够好的了(简单易用，扩展性非常强等等)。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iosUITableView封装之下拉-上提-图片异步加载">
+<meta property="og:url" content="http://vinoyang.com/2012/12/03/iosUITableView封装之下拉-上提-图片异步加载/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="# 写在前面做过移动端开发的人都知道，列表控件是最常用的控件之一。iOS里的列表控件是UITableView，其实Apple的开发人员对于UITableView的设计已经够好的了(简单易用，扩展性非常强等等)。">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iosUITableView封装之下拉-上提-图片异步加载">
+<meta name="twitter:description" content="# 写在前面做过移动端开发的人都知道，列表控件是最常用的控件之一。iOS里的列表控件是UITableView，其实Apple的开发人员对于UITableView的设计已经够好的了(简单易用，扩展性非常强等等)。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-iosUITableView封装之下拉-上提-图片异步加载" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/12/03/iosUITableView封装之下拉-上提-图片异步加载/" class="article-date">
+  <time datetime="2012-12-02T18:50:00.000Z" itemprop="datePublished">2012-12-03</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      iosUITableView封装之下拉-上提-图片异步加载
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br># 写在前面<br><br>做过移动端开发的人都知道，列表控件是最常用的控件之一。iOS里的列表控件是UITableView，其实Apple的开发人员对于UITableView的设计已经够好的了(简单易用，扩展性非常强等等)。<br><br><a id="more"></a><br><br>但对于展示逻辑单一的移动端系统软件，你还是能感觉到有些繁琐(或许是程序员天生就有些懒惰的毛病吧)。<br><br>来看看它到底繁琐在哪儿了。首先，它的使用频率太高了；第二，它通常不是只呈现一下数据就完事了，一般都会跟随下拉刷新、上提加载更多功能，当然通常还要跟网络下载数据、图片打交道；第三，MVC模式是ios开发的惯用模式，随之而来的是一大堆协议的实现(无论你是再写一次也好，拷贝也罢，反正做这些工作都让人觉得索然无味)。<br><br>冲着这些，今天就把UITableView常见的使用模式封装了一下。具体做了以下几件事：<br><br>1、&nbsp; 内嵌了下拉刷新(EGORefreshTableHeaderView)、上提加载更多(LoadMoreTableFooterView)<br><br>2、&nbsp; 内置实现了UITableViewDataSource、UITableViewDelegate这两个通常必须实现的协议，对于自实现的逻辑以Block的形式对客户代码开放<br><br>3、&nbsp; 内置实现了1中提到的两个组件的回调协议，同上，自实现的逻辑以Block的形式对外开放<br><br>4、&nbsp; 内置实现了EGORefreshTableHeaderView、LoadMoreTableFooterView与UITableView交互必须实现的UIScrollViewDelegate协议<br><br>5、&nbsp; 内置实现了异步图片下载(可选)<br><br>&nbsp;<br><br>你可以到我的<a href="https://github.com/yanghua/ELTableViewController" target="_blank" rel="external"><span style="font-family:Microsoft YaHei;font-size:14px;color:#ff0000;"><strong>Github</strong></span></a>上，查看源码。称它为ELTableViewController是取了EGORefreshTableHeaderView以及LoadMoreTableFooterView的首字母。<br><br>这份代码中包含了一个示例程序以及三个必备组件：<br><br>1、&nbsp; EGORefreshTableHeaderView<br><br>2、&nbsp; LoadMoreTableFooterView(修改版，原版不能适应任何尺寸的高度)<br><br>3、&nbsp; Apple官方提供的异步下载UITableView中的图片的示例组件(IconDownLoader)，这个只适用于下载类似于社交网络中的用户头像，不建议使用它来下载那些大图片，因为它甚至都没有缓存(如果图片很大，推荐使用SDImage)<br><br># 代码解读<br><br>它已经内置实现了这些协议，所以在你使用它的时候，无需设置和实现。<br><br><pre name="code" class="cpp">@interface ELTableViewController : UIViewController<br>&lt;<br>UITableViewDelegate,<br>UITableViewDataSource,<br>EGORefreshTableHeaderDelegate,<br>LoadMoreTableFooterDelegate,<br>IconDownloaderDelegate<br>&gt;</pre><br><br>对于不断变化的业务逻辑，这里提供了所有需要实现的block：<br><pre name="code" class="cpp">//blocks for UITableView delegate<br>typedef UITableViewCell<em> (^cellForRowAtIndexPathDelegate) (UITableView </em>,NSIndexPath <em>);<br>typedef CGFloat (^heightForRowAtIndexPathDelegate) (UITableView </em>,NSIndexPath <em>);<br>typedef void (^didSelectRowAtIndexPathDelegate) (UITableView </em>,NSIndexPath <em>);<br><br>//blocks for refresh and load more<br>typedef void (^refreshDataSourceFunc) (void);<br>typedef void (^loadMoreDataSourceFunc) (void);<br><br>typedef void (^refreshDataSourceCompleted) (void);<br>typedef void (^loadMoreDataSourceCompleted) (void);<br>//use to load image (async)<br>typedef void (^loadImagesForVisiableRowsFunc) (void);<br>typedef void (^appImageDownloadCompleted) (NSIndexPath </em>);</pre><br><br>它们以属性的形式对外公开：<pre name="code" class="cpp">//property for blocks<br>@property (nonatomic,copy) cellForRowAtIndexPathDelegate cellForRowAtIndexPathDelegate;<br>@property (nonatomic,copy) heightForRowAtIndexPathDelegate heightForRowAtIndexPathDelegate;<br>@property (nonatomic,copy) didSelectRowAtIndexPathDelegate didSelectRowAtIndexPathDelegate;<br><br>@property (nonatomic,copy) loadMoreDataSourceFunc loadMoreDataSourceFunc;<br>@property (nonatomic,copy) refreshDataSourceFunc refreshDataSourceFunc;<br>@property (nonatomic,copy) refreshDataSourceCompleted refreshDataSourceCompleted;<br>@property (nonatomic,copy) loadMoreDataSourceCompleted loadMoreDataSourceCompleted;<br><br>@property (nonatomic,copy) loadImagesForVisiableRowsFunc loadImagesForVisiableRowsFunc;<br>@property (nonatomic,copy) appImageDownloadCompleted appImageDownloadCompleted;</pre><br>对于上提加载更多、下拉刷新、图片异步加载这几个功能都是可选的，它们以组件的形式存在。比如，在实例化该controller的时候你就可以设置上提和下拉是否可用。而对于图片下载，你只要不实现其相应得block，它也不会对你造成额外的负担。<pre name="code" class="cpp">- (id)initWithRefreshHeaderViewEnabled:(BOOL)enableRefreshHeaderView<br>andLoadMoreFooterViewEnabled:(BOOL)enableLoadMoreFooterView;<br><br>- (id)initWithRefreshHeaderViewEnabled:(BOOL)enableRefreshHeaderView<br>          andLoadMoreFooterViewEnabled:(BOOL)enableLoadMoreFooterView<br>                     andTableViewFrame:(CGRect)frame;</pre><br><pre name="code" class="cpp">#pragma mark - UITableView Delegate -<br>- (NSInteger)tableView:(UITableView <em>)tableView numberOfRowsInSection:(NSInteger)section{<br>    if (nil==self.dataSource) {<br>        return 0;<br>    }<br><br>    return [self.dataSource count];<br>}<br><br>- (UITableViewCell</em>)tableView:(UITableView <em>)tableView cellForRowAtIndexPath:(NSIndexPath </em>)indexPath{<br>    if (!self.cellForRowAtIndexPathDelegate) {<br>        @throw [NSException exceptionWithName:@&quot;Framework Error&quot;<br>                                       reason:@&quot;Must be setting cellForRowAtIndexPathBlock for UITableView&quot; userInfo:nil];<br>    }<br>    return self.cellForRowAtIndexPathDelegate(tableView,indexPath);<br>}<br><br>- (CGFloat)tableView:(UITableView <em>)tableView heightForRowAtIndexPath:(NSIndexPath </em>)indexPath{<br>    if (!self.heightForRowAtIndexPathDelegate) {<br>        @throw [NSException exceptionWithName:@&quot;Framework Error&quot;<br>                                       reason:@&quot;Must be setting heightForRowAtIndexPathDelegate for UITableView&quot; userInfo:nil];<br>    }<br>    return self.heightForRowAtIndexPathDelegate(tableView,indexPath);<br>}<br><br>- (void)tableView:(UITableView <em>)tableView didSelectRowAtIndexPath:(NSIndexPath </em>)indexPath{<br>    if (self.didSelectRowAtIndexPathDelegate) {<br>        self.didSelectRowAtIndexPathDelegate(tableView,indexPath);<br>    }<br>}<br><br>#pragma mark - LoadMoreTableFooterDelegate Methods -<br>- (void)loadMoreTableFooterDidTriggerRefresh:(LoadMoreTableFooterView <em>)view{<br>    if (self.loadMoreDataSourceFunc&amp;&amp;self.loadMoreDataSourceCompleted) {<br>        self.loadMoreDataSourceFunc();<br><br>        double delayInSeconds = 3.0;<br>        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds </em> NSEC_PER_SEC);<br>        dispatch_after(popTime, dispatch_get_main_queue(),<br>                       self.loadMoreDataSourceCompleted);<br>    }<br>}<br><br>- (BOOL)loadMoreTableFooterDataSourceIsLoading:(LoadMoreTableFooterView <em>)view{<br>    return self.isLoadingMore;<br>}<br><br>#pragma mark - EGORefreshTableHeaderDelegate Methods -<br>-(void)egoRefreshTableHeaderDidTriggerRefresh:(EGORefreshTableHeaderView </em>)view{<br>    if (self.refreshDataSourceFunc&amp;&amp;self.refreshDataSourceCompleted){<br>        self.refreshDataSourceFunc();<br><br>        double delayInSeconds = 3.0;<br>        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds <em> NSEC_PER_SEC);<br>        dispatch_after(popTime, dispatch_get_main_queue(),<br>                       self.refreshDataSourceCompleted);<br>    }<br>}<br><br>-(BOOL)egoRefreshTableHeaderDataSourceIsLoading:(EGORefreshTableHeaderView </em>)view{<br>    return self.isRefreshing;<br>}<br><br>-(NSDate <em>)egoRefreshTableHeaderDataSourceLastUpdated:(EGORefreshTableHeaderView </em>)view{<br>    return [NSDate date];<br>}<br><br>#pragma mark - UIScrollViewDelegate Methods -<br>-(void)scrollViewWillBeginDecelerating:(UIScrollView <em>)scrollView{<br>    self.currentOffsetPoint=scrollView.contentOffset;<br>}<br><br>-(void)scrollViewDidScroll:(UIScrollView </em>)scrollView{<br>    CGPoint pt=scrollView.contentOffset;<br>    if (self.currentOffsetPoint.y&lt;pt.y) {<br>        [self.loadMoreFooterView loadMoreScrollViewDidScroll:scrollView];<br>    }else {<br>        [self.refreshHeaderView egoRefreshScrollViewDidScroll:scrollView];<br>    }<br>}<br><br>-(void)scrollViewDidEndDragging:(UIScrollView <em>)scrollView willDecelerate:(BOOL)decelerate{<br>    CGPoint pt=scrollView.contentOffset;<br>    if (self.currentOffsetPoint.y&lt;pt.y) {<br>        [self.loadMoreFooterView loadMoreScrollViewDidEndDragging:scrollView];<br>    }else {<br>        [self.refreshHeaderView egoRefreshScrollViewDidEndDragging:scrollView];<br>    }<br><br>    if (!decelerate&amp;&amp;self.loadImagesForVisiableRowsFunc) {<br>        self.loadImagesForVisiableRowsFunc();<br>    }<br>}<br><br>-(void)scrollViewDidEndDecelerating:(UIScrollView </em>)scrollView{<br>    if (self.loadImagesForVisiableRowsFunc) {<br>        self.loadImagesForVisiableRowsFunc();<br>    }<br>}<br><br>#pragma mark - download image async -<br>-(void)appImageDidLoad:(NSIndexPath <em>)indexPath{<br>    if (self.appImageDownloadCompleted) {<br>        self.appImageDownloadCompleted(indexPath);<br>    }<br>}</em></pre><br><br># ELTableViewController 的使用<br><br>创建一个新的controller继承自：ELTableViewController；<br><br>override父类的initBlocks方法：<br><pre name="code" class="cpp">#pragma mark - private methods -<br>- (void)loadDataSource{<br>    self.dataSource=[NSMutableArray array];<br>    [self.dataSource addObject:@&quot;dataSource_1&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_2&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_3&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_4&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_5&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_6&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_7&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_8&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_9&quot;];<br>    [self.dataSource addObject:@&quot;dataSource_10&quot;];<br>}<br><br>- (void)initBlocks{<br>    __block TestViewController blockedSelf=self;<br><br>    //load more<br>    self.loadMoreDataSourceFunc=^{<br>        [blockedSelf.dataSource addObject:@&quot;loadMoreDataSourceBlock_1&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;loadMoreDataSourceBlock_2&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;loadMoreDataSourceBlock_3&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;loadMoreDataSourceBlock_4&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;loadMoreDataSourceBlock_5&quot;];<br><br>        blockedSelf.isLoadingMore=YES;<br>        [self.tableView reloadData];<br><br>        NSLog(@&quot;loadMoreDataSourceBlock was invoked&quot;);<br>    };<br><br>    //load more completed<br>    self.loadMoreDataSourceCompleted=^{<br>        blockedSelf.isLoadingMore=NO;<br>        [blockedSelf.loadMoreFooterView loadMoreScrollViewDataSourceDidFinishedLoading:self.tableView];<br><br>        NSLog(@&quot;after loadMore completed&quot;);<br>    };<br><br>    //refresh<br>    self.refreshDataSourceFunc=^{<br>        blockedSelf.dataSource=[NSMutableArray array];<br>        [blockedSelf.dataSource addObject:@&quot;refreshDataSourceBlock_1&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;refreshDataSourceBlock_2&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;refreshDataSourceBlock_3&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;refreshDataSourceBlock_4&quot;];<br>        [blockedSelf.dataSource addObject:@&quot;refreshDataSourceBlock_5&quot;];<br><br>        blockedSelf.isRefreshing=YES;<br>        [self.tableView reloadData];<br><br>        NSLog(@&quot;refreshDataSourceBlock was invoked&quot;);<br>    };<br><br>    //refresh completed<br>    self.refreshDataSourceCompleted=^{<br>        blockedSelf.isRefreshing=NO;<br>        [blockedSelf.loadMoreFooterView loadMoreScrollViewDataSourceDidFinishedLoading:self.tableView];<br><br>        NSLog(@&quot;after refresh completed&quot;);<br>    };<br><br>    self.cellForRowAtIndexPathDelegate=^(UITableView <em>tableView, NSIndexPath </em>indexPath){<br>        static NSString <em>cellIdentifier=@&quot;cellIdentifier&quot;;<br>        UITableViewCell </em>cell=[tableView dequeueReusableCellWithIdentifier:cellIdentifier];<br>        if (!cell) {<br>            cell=[[[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellIdentifier]autorelease];<br>        }<br><br>        cell.textLabel.text=[blockedSelf.dataSource objectAtIndex:indexPath.row];<br><br>        NSLog(@&quot;block:cellForRowAtIndexPathBlock has been invoked.&quot;);<br><br>        return cell;<br>    };<br><br>    self.heightForRowAtIndexPathDelegate=^(UITableView <em>tableView, NSIndexPath </em>indexPath){<br>        NSLog(@&quot;block:heightForRowAtIndexPathBlock has been invoked.&quot;);<br>        return 60.0f;<br>    };<br><br>    self.didSelectRowAtIndexPathDelegate=^(UITableView <em>tableView, NSIndexPath </em>indexPath){<br>        NSLog(@&quot;block:didSelectRowAtIndexPathDelegate has been invoked.&quot;);<br>    };<br><br>}</pre><br>然后在ViewDidLoad中调用：<pre name="code" class="cpp">[self initBlocks];<br>    [self loadDataSource];<br>    [self.tableView reloadData];</pre><br><br>最后，你在实例化该controller的时候，可以指定是否使用上提和下拉<br><pre name="code" class="cpp">self.viewController = [[[TestViewController alloc] initWithRefreshHeaderViewEnabled:YES andLoadMoreFooterViewEnabled:YES]autorelease];</pre><br><br># 写在最后<br><br>写完之后，我用它重构了一下快易博中，新浪微博的几个视图。也省掉了一些冗余代码，如果当初在开发的时候就使用它的话，感觉还是省了一些功夫的。<br><br>它其实也还是比较简单的封装，所以还不是很具有业务相关性，同时也可见它还有很多可继续增强的功能：<br><br>1、&nbsp; 封装增删改查功能<br><br>2、&nbsp; 封装加载、操作时动画<br><br>3、&nbsp; 封装网络加载的统一实现<br><br>……………….<br>先写到这里吧。<br><br>推荐两篇讲ios block非常不错的文章：<br><br><a href="http://lldong.github.com/blog/2011/12/30/blocks/" target="_blank" rel="external">http://lldong.github.com/blog/2011/12/30/blocks/</a><br><br><a href="http://yannickloriot.com/2011/11/working-with-blocks/" target="_blank" rel="external">http://yannickloriot.com/2011/11/working-with-blocks/</a><br><br>源码地址：<br><br><a href="https://github.com/yanghua/ELTableViewController" target="_blank" rel="external">https://github.com/yanghua/ELTableViewController</a><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/12/03/iosUITableView封装之下拉-上提-图片异步加载/" data-id="cii1bfdaq0036gaz2qzzjaf2o" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/12/24/NSProxy实现AOP方便为ios应用实现异常处理策略/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          NSProxy实现AOP方便为ios应用实现异常处理策略
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/11/22/优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-iosUITableView封装之下拉-上提-图片异步加载" data-title="iosUITableView封装之下拉-上提-图片异步加载" data-url="http://vinoyang.com/2012/12/03/iosUITableView封装之下拉-上提-图片异步加载/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

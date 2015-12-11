@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>日志系统之Flume采集加morphline解析 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="#概述这段时间花了部分时间在处理消息总线跟日志的对接上。这里分享一下在日志采集和日志解析中遇到的一些问题和处理方案。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="日志系统之Flume采集加morphline解析">
+<meta property="og:url" content="http://vinoyang.com/2015/11/20/build-log-sys-with-flume-and-morphline/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="#概述这段时间花了部分时间在处理消息总线跟日志的对接上。这里分享一下在日志采集和日志解析中遇到的一些问题和处理方案。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline-morphlines.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline-morphlines-architecture.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline_pipeline-with-Queue.png">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="日志系统之Flume采集加morphline解析">
+<meta name="twitter:description" content="#概述这段时间花了部分时间在处理消息总线跟日志的对接上。这里分享一下在日志采集和日志解析中遇到的一些问题和处理方案。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-build-log-sys-with-flume-and-morphline" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/" class="article-date">
+  <time datetime="2015-11-20T11:21:02.000Z" itemprop="datePublished">2015-11-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      日志系统之Flume采集加morphline解析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>#概述<br>这段时间花了部分时间在处理<a href="https://github.com/yanghua/banyan" target="_blank" rel="external">消息总线</a>跟日志的对接上。这里分享一下在日志采集和日志解析中遇到的一些问题和处理方案。</p>
+<a id="more"></a>
+<p>##日志采集-flume</p>
+<p>###logstash VS flume<br>首先谈谈我们在日志采集器上的选型。由于我们选择采用ElasticSearch作为日志的存储与搜索引擎。而基于ELK（ElasticSearch，Logstash，Kibana）的技术栈在日志系统方向又是如此流行，所以把Logstash列入考察对象也是顺理成章，Logstash在几大主流的日志收集器里算是后起之秀，被Elastic收购之后更加成熟，社区也比较活跃。</p>
+<p>Logstash的设计：<code>input</code>，<code>filter</code>,<code>output</code>。flume的设计<code>source</code>，<code>channel</code>，<code>sink</code>，当然flume也有<code>interceptor</code>。具体的设计就不多废话，大致上都是<strong>拆分</strong>，<strong>解耦</strong>，<strong>pipeline(管道)</strong>的思想。同时，它们都支持分布式扩展，比如Logstash既可以作为shipper也可作为indexer，flume可以多个agent组成分布式事件流。</p>
+<p>我对flume的接触早于Logstash。最近调研Logstash的时候，对它强大的filter印象深刻，特别是<code>grok</code>。而之前flume阵营强调最多的是它的source,sink,channel对各种开源组件的扩展支持非常强大。</p>
+<p>Logstash固然是一个不错的，但它采用<code>JRuby</code>语言（一种形似Ruby语法的JVM平台的语言）实现使得它的<strong>定制性不够灵活</strong>，这是我放弃Logstash的主要原因。因为生态的原因，我确实需要Java技术栈提供的扩展性（这里主要目标是将<a href="https://github.com/yanghua/banyan" target="_blank" rel="external">消息总线</a>作为日志采集的缓存队列），而这正是flume的强项。但flume里很少有提及对日志的解析支持，即便有支持正则的interceptor，也只是很有限的查找、替换之类的。经过一番调研发现其实flume提供了这样一个interceptor——<code>morphline</code>。它可以完成对日志的解析。</p>
+<p>##日志解析-morphline</p>
+<p>###morphline简介<br>morphline是由flume的母公司cloudera开源的一个ETL框架。它用于构建、改变基于Hadoop进行ETL（extract、transfer、load）的流式处理程序。（值得一提的是flume是由cloudera捐献给Apache的，后来经过重构成了flume-ng）。morphline使得你在构建ETL Job不需要编码并且不需要大量的MapReduce技巧。</p>
+<p>morphline是一个富配置文件可以很简单得定义一个转化链，用于从任何数据源消费任何类型的数据，处理数据然后加载结果到Hadoop组件中。它用简单的配置步骤代替了Java编程。</p>
+<p>morphline是一个类库，可以嵌入任何java程序中。morphline是一个内存容器可以存储转化命令。这些命令以插件的形式被加载到morphline中以执行任务，比如加载、解析、转化或者处理单条记录。一个记录是在内存中的名称-值对的数据结构。而且morphline是可扩展的，可以集成已存在的功能和第三方系统。</p>
+<p>这篇文章不是morphline的软文，所以更多介绍请移步<a href="https://cloudera.github.io/cdk/docs/current/cdk-morphlines/index.html" target="_blank" rel="external">cloudera的CDK官方文档</a>。</p>
+<p>这里有副图，形象地展示了morphline大致的处理模型：<br><img src="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline-morphlines.jpg" alt="morphline"></p>
+<p>这里还有一幅图，展示了在大数据生态系统中，morphline的架构模型：<br><img src="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline-morphlines-architecture.jpg" alt="morphlines-architecture"></p>
+<p>后来morphline的开发主要由Kite主导，它是构建于Hadoop上的一套抽象的数据模型层的API接口。这里有<a href="http://kitesdk.org/docs/1.1.0/morphlines/morphlines-reference-guide.html" target="_blank" rel="external">kiteSDK关于morphline的文档说明</a>。</p>
+<p>###强大的正则提取器——grok<br>其实我找morphline就是为了找grok，或者找到一种提供grok的切入口。grok利用正则的解析能力从非结构化的日志数据中提取结构化的字段。因为Logstash已经提供了一大堆的经过验证的grok规则，这是Logstash的优势，如果能够将这些规则直接在flume里使用，那么将能够直接集成Logstash的能力（其实，只要有文本是规则的，正则都能提取出来，但已经有成熟的东西就没必要自己再花费巨大的功夫去验证）。这里有<a href="http://kitesdk.org/docs/1.1.0/morphlines/morphlines-reference-guide.html#grok" target="_blank" rel="external">grok的说明文档</a>，就不再过多介绍了。</p>
+<p>###服务端使用morphline<br>flume在agent里利用morphline。在client端对日志进行ETL的优势可以利用客户端PC分散的计算能力以省去服务端解析的麻烦，但agent的数量非常之多，而且散布在各个生产服务器上，日志的格式也是五花八门。也就是说，在agent做太多的事情将使得我们在应对改变的时候缺乏灵活性。所以，我们在客户端只收集不解析。而在服务端利用morphline对日志进行解析。相当于启动一个解析服务，从日志采集队列中提取日志，用morphline进行解析转换，然后再将解析过的更结构化的日志发送到索引队列，等到索引服务将其存入ElasticSearch。整个过程大致如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/build-log-sys-with-flume-and-morphline_pipeline-with-Queue.png" alt="pipeline-with-queue"></p>
+<p>这种异步的基于队列的pipeline其实跟Storm这样的流处理器的同步pipeline本质上殊途同归，都是在利用廉价的PC来平摊计算量。</p>
+<p>###程序示例<br>为了在你的程序中使用morphline，首先需要添加对morphline的maven依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">groupId</span>&gt;</span>org.kitesdk<span class="tag">&lt;/<span class="title">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">artifactId</span>&gt;</span>kite-morphlines-all<span class="tag">&lt;/<span class="title">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">version</span>&gt;</span>$&#123;kite.version&#125;<span class="tag">&lt;/<span class="title">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">exclusions</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="title">exclusion</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="title">groupId</span>&gt;</span>org.apache.hadoop<span class="tag">&lt;/<span class="title">groupId</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="title">artifactId</span>&gt;</span>hadoop-common<span class="tag">&lt;/<span class="title">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="title">exclusion</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="title">exclusions</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">type</span>&gt;</span>pom<span class="tag">&lt;/<span class="title">type</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">optional</span>&gt;</span>true<span class="tag">&lt;/<span class="title">optional</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<p>版本是<strong>1.0.0</strong>。需要注意的是，这里面有些依赖，需要从twitter的仓库里去下载，所以你懂的：请自备梯子。</p>
+<p>示例程序：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> process(Message message) &#123;</span><br><span class="line">    msgBuffer.<span class="built_in">add</span>(message);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (msgBuffer.<span class="built_in">size</span>() &lt; MESSAGE_BUFFER_SIZE) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Notifications.notifyBeginTransaction(morphline);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (Message msg : msgBuffer) &#123;</span><br><span class="line">            Event logEvent = GSON.fromJson(<span class="keyword">new</span> <span class="keyword">String</span>(msg.getContent()), Event.class);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">String</span> originalLog = <span class="keyword">new</span> <span class="keyword">String</span>(logEvent.getBody());</span><br><span class="line">            logEvent.getHeaders().put(MORPHLINE_GROK_FIELD_NAME, originalLog);</span><br><span class="line">            logEvent.setBody(<span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">            Record record = <span class="keyword">new</span> Record();</span><br><span class="line">            <span class="keyword">for</span> (Map.Entry&lt;<span class="keyword">String</span>, <span class="keyword">String</span>&gt; entry : logEvent.getHeaders().entrySet()) &#123;</span><br><span class="line">                record.put(entry.getKey(), entry.getValue());</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="built_in">byte</span>[] bytes = logEvent.getBody();</span><br><span class="line">            <span class="keyword">if</span> (bytes != <span class="keyword">null</span> &amp;&amp; bytes.length &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                logger.info(<span class="string">"original : "</span> + <span class="keyword">new</span> <span class="keyword">String</span>(bytes));</span><br><span class="line">                record.put(Fields.ATTACHMENT_BODY, bytes);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            Notifications.notifyStartSession(morphline);</span><br><span class="line">            <span class="built_in">boolean</span> success = morphline.process(record);</span><br><span class="line">            <span class="keyword">if</span> (!success) &#123;</span><br><span class="line">                logger.error(<span class="string">"failed to process record! from : "</span> + morphlineFileAndId);</span><br><span class="line">                logger.error(<span class="string">"record body : "</span> + <span class="keyword">new</span> <span class="keyword">String</span>(logEvent.getBody()));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//do some ETL jobs</span></span><br><span class="line">        List&lt;Record&gt; records = <span class="keyword">this</span>.extract();</span><br><span class="line"></span><br><span class="line">        List&lt;Event&gt; events = <span class="keyword">this</span>.transfer(records);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">this</span>.load(events);</span><br><span class="line"></span><br><span class="line">    &#125; <span class="keyword">catch</span> (JsonSyntaxException e) &#123;</span><br><span class="line">        logger.error(e);</span><br><span class="line">        Notifications.notifyRollbackTransaction(morphline);</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="comment">//clear buffer and extractor</span></span><br><span class="line">        <span class="keyword">this</span>.extracter.getRecords().<span class="built_in">clear</span>();</span><br><span class="line">        <span class="keyword">this</span>.msgBuffer.<span class="built_in">clear</span>();</span><br><span class="line">        Notifications.notifyCommitTransaction(morphline);</span><br><span class="line">        Notifications.notifyShutdown(morphline);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里只是部分代码，展示morphline的大致用法。主要的逻辑在配置文件中：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">morphlines : [</span><br><span class="line">    &#123;</span><br><span class="line">        id : morphline1</span><br><span class="line">        importCommands : [<span class="string">"org.kitesdk.**"</span>]</span><br><span class="line"></span><br><span class="line">        commands : [</span><br><span class="line">            &#123;</span><br><span class="line">                grok &#123;</span><br><span class="line">                    dictionaryString : <span class="string">"""</span><br><span class="line"></span><br><span class="line">                                       """</span></span><br><span class="line">                    expressions : &#123;</span><br><span class="line">                                original : <span class="string">""""""</span></span><br><span class="line">                    &#125;</span><br><span class="line">                    extract : <span class="literal">true</span></span><br><span class="line">                    numRequiredMatches : atLeastOnce # <span class="keyword">default</span> is atLeastOnce</span><br><span class="line">                    findSubstrings : <span class="literal">false</span></span><br><span class="line">                    addEmptyStrings : <span class="literal">false</span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            &#123; logInfo &#123; format : <span class="string">"output record: &#123;&#125;"</span>, args : [<span class="string">"@&#123;&#125;"</span>] &#125; &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+<p>如上所述，我们最主要的是想利用grok来解析日志，而logstash已经提供了<a href="https://github.com/logstash-plugins/logstash-patterns-core/tree/master/patterns" target="_blank" rel="external">大量的grok patterns</a>供你开箱即用，但对于自定义的日志格式类型，你通常都需要自行解析。这里有个<a href="https://grokconstructor.appspot.com/do/match#result" target="_blank" rel="external">grok 在线debug工具</a>。</p>
+<p>##综述<br>其实，业界使用flume都是规模较大的互联网公司，比如美团。它们通常会使用flume+kafka+storm+hadoop生态系统。利用storm stream做实时解析，利用mapreduce做离线分析，这种高度定制化的使用场景，几乎不需要flume的agent在客户端进行解析的能力，因此flume的morphline也就很少被提及。</p>
+<p>但morphline还是不可多得的文本ETL利器，无论你是在采集的时候直接用morphline 做ETL还是在服务端做，flume+morphline加起来带来的灵活性也不输Logstash。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/11/20/build-log-sys-with-flume-and-morphline/" data-id="cii1bfd7j001bgaz2l697kl4p" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/flume/">flume</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/morphline/">morphline</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/日志系统/">日志系统</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/消息总线/">消息总线</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/12/11/messagebus-refactor-model/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          消息总线之模型重构
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/10/30/messagebus-refactor-simplify-client/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">消息总线重构之简化客户端</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-build-log-sys-with-flume-and-morphline" data-title="日志系统之Flume采集加morphline解析" data-url="http://vinoyang.com/2015/11/20/build-log-sys-with-flume-and-morphline/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

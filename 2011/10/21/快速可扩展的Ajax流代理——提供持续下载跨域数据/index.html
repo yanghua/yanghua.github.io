@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>快速可扩展的Ajax流代理——提供持续下载跨域数据 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="简介由于浏览器禁止跨域的XMLHTTP调用，所有的Ajax网站都必须有一个服务端代理来从外部域比如Flickr或者Digg来抓去内容。对客户端Javascript代码来说，一个XMLHttp的调用将请求传递给宿主在相同域里的服务端代理，然后由代理来从外部服务器上下载内容，并回传给客户端。通常，所有从外部服务器获取内容的Ajax站点都采用这种代理方案，除了一些罕见的使用JSONP的人。当网站上的许多">
+<meta property="og:type" content="article">
+<meta property="og:title" content="快速可扩展的Ajax流代理——提供持续下载跨域数据">
+<meta property="og:url" content="http://vinoyang.com/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="简介由于浏览器禁止跨域的XMLHTTP调用，所有的Ajax网站都必须有一个服务端代理来从外部域比如Flickr或者Digg来抓去内容。对客户端Javascript代码来说，一个XMLHttp的调用将请求传递给宿主在相同域里的服务端代理，然后由代理来从外部服务器上下载内容，并回传给客户端。通常，所有从外部服务器获取内容的Ajax站点都采用这种代理方案，除了一些罕见的使用JSONP的人。当网站上的许多">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319119662VkBB.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319119716nG7e.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319119759uT4U.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191198083kD7.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319119821TU4h.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319119865lLdG.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191199047800.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191208693LWa.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120087Z77M.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120129h1eL.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120144HIT4.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120181yY5M.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120239m5z6.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120276cAbv.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120313ylwA.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_131912032928W1.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191203714564.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_1319120446yz5x.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191204795bH6.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/20/0_13191205444421.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="快速可扩展的Ajax流代理——提供持续下载跨域数据">
+<meta name="twitter:description" content="简介由于浏览器禁止跨域的XMLHTTP调用，所有的Ajax网站都必须有一个服务端代理来从外部域比如Flickr或者Digg来抓去内容。对客户端Javascript代码来说，一个XMLHttp的调用将请求传递给宿主在相同域里的服务端代理，然后由代理来从外部服务器上下载内容，并回传给客户端。通常，所有从外部服务器获取内容的Ajax站点都采用这种代理方案，除了一些罕见的使用JSONP的人。当网站上的许多">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-快速可扩展的Ajax流代理——提供持续下载跨域数据" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/" class="article-date">
+  <time datetime="2011-10-20T22:24:00.000Z" itemprop="datePublished">2011-10-21</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      快速可扩展的Ajax流代理——提供持续下载跨域数据
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319119662VkBB.gif" alt=""><br><br><strong><span style="font-size:24px"><u>简介</u></span></strong><br><br>由于浏览器禁止跨域的XMLHTTP调用，所有的Ajax网站都必须有一个服务端代理来从外部域比如Flickr或者Digg来抓去内容。对客户端Javascript代码来说，一个XMLHttp的调用将请求传递给宿主在相同域里的服务端代理，然后由代理来从外部服务器上下载内容，并回传给客户端。通常，所有从外部服务器获取内容的Ajax站点都采用这种代理方案，除了一些罕见的使用JSONP的人。当网站上的许多组件正在从外部域下载内容时，这样的代理将会被大量地调用。所以，当代理开始被百万次地调用时，它将变成一个可扩展的问题。另外，一个页面整体的负载均衡很大程度上依赖于当代理向页面提供内容时它的性能。这篇文章，我们来看看我们如何能将传统的Ajax代理变得更快，异步，持续提供内容流，从而使其更具扩展性。<br><br><a id="more"></a><br><br><strong><span style="font-size:24px"><u>Ajax代理 进行时</u></span></strong><br><br>当你访问<a href="http://www.pageflakes.com/" target="_blank" rel="external">Pageflakes.com</a>时，你可以看到这样的代理正在工作。你将看到许多不同的内容，例如天气预报、flickr图片、YouTuBe的视频以及RSS等，像一个个部件一样从许多不同的外部域中被加载。所有这些加载都需要使用一个内容代理。该内容代理在最近一个月为差不多42.3百万的URL提供过服务。使它既快又有扩展性，是对我们相当大的挑战！有时内容代理需要提供兆字节数据的服务，这更加提高了这些挑战的高度。因为这样的代理会被大量的调用，如果我们能够为每个调用平均节约大概100ms，我们每个月就可以为下载、上传、处理的时间节约大概4.23百万秒。这大概1175人时都被全世界百万人在浏览器前等待下载内容而浪费掉了。<br><br>这样的内容代理将外部服务器的URL作为一个查询参数。它从这些URL下载内容，然后将这些内容作为响应回传给服务器。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319119716nG7e.gif" alt=""><br><br>图片：内容代理像一个中间人一样在浏览器和外部域之间工作。<br><br>上面的时间线显示了，一个请求如何到达服务器，然后服务器向外部服务器发出请求，下载响应，并将它传输给客户端。从代理到浏览器的响应箭头比从外部服务器到代理的箭头更长，这是因为通常一个代理服务器的宿主环境比用户的互联网连接有更快的下载速度。<br><br><strong><span style="font-size:24px"><u>一个基本的代理</u></span></strong><br><br>这种内容代理也同样存在与我的开源Ajax网站——<a href="http://www.dropthings.com/" target="_blank" rel="external">Dropthings.com</a>中。你可以去CodePlex看它的<a href="http://www.codeplex.com/dropthings" target="_blank" rel="external">代码</a>是如何实现这样一个代理的。<br><br>下面是一个非常简单，同步，没有流的阻塞代理。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319119759uT4U.gif" alt=""><br><br>尽管它显示了通常的原则，但它没有接近一个真实的代理，因为：<br><br>（1）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;他是一个同步代理，因此没有可扩展性。每一个对该Web方法的调用，都导致Asp.net线程处于等待状态，直到对外部URL的调用完成。<br><br>（2）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它是非流式的。它第一次从服务器上下载整个内容，将内容存储在一个字符串中，然后向浏览器更新整个内容。如果你点击一个<a href="http://msdn.microsoft.com/rss.xml" target="_blank" rel="external">MSDN Feed URL</a>，它将从服务器下载220KB的巨大的RSS XML，将它存储到一个220KB的长字符串中（总得来说，是.net内置String类型的双倍大小，并且都是Unicode字符），然后将这220KB写到asp.net响应对象(Response)的缓冲区(buffer)中，并将另外的220KB的UTF8的字节数组存储在内存中。然后，那220KB将被传递到IIS，以便可以传输到浏览器。<br><br>（3）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它没有在服务端存产生一个正确的响应头来缓存响应。它也没有从源文件中提供重要的头部，例如Content-Type。<br><br>（4）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果一个外部URL提供对内容的GZIP压缩，它解压内容到一个字符串来表示，因此它浪费了服务器的内存。<br><br>（5）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;它没有在服务端缓存内容。因此，重复对相同外部URL的调用也将从外部URL重新下载数据，因此浪费了你服务端的带宽。<br><br>我们需要一个异步的<strong>streaming proxy</strong>当它从外部域服务器下载后传输内容到浏览器。因此，它将从外部服务器下载字节流到一个小块儿中，并且直接将其传输到浏览器。结果是，在调用Web Service之后浏览器将看到一个持续的字节传输。当内容已经完全从服务器上下载下来后，将没有延迟。<br><br><strong><span style="font-size:24px"><u>一个更好的代理</u></span></strong><br><br>之前，我展示了复杂的基于流代理的代码，让我们讨论一个改进式的方案。让我们建立一个比上面更好的内容代理。上面的代理是一个同步并且非流式，但没有其他问题的代理。我们将构建一个命名为Regular.ashx的HTTP Handler，它将把URL作为查询参数。它也将缓存作为一个查询参数，该查询参数将用来产生一个正确的响应头来在浏览器上缓存内容。因此，它将一次又一次减少浏览器重复下载相同内容的时间。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191198083kD7.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319119821TU4h.gif" alt=""><br><br>上面的代理主要增强了两点功能：<br><br>l&nbsp; 它允许服务端缓存内容。在一段时间内来自不同浏览器的相同URL请求，在服务端将不会再次下载，而是从服务端缓存中获取数据。<br><br>l&nbsp; 它产生一个正确的输出响应头，可以让内容缓存到浏览器端。<br><br>l&nbsp; 它没有在内存中解压下载的内容。它保持原始字节流的完整。它节省了内存。<br><br>l&nbsp; 它用一种无缓冲的形式发送数据，这意味着asp.net的Response对象没有缓冲响应，因此节约了内存。<br><br>然而，这是一个“阻塞”式的代理。<br><br><strong><u><span style="font-size:24px">更好的代理——基于流</span></u></strong><br><br>我们需要构建一个基于流的异步代理来提供更好的性能。下面的图阐述了这是为什么：<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319119865lLdG.gif" alt=""><br><br>图片：持续的流式代理<br><br>就像你所看到的，当服务器下载内容的时候，数据从服务器被发送回浏览器，服务端下载的延时被消除。因此，如果服务器花300ms来从一个外部资源下载内容，然后花700ms将它发送回服务器，你就可以在服务器和浏览器之间节约300ms的网络延迟(因为异步就会边下载边传输数据流)。这种方案在当外部服务器提供的内容非常慢并且需要花相当长的一段时间来提供内容时效果非常好。外部站点越慢，采用这种持续流式代理，你节约的时间就越多。当你的站点很远时，这比起阻塞式的方案在性能上是一个很大的提升。<br><br>这种持续式的代理方案是：<br><br>l&nbsp; 用一个特殊的线程（读取器线程）来从外部服务器读取一个8KB的字节块，目的是使其不阻塞。<br><br>l&nbsp; 将读取到的块存储在一个被称为管线流的内存队列里面。<br><br>l&nbsp; 从该队列里将块写到Asp.net的Response对象。<br><br>l&nbsp; 如果队列完成，使其处于等待状态直到更多的字节被读取器线程下载。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191199047800.gif" alt=""><br><br>这种管线流需要是线程安全的，并且它需要支持“阻塞式”的读取。“阻塞式”的读取，这意味着如果一个线程尝试读取一个块儿并且流是空的，将暂停该线程直到另一个线程在流上写完东西。一旦在流上的一个写操作发生了，它将恢复读线程并且允许它继续读。我从<a href="http://www.codeproject.com/KB/threads/PipeStream.aspx" target="_blank" rel="external">CodeProjectarticle by James Kolpack</a>那里获得了管线流的代码，并且测试了并确信它有很高的性能，支持存储字节块而不是单个字节，支持等待超时等等。<br><br>我将普通的代理(阻塞、同步、下载完所有之后才传输数据)和流式代理(从外部服务器到浏览器持续传输数据)做了一些对比。两个代理下载MSDN资源并且传输到浏览器。显示在下面的时间是从浏览器发出请求到代理然后回传整个响应到客户端。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191208693LWa.gif" alt=""><br><br>这不是一个非常科学的图片，并且响应的时间还取决于从浏览器到代理服务器之间连接的速度和从代理服务器到外部服务器的速度。但，它显示了大部分时间里，流式代理比通常的代理表现出更好的性能。<br><br><strong><u><span style="font-size:24px">构建流式代理</span></u></strong><br><br>构建一个性能好于普通流式代理并不是那么简单。我尝试了三种方式，最终找出了最佳组合可以表现出比普通代理更好的性能。<br><br>该流式代理使用HttpWebRequest和HttpWebResponse来从一个外部服务器下载数据。它们被用来对如何读取数据取得更多得控制，更具体地说，是读取WebClient不提供的字节块儿。另外，这里有某些对构建一个代理需要的快速、可扩展HttpWebRequest的优化。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120087Z77M.gif" alt=""><br><br>DownloadData方法从输出流(连接到外部服务器)下载数据，然后将其发送给asp.net的Response流。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120129h1eL.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120144HIT4.gif" alt=""><br><br>这里，我曾尝试了三种不同的方案。一个是现在被注释掉的，叫做TransmitDataAsyncOptimized，是最好的解决方案。我将解释这三种方案。DownloadData方法的目的是在发送数据之前准备asp.net的输出流。然后，它使用这三种方案里的其中一种发送数据，并缓存下载的字节到内存流中。<br><br>第一种方案是从连接到外部服务器的输出流中读取8192字节，然后直接写到响应（TransmitDataAsyncOptimized）。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120181yY5M.gif" alt=""><br><br>这里，readStream是从HttpWebResponse.GetResponseStream调用返回的输出流。它从外部服务器下载。responseBuffer仅仅是用来在内存中存储整个响应一个内存流，目的是我们能够缓存它。<br><br>这个方案甚至比一个通常的代理更慢。在做了一些代码级别的性能分析之后，看起来写入OutputStream花费了相当长得时间，因为IIS尝试发送数据到浏览器。所以，这里会有网络延迟和传输数据的延迟。从频繁调用累积的网络延时到OutputStream.Write加起来显著地延迟了整个操作。<br><br>第二个方案是尝试多线程。一个从asp.net线程创建的新线程，持续地从Socket读取，甚至不用等待Response.OutputStream发送字节到浏览器端。主asp.net线程等待直到所有的字节被收集完成，然后直接传输它们到response。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120239m5z6.gif" alt=""><br><br>这里，读取是在PipeStream上进行的，而不是从asp.net线程的socket上。这里有一个新线程被催生，它将数据写入PipeStream就像它从外部站点下载字节一下。结果，我们有asp.net线程持续地将数据写入OutputStream，并且有另外一个线程从外部服务器不断地下载数据。接下来的代码从外部服务器下载数据，然后存储到PipeStream中。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120276cAbv.gif" alt=""><br><br>这个方案的问题是，仍然有很多Response.OutputStream.Write的调用发送。外部服务器发送各种不同字节数的内容，有时3592字节，有时8192字节，并且有时仅仅501字节。它完全依赖于从你的服务器到外部服务器的连接有多快。通常，微软的服务器都是非常快速的，当你调用_ResponseStream.Read从MSDN读取资源的时候，你总是能获得8192(缓存区的最大容量)的字节，但，当你连接到一个非可靠的服务器，例如在澳大利亚，你将无法在每次读取调用时都获得8192个字节的数据。所以你将以超过你对Response.OutputStream.Write预期调用次数而结束。所以，一个更好的最终方案是介绍另一个缓冲区，它将存储将写到asp.netResponse的字节，并且一旦8192个字节已经准备好传输时它将自己清空缓冲区到Response.OutputStream。在这中间缓冲区将确保总是有8192个字节被发送到Response.OutputStream。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120313ylwA.gif" alt=""><img src="http://hi.csdn.net/attachment/201110/20/0_131912032928W1.gif" alt=""><br><br>上面的方法确保一次仅有8192字节被写入asp.netResponse.Stream中。以这种方式，写的次数是总字节数/8192。<br><br><strong><span style="font-size:24px"><u>用异步httphandler构建流式代理</u></span></strong><br><br>现在，我们正基于流来传输字节，我们需要让这个代理“异步”让它不把持着asp.net的主线程太长时间。变成异步，这意味着一旦asp.net线程向外部服务器发出一个调用，它就会被释放。当外部服务器调用完成并且字节都下载完成，它将从asp.net抢占一个线程然后完成执行。<br><br>当代理不是异步的时候，它会使得asp.net线程很繁忙，直到整个的连接以及下载操作完成。如果外部服务器响应很慢，那它就没有必要持有asp.net线程太长时间。结果如果代理正对一个很慢的服务器发起太多的请求，asp.net线程不久就将消耗殆尽，并且你的服务器将停止响应任何新请求。<br><br>构建一个异步代理的第一步是实现IhttpAsyncHandler然后将ProcessRequest方法分成两部分：BeginProcessRequest和EndProcessRequest。Begin方法将对HttpWebRequest.BeginGetResponse发出一个调用，然后线程返回到asp.net的线程池。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191203714564.gif" alt=""><br><br>当BeginProcessRequest调用完成并且外部服务器已经开始向我们发送响应数据，asp.net会调用EndProcessRequest方法。该方法从外部服务器下载数据，然后发送回浏览器端。<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_1319120446yz5x.gif" alt=""><br><br>现在你已经拥有了它——一个快速的，可扩展的，持续流式的代理，它总是会比通常的代理有更好的性能。<br><br>如果，你正在考虑写HttpHelper，AsyncState，以及SyncResult类，这里有一些现成的类，下面是这些帮助类的代码：<br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191204795bH6.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201110/20/0_13191205444421.gif" alt=""><br><br><span style="font-size:18px; color:#ff0000">源代码下载地址：</span><br><br><a href="http://download.csdn.net/detail/yanghua_kobe/3702484" target="_blank" rel="external"><span style="font-size:18px">http://download.csdn.net/detail/yanghua_kobe/3702484</span></a><br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/" data-id="cii1bfd7u001ngaz25hr4yzdf" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/10/25/开发中常见的十种对缓存的错误使用/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          开发中常见的十种对缓存的错误使用
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/10/16/Node-js应用之静态文件分发器/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Node.js应用之静态文件分发器</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-快速可扩展的Ajax流代理——提供持续下载跨域数据" data-title="快速可扩展的Ajax流代理——提供持续下载跨域数据" data-url="http://vinoyang.com/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

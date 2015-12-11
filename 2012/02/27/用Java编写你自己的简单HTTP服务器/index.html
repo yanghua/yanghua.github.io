@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>用Java编写你自己的简单HTTP服务器 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="HTTP是个大协议，完整功能的HTTP服务器必须响应资源请求，将URL转换为本地系统的资源名。响应各种形式的HTTP请求(GET、POST等)。处理不存在的文件请求，返回各种形式的状态码，解析MIME类型等。但许多特定功能的HTTP服务器并不需要所有这些功能。例如，很多网站只是想显示“建设中“的消息。很显然，Apache对于这样的网站是大材小用了。这样的网站完全可以使用只做一件事情的定制服务器。J">
+<meta property="og:type" content="article">
+<meta property="og:title" content="用Java编写你自己的简单HTTP服务器">
+<meta property="og:url" content="http://vinoyang.com/2012/02/27/用Java编写你自己的简单HTTP服务器/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="HTTP是个大协议，完整功能的HTTP服务器必须响应资源请求，将URL转换为本地系统的资源名。响应各种形式的HTTP请求(GET、POST等)。处理不存在的文件请求，返回各种形式的状态码，解析MIME类型等。但许多特定功能的HTTP服务器并不需要所有这些功能。例如，很多网站只是想显示“建设中“的消息。很显然，Apache对于这样的网站是大材小用了。这样的网站完全可以使用只做一件事情的定制服务器。J">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330257995ai0A.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258254lw22.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258353Oupp.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258415gQ2G.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258497D7OD.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258730GO7Q.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/26/0_1330258796hvTV.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="用Java编写你自己的简单HTTP服务器">
+<meta name="twitter:description" content="HTTP是个大协议，完整功能的HTTP服务器必须响应资源请求，将URL转换为本地系统的资源名。响应各种形式的HTTP请求(GET、POST等)。处理不存在的文件请求，返回各种形式的状态码，解析MIME类型等。但许多特定功能的HTTP服务器并不需要所有这些功能。例如，很多网站只是想显示“建设中“的消息。很显然，Apache对于这样的网站是大材小用了。这样的网站完全可以使用只做一件事情的定制服务器。J">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-用Java编写你自己的简单HTTP服务器" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/02/27/用Java编写你自己的简单HTTP服务器/" class="article-date">
+  <time datetime="2012-02-26T20:12:00.000Z" itemprop="datePublished">2012-02-27</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      用Java编写你自己的简单HTTP服务器
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>HTTP是个大协议，完整功能的HTTP服务器必须响应资源请求，将URL转换为本地系统的资源名。响应各种形式的HTTP请求(GET、POST等)。处理不存在的文件请求，返回各种形式的状态码，解析MIME类型等。但许多特定功能的HTTP服务器并不需要所有这些功能。例如，很多网站只是想显示“建设中“的消息。很显然，Apache对于这样的网站是大材小用了。这样的网站完全可以使用只做一件事情的定制服务器。Java网络类库使得编写这样的单任务服务器轻而易举。<br><br><a id="more"></a><br><br>&nbsp;<br><br>定制服务器不只是用于小网站。大流量的网站如Yahoo，也使用定制服务器，因为与一般用途的服务器相比，只做一件事情的服务器通常要快得多。针对某项任务来优化特殊用途的服务器很容易；其结果往往比需要响应很多种请求的一般用途服务器高效得多。例如，对于重复用于多页面或大流量页面中的图标和图片，用一个单独的服务器处理会更好（并且还可以避免在请求时携带不必要的Cookie，因而可以减少请求/响应数据，从而减少下载带宽，提升速度）；这个服务器在启动时把所有图片文件读入内存，从RAM中直接提供这些文件，而不是每次请求都从磁盘上读取。此外，如果你不想在包含这些图片的页面请求之外单独记录这些图片，这个单独服务器则会避免在日志记录上浪费时间。<br><br>&nbsp;<br><br>本篇为大家简要演示三种HTTP服务器：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp; 简单的单文件服务器<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp; 重定向服务器<br><br>(3)&nbsp;&nbsp;&nbsp;&nbsp; 完整功能的HTTP服务器<br><br><strong><span style="font-size:18px;"></span></strong><br><br><span style="font-size:18px;"><strong>简单的单文件服务器</strong></span><br>该服务器的功能：无论接受到何种请求，都始终发送同一个文件。这个服务器命名为SingleFileHTTPServer，文件名、本地端口和内容编码方式从命令行读取。如果缺省端口，则假定端口号为80。如果缺省编码方式，则假定为ASCII。<br><pre name="code" class="java">import java.io.<em>;<br>import java.net.ServerSocket;<br>import java.net.Socket;<br><br>public class SingleFileHTTPServer extends Thread {<br><br>private byte[] content;<br>private byte[] header;<br>private int port=80;<br><br>private SingleFileHTTPServer(String data, String encoding,<br>String MIMEType, int port) throws UnsupportedEncodingException {<br>this(data.getBytes(encoding), encoding, MIMEType, port);<br>}<br><br>public SingleFileHTTPServer(byte[] data, String encoding, String MIMEType, int port)throws UnsupportedEncodingException {<br>this.content=data;<br>this.port=port;<br>String header=&quot;HTTP/1.0 200 OK\r\n&quot;+<br>&quot;Server: OneFile 1.0\r\n&quot;+<br>&quot;Content-length: &quot;+this.content.length+&quot;\r\n&quot;+<br>&quot;Content-type: &quot;+MIMEType+&quot;\r\n\r\n&quot;;<br>this.header=header.getBytes(&quot;ASCII&quot;);<br>}<br><br>public void run() {<br>try {<br>ServerSocket server=new ServerSocket(this.port);<br>System.out.println(&quot;Accepting connections on port &quot;+server.getLocalPort());<br>System.out.println(&quot;Data to be sent:&quot;);<br>System.out.write(this.content);<br><br>while (true) {<br>Socket connection=null;<br>try {<br>connection=server.accept();<br>OutputStream out=new BufferedOutputStream(connection.getOutputStream());<br>InputStream in=new BufferedInputStream(connection.getInputStream());<br><br>StringBuffer request=new StringBuffer();<br>while (true) {<br>int c=in.read();<br>if (c==’\r’||c==’\n’||c==-1) {<br>break;<br>}<br>request.append((char)c);<br><br>}<br><br>//如果检测到是HTTP/1.0及以后的协议，按照规范，需要发送一个MIME首部<br>if (request.toString().indexOf(&quot;HTTP/&quot;)!=-1) {<br>out.write(this.header);<br>}<br><br>out.write(this.content);<br>out.flush();<br><br>} catch (IOException e) {<br>// TODO: handle exception<br>}finally{<br>if (connection!=null) {<br>connection.close();<br>}<br>}<br>}<br><br>} catch (IOException e) {<br>System.err.println(&quot;Could not start server. Port Occupied&quot;);<br>}<br>}<br><br>public static void main(String[] args) {<br>try {<br>String contentType=&quot;text/plain&quot;;<br>if (args[0].endsWith(&quot;.html&quot;)||args[0].endsWith(&quot;.htm&quot;)) {<br>contentType=&quot;text/html&quot;;<br>}<br><br>InputStream in=new FileInputStream(args[0]);<br>ByteArrayOutputStream out=new ByteArrayOutputStream();<br>int b;<br>while ((b=in.read())!=-1) {<br>out.write(b);<br>}<br>byte[] data=out.toByteArray();<br><br>//设置监听端口<br>int port;<br>try {<br>port=Integer.parseInt(args[1]);<br>if (port&lt;1||port&gt;65535) {<br>port=80;<br>}<br>} catch (Exception e) {<br>port=80;<br>}<br><br>String encoding=&quot;ASCII&quot;;<br>if (args.length&gt;2) {<br>encoding=args[2];<br>}<br><br>Thread t=new SingleFileHTTPServer(data, encoding, contentType, port);<br>t.start();<br><br>} catch (ArrayIndexOutOfBoundsException e) {<br> System.out.println(&quot;Usage:java SingleFileHTTPServer filename port encoding&quot;);<br>}catch (Exception e) {<br>System.err.println(e);// TODO: handle exception<br>}<br>}<br>}<br></em></pre><br><br>SingleFileHTTPServer类本身是Thread的子类。它的run()方法处理入站连接。此服务器可能只是提供小文件，而且只支持低吞吐量的web网站。由于服务器对每个连接所需完成的所有工作就是检查客户端是否支持HTTP/1.0，并为连接生成一两个较小的字节数组，因此这可能已经足够了。另一方面，如果你发现客户端被拒绝，则可以使用多线程。许多事情取决于所提供文件的大小，每分钟所期望连接的峰值数和主机上Java的线程模型。对弈这个程序复杂写的服务器，使用多线程将会有明显的收益。<br><br>Run()方法在指定端口创建一个ServerSocket。然后它进入无限循环，不断地接受连接并处理连接。当接受一个socket时，就会由一个InputStream从客户端读取请求。它查看第一行是否包含字符串HTTP。如果包含此字符串，服务器就假定客户端理解HTTP/1.0或以后的版本，因此为该文件发送一个MIME首部；然后发送数据。如果客户端请求不包含字符串HTTP，服务器就忽略首部，直接发送数据。最后服务器关闭连接，尝试接受下一个连接。<br><br>而main()方法只是从命令行读取参数。从第一个命令行参数读取要提供的文件名。如果没有指定文件或者文件无法打开，就显示一条错误信息，程序退出。如果文件能够读取，其内容就读入byte数组data.关于文件的内容类型，将进行合理的猜测，结果存储在contentType变量中。接下来，从第二个命令行参数读取端口号。如果没有指定端口或第二个参数不是0到65535之间的整数，就使用端口80。从第三个命令行参数读取编码方式（前提是提供了）。否则，编码方式就假定为ASCII。然后使用这些值构造一个SingleFileHTTPServer对象，开始运行。这是唯一可能的接口。<br>下面是测试的结果：<br><br>命令行编译代码并设置参数：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330257995ai0A.gif" alt=""><br><br>telnet:：<br><br>首先，启用telnet服务（如果不会，自行google之），接着测试该主机的端口：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258254lw22.gif" alt=""><br><br>结果（可以看到请求的输出内容）：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258353Oupp.gif" alt=""><br><br>HTTP协议测试：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258415gQ2G.gif" alt=""><br><br>文档（这是之前一篇文章–小车动画的文档）：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258497D7OD.gif" alt=""><br><br><strong><span style="font-size:18px;">重定向服务器</span></strong><br><br>实现的功能——将用户从一个Web网站重定向到另一个站点。下例从命令行读取URL和端口号，打开此端口号的服务器可能速度会很快，因此不需要多线程。尽管日次，使用多线程可能还是会带来一些好处，尤其是对于网络带宽很低、吞吐量很小的网站。在此主要是为了演示，所以，已经将该服务器做成多线程的了。这里为了简单起见，为每个连接都启用了一个线程，而不是采用线程池。或许更便于理解，但这真的有些浪费系统资源并且显得低效。<br><pre name="code" class="java">import java.io.BufferedInputStream;<br>import java.io.BufferedWriter;<br>import java.io.IOException;<br>import java.io.InputStreamReader;<br>import java.io.OutputStreamWriter;<br>import java.io.Reader;<br>import java.io.Writer;<br>import java.net.BindException;<br>import java.net.ServerSocket;<br>import java.net.Socket;<br>import java.util.Date;<br><br>public class Redirector implements Runnable {<br><br>private int port;<br>private String newSite;<br><br>public Redirector(String site, int port){<br>this.port=port;<br>this.newSite=site;<br>}<br><br>@Override<br>public void run() {<br>try {<br>ServerSocket server=new ServerSocket(port);<br>System.out.println(&quot;Redirecting connection on port&quot;<br>+server.getLocalPort()+&quot; to &quot;+newSite);<br><br>while (true) {<br>try {<br>Socket socket=server.accept();<br>Thread thread=new RedirectThread(socket);<br>thread.start();<br>} catch (IOException e) {<br>// TODO: handle exception<br>}<br>}<br>} catch (BindException e) {<br>System.err.println(&quot;Could not start server. Port Occupied&quot;);<br>}catch (IOException e) {<br>System.err.println(e);<br>}<br><br>}<br><br>class RedirectThread extends Thread {<br><br>private Socket connection;<br><br>RedirectThread(Socket s) {<br>this.connection=s;<br>}<br><br>public void run() {<br>try {<br>Writer out=new BufferedWriter(<br>new OutputStreamWriter(connection.getOutputStream(),&quot;ASCII&quot;));<br>Reader in=new InputStreamReader(<br>new BufferedInputStream(connection.getInputStream()));<br><br>StringBuffer request=new StringBuffer(80);<br>while (true) {<br>int c=in.read();<br>if (c==’\t’||c==’\n’||c==-1) {<br>break;<br>}<br>request.append((char)c);<br>}<br><br>String get=request.toString();<br>int firstSpace=get.indexOf(‘ ‘);<br>int secondSpace=get.indexOf(‘ ‘, firstSpace+1);<br>String theFile=get.substring(firstSpace+1, secondSpace);<br><br>if (get.indexOf(&quot;HTTP&quot;)!=-1) {<br>out.write(&quot;HTTP/1.0 302 FOUND\r\n&quot;);<br>Date now=new Date();<br>out.write(&quot;Date: &quot;+now+&quot;\r\n&quot;);<br>out.write(&quot;Server: Redirector 1.0\r\n&quot;);<br>out.write(&quot;Location: &quot;+newSite+theFile+&quot;\r\n&quot;);<br>out.write(&quot;Content-Type: text/html\r\n\r\n&quot;);<br>out.flush();<br>}<br><br>//并非所有的浏览器都支持重定向，<br>//所以我们需要生成一个适用于所有浏览器的HTML文件，来描述这一行为<br>out.write(&quot;&lt;HTML&gt;&lt;HEAD&gt;&lt;TITLE&gt;Document moved&lt;/TITLE&gt;&lt;/HEAD&gt;\r\n&quot;);<br>out.write(&quot;&lt;BODY&gt;&lt;H1&gt;Document moved&lt;/H1&gt;&lt;/BODY&gt;\r\n&quot;);<br>out.write(&quot;The document &quot;+theFile<br>+&quot; has moved to \r\n&lt;A HREF=\&quot;&quot;+newSite+theFile+&quot;\&quot;&gt;&quot;<br>+newSite+theFile<br>+&quot;&lt;/A&gt;.\r\n Please update your bookmarks&quot;);<br>out.write(&quot;&lt;/BODY&gt;&lt;/HTML&gt;\r\n&quot;);<br>out.flush();<br>} catch (IOException e) {<br>}finally{<br>try {<br>if (connection!=null) {<br>connection.close();<br>}<br>} catch (IOException e2) {<br><br>}<br>}<br>}<br><br>}<br><br>/**
+  @param args<br> <em>/<br>public static void main(String[] args) {<br>int thePort;<br>String theSite;<br><br>try {<br>theSite=args[0];<br><br>//如果结尾有’/‘，则去除<br>if (theSite.endsWith(&quot;/&quot;)) {<br>theSite=theSite.substring(0,theSite.length()-1);<br>}<br>} catch (Exception e) {<br>System.out.println(&quot;Usage: java Redirector <a href="http://www.newsite.com/" target="_blank" rel="external">http://www.newsite.com/</a> port&quot;);<br>return;<br>}<br><br>try {<br>thePort=Integer.parseInt(args[1]);<br>} catch (Exception e) {<br>thePort=80;<br>}<br><br>Thread t=new Thread(new Redirector(theSite, thePort));<br>t.start();<br><br>}<br><br>}<br></em></pre><br>HTTP测试：<br><br>侦听8010端口，此处重定向到百度：<br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258730GO7Q.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201202/26/0_1330258796hvTV.gif" alt=""><br><br>main()方法提供一个非常简单的界面，读取新网站的URL（为了把链接重定向到该URL）和监听本地端口。它使用这些信息构造了一个Rredirector对象。然后它使用所生成的Runnable对象（Redirector实现了Runnable）来生成一个新线程并启动。如果没有指定端口，Rredirector则会监听80端口。<br><br>Redirectro的run()方法将服务器socket绑定与此端口，显示一个简短的状态消息，然后进入无限循环，监听连接。每次接受连接，返回的Socket对象会用来构造一个RedirectThread。然后这个RedirectThread被启动。所有与客户端进一步的交互由此新线程完成。Redirector的run()方法只是等待下一个入站连接。<br><br>RedirectThread的run()方法完成了很多工作。它先把一个Writer链接到Socket的输出流，把一个Reader链接到Socket的输入流。输入流和输出流都有缓冲。然后run()方法读取客户端发送的第一行。虽然客户端可能会发送整个Mime首部，但我们会忽略这些。第一行包含所有所需的信息。这一行内容可能会是这样：<br><br>GET /directory/filename.html HTTP/1.0<br><br>可能第一个词是POST或PUT，也可能没有HTTP版本。<br><br>返回的输出，第一行显示为：<br><br>HTTP/1.0 302 FOUND<br><br>这是一个HTTP/1.0响应吗，告知客户端要被重定向。第二行是“Date：”首部，给出服务器的当前时间。这一行是可选的。第三行是服务器的名和版本；这一行也是可选的，但蜘蛛程序可用它来统计记录最流行的web服务器。下一行是“Location：”首部，对于此服务器这是必须的。它告知客户端要重定向的位置。最后是标准的“Content-type:”首部。这里发送内容类型text/html，只是客户端将会看到的HTML。最后，发送一个空行来标识首部数据的结束。<br><br>如果浏览器不支持重定向，那么那段HTML标签就会被发送。<br><br><strong><span style="font-size:18px;">功能完整的HTTP服务器</span></strong><br><br>这里，我们来开发一个具有完整功能的HTTP服务器，成为JHTTP，它可以提供一个完整的文档树，包括图片、applet、HTML文件、文本文件等等。它与SingleFileHTTPServer非常相似，只不过它所关注的是GET请求。此服务器仍然是相当轻量级的；看过这个代码后，我们将讨论可能希望添加的其他特性。<br><br>由于这个服务器必须为可能很慢的网络连接提供文件系统的大文件，因此要改变其方式。这里不再在执行主线程中处理到达的每个请求，而是将入站连接放入池中。由一个RequestProcessor类实例从池中移走连接并进行处理。<br><pre name="code" class="java">import java.io.File;<br>import java.io.IOException;<br>import java.net.ServerSocket;<br>import java.net.Socket;<br><br>import org.omg.CORBA.Request;<br><br>public class JHTTP extends Thread {<br><br>private File documentRootDirectory;<br>private String indexFileName=&quot;index.html&quot;;<br>private ServerSocket server;<br>private int numThreads=50;<br><br>public JHTTP(File documentRootDirectory,int port , String indexFileName)throws IOException {<br>if (!documentRootDirectory.isDirectory()) {<br>throw new IOException(documentRootDirectory+&quot; does not exist as a directory &quot;);<br>}<br>this.documentRootDirectory=documentRootDirectory;<br>this.indexFileName=indexFileName;<br>this.server=new ServerSocket(port);<br>}<br><br>private JHTTP(File documentRootDirectory, int port)throws IOException {<br>this(documentRootDirectory, port, &quot;index.html&quot;);<br>}<br><br>public void run(){<br>for (int i = 0; i &lt; numThreads; i++) {<br>Thread t=new Thread(new RequestProcessor(documentRootDirectory, indexFileName));<br>t.start();<br>}<br><br>System.out.println(&quot;Accepting connection on port &quot;<br>+server.getLocalPort());<br>System.out.println(&quot;Document Root: &quot;+documentRootDirectory);<br>while (true) {<br>try {<br>Socket request=server.accept();<br>RequestProcessor.processRequest(request);<br>} catch (IOException e) {<br>// TODO: handle exception<br>}<br>}<br>}<br><br>/**
+  @param args<br> */<br>public static void main(String[] args) {<br>File docroot;<br>try {<br>docroot=new File(args[0]);<br>} catch (ArrayIndexOutOfBoundsException e) {<br>System.out.println(&quot;Usage: java JHTTP docroot port indexfile&quot;);<br>return;<br>}<br><br>int port;<br>try {<br>port=Integer.parseInt(args[1]);<br>if (port&lt;0||port&gt;65535) {<br>port=80;<br>}<br>} catch (Exception e) {<br>port=80;<br>}<br><br>try {<br>JHTTP webserver=new JHTTP(docroot, port);<br>webserver.start();<br>} catch (IOException e) {<br>System.out.println(&quot;Server could not start because of an &quot;+e.getClass());<br>System.out.println(e);<br>}<br><br>}<br><br>}<br></pre><br><br>JHTTP类的main()方法根据args[0]设置文档的根目录。端口从args[1]读取，或者使用默认的80.然后构造一个新的JHTTP线程并启动。此JHTTP线程生成50个RequestProcessor线程处理请求，每个线程在可用时从RequestProcessor池获取入站连接请求。JHTTP线程反复地接受入站连接，并将其放在RequestProcessor池中。每个连接由下例所示的RequestProcessor类的run()方法处理。此方法将一直等待，直到从池中得到一个Socket。一旦得到Socket，就获取输入和输出流，并链接到阅读器和书写器。接着的处理，除了多出文档目录、路径的处理，其他的同单文件服务器。<br><pre name="code" class="java">import java.io.BufferedInputStream;<br>import java.io.BufferedOutputStream;<br>import java.io.DataInputStream;<br>import java.io.File;<br>import java.io.FileInputStream;<br>import java.io.IOException;<br>import java.io.InputStreamReader;<br>import java.io.OutputStream;<br>import java.io.OutputStreamWriter;<br>import java.io.Reader;<br>import java.io.Writer;<br>import java.net.Socket;<br>import java.util.Date;<br>import java.util.List;<br>import java.util.LinkedList;<br>import java.util.StringTokenizer;<br><br>public class RequestProcessor implements Runnable {<br><br>private static List pool=new LinkedList();<br>private File documentRootDirectory;<br>private String indexFileName=&quot;index.html&quot;;<br><br>public RequestProcessor(File documentRootDirectory,String indexFileName) {<br>if (documentRootDirectory.isFile()) {<br>throw new IllegalArgumentException();<br>}<br>this.documentRootDirectory=documentRootDirectory;<br>try {<br>this.documentRootDirectory=documentRootDirectory.getCanonicalFile();<br>} catch (IOException e) {<br>}<br><br>if (indexFileName!=null) {<br>this.indexFileName=indexFileName;<br>}<br>}<br><br>public static void processRequest(Socket request) {<br>synchronized (pool) {<br>pool.add(pool.size(),request);<br>pool.notifyAll();<br>}<br>}<br><br>@Override<br>public void run() {<br>//安全性检测<br>String root=documentRootDirectory.getPath();<br><br>while (true) {<br>Socket connection;<br>synchronized (pool) {<br>while (pool.isEmpty()) {<br>try {<br>pool.wait();<br>} catch (InterruptedException e) {<br>}<br><br>}<br>connection=(Socket)pool.remove(0);<br>}<br><br>try {<br>String fileName;<br>String contentType;<br>OutputStream raw=new BufferedOutputStream(connection.getOutputStream());<br>Writer out=new OutputStreamWriter(raw);<br>Reader in=new InputStreamReader(new BufferedInputStream(connection.getInputStream()), &quot;ASCII&quot;);<br><br>StringBuffer request=new StringBuffer(80);<br>while (true) {<br>int c=in.read();<br>if (c==’\t’||c==’\n’||c==-1) {<br>break;<br>}<br>request.append((char)c);<br>}<br><br>String get=request.toString();<br>//记录日志<br>System.out.println(get);<br><br>StringTokenizer st=new StringTokenizer(get);<br>String method=st.nextToken();<br>String version=&quot;&quot;;<br>if (method==&quot;GET&quot;) {<br>fileName=st.nextToken();<br>if (fileName.endsWith(&quot;/&quot;)) {<br>fileName+=indexFileName;<br>}<br>contentType=guessContentTypeFromName(fileName);<br>if (st.hasMoreTokens()) {<br>version=st.nextToken();<br>}<br><br>File theFile=new File(documentRootDirectory,fileName.substring(1,fileName.length()));<br>if (theFile.canRead()&amp;&amp;theFile.getCanonicalPath().startsWith(root)) {<br>DataInputStream fis=new DataInputStream(new BufferedInputStream(new FileInputStream(theFile)));<br>byte[] theData=new byte[(int)theFile.length()];<br>fis.readFully(theData);<br>fis.close();<br>if (version.startsWith(&quot;HTTP &quot;)) {<br>out.write(&quot;HTTP/1.0 200 OK\r\n&quot;);<br>Date now=new Date();<br>out.write(&quot;Date: &quot;+now+&quot;\r\n&quot;);<br>out.write(&quot;Server: JHTTP 1.0\r\n&quot;);<br>out.write(&quot;Content-length: &quot;+theData.length+&quot;\r\n&quot;);<br>out.write(&quot;Content-Type: &quot;+contentType+&quot;\r\n\r\n&quot;);<br>out.flush();<br>}<br>raw.write(theData);<br>raw.flush();<br>}else {<br>if (version.startsWith(&quot;HTTP &quot;)) {<br>out.write(&quot;HTTP/1.0 404 File Not Found\r\n&quot;);<br>Date now=new Date();<br>out.write(&quot;Date: &quot;+now+&quot;\r\n&quot;);<br>out.write(&quot;Server: JHTTP 1.0\r\n&quot;);<br>out.write(&quot;Content-Type: text/html\r\n\r\n&quot;);<br>out.flush();<br>}<br>out.write(&quot;&lt;HTML&gt;\r\n&quot;);<br>out.write(&quot;&lt;HEAD&gt;&lt;TITLE&gt;File Not Found&lt;/TITLE&gt;&lt;/HRAD&gt;\r\n&quot;);<br>out.write(&quot;&lt;BODY&gt;\r\n&quot;);<br>out.write(&quot;&lt;H1&gt;HTTP Error 404: File Not Found&lt;/H1&gt;&quot;);<br>out.write(&quot;&lt;/BODY&gt;&lt;/HTML&gt;\r\n&quot;);<br>}<br>}else {//方法不等于&quot;GET&quot;<br>if (version.startsWith(&quot;HTTP &quot;)) {<br>out.write(&quot;HTTP/1.0 501 Not Implemented\r\n&quot;);<br>Date now=new Date();<br>out.write(&quot;Date: &quot;+now+&quot;\r\n&quot;);<br>out.write(&quot;Server: JHTTP 1.0\r\n&quot;);<br>out.write(&quot;Content-Type: text/html\r\n\r\n&quot;);<br>out.flush();<br>}<br>out.write(&quot;&lt;HTML&gt;\r\n&quot;);<br>out.write(&quot;&lt;HEAD&gt;&lt;TITLE&gt;Not Implemented&lt;/TITLE&gt;&lt;/HRAD&gt;\r\n&quot;);<br>out.write(&quot;&lt;BODY&gt;\r\n&quot;);<br>out.write(&quot;&lt;H1&gt;HTTP Error 501: Not Implemented&lt;/H1&gt;&quot;);<br>out.write(&quot;&lt;/BODY&gt;&lt;/HTML&gt;\r\n&quot;);<br>}<br><br>} catch (IOException e) {<br>}finally{<br>try {<br>connection.close();<br>} catch (IOException e2) {<br>}<br><br>}<br>}<br>}<br><br>public static String guessContentTypeFromName(String name) {<br>if (name.endsWith(&quot;.html&quot;)||name.endsWith(&quot;.htm&quot;)) {<br>return &quot;text/html&quot;;<br>}else if (name.endsWith(&quot;.txt&quot;)||name.endsWith(&quot;.java&quot;)) {<br>return &quot;text/plain&quot;;<br>}else if (name.endsWith(&quot;.gif&quot;)) {<br>return &quot;image/gif&quot;;<br>}else if (name.endsWith(&quot;.class&quot;)) {<br>return &quot;application/octet-stream&quot;;<br>}else if (name.endsWith(&quot;.jpg&quot;)||name.endsWith(&quot;.jpeg&quot;)) {<br>return &quot;image/jpeg&quot;;<br>}else {<br>return &quot;text/plain&quot;;<br>}<br>}<br><br>}<br></pre><br>不足与改善：<br><br>这个服务器可以提供一定的功能，但仍然十分简单，还可以添加以下的一些特性：<br><br>（1）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 服务器管理界面<br><br>（2）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 支持CGI程序和Java Servlet API<br><br>（3）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 支持其他请求方法<br><br>（4）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 常见Web日志文件格式的日志文件<br><br>（5）&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 支持多文档根目录，这样各用户可以有自己的网站<br><br>最后，花点时间考虑一下可以采用什么方法来优化此服务器。如果真的希望使用JHTTP运行高流量的网站，还可以做一些事情来加速此服务器。第一点也是最重要的一点就是使用即时编译器（JIT），如HotSpot。JIT可以将程序的性能提升大约一个数量级。第二件事就是实现智能缓存。记住接受的请求，将最频繁的请求文件的数据存储在Hashtable中，使之保存在内存中。使用低优先级的线程更新此缓存。<br><br><span style="white-space:pre"></span>——参考自网络编程<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/02/27/用Java编写你自己的简单HTTP服务器/" data-id="cii1bfd58000egaz2qywma76f" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/03/05/OAuth工作原理随想——让你的系统提供的服务更加安全/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          OAuth工作原理随想——让你的系统提供的服务更加安全
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/02/10/给你的站点全面提速——来自YahooUI的各种BsetPractices/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">给你的站点全面提速——来自YahooUI的各种BsetPractices</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-用Java编写你自己的简单HTTP服务器" data-title="用Java编写你自己的简单HTTP服务器" data-url="http://vinoyang.com/2012/02/27/用Java编写你自己的简单HTTP服务器/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

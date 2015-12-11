@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>从零开始学.net多线程系列(二) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="线程的生命周期下面的图片展示了大部分线程的通常状态，以及当一个线程从某种状态切换成另一种状态时发生的某些动作：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开始学.net多线程系列(二)">
+<meta property="og:url" content="http://vinoyang.com/2011/11/26/从零开始学-net多线程系列-二/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="线程的生命周期下面的图片展示了大部分线程的通常状态，以及当一个线程从某种状态切换成另一种状态时发生的某些动作：">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322224374q9lu.png">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322224970ul1n.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/26/2983011_1322285032Vho9.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/26/2983011_1322285149J88L.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_13222256005hAF.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322226161OTWV.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322226206zmWI.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322226320x6e8.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/25/2983011_1322226320x6e8.jpg">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从零开始学.net多线程系列(二)">
+<meta name="twitter:description" content="线程的生命周期下面的图片展示了大部分线程的通常状态，以及当一个线程从某种状态切换成另一种状态时发生的某些动作：">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-从零开始学-net多线程系列-二" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/11/26/从零开始学-net多线程系列-二/" class="article-date">
+  <time datetime="2011-11-25T21:02:00.000Z" itemprop="datePublished">2011-11-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      从零开始学.net多线程系列(二)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><strong><span style="font-size:24px">线程的生命周期</span></strong><br><br>下面的图片展示了大部分线程的通常状态，以及当一个线程从某种状态切换成另一种状态时发生的某些动作：<br><br><a id="more"></a><br><br><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322224374q9lu.png" alt=""><br><br>这里有一个关于线程状态的列表：<br><table border="1" cellspacing="0" cellpadding="0"><tbody><tr><td valign="top"><br><br>状态<br></td><td valign="top"><br><br>描述<br></td></tr><tr><td valign="top"><br><br>Running<br></td><td valign="top"><br><br>线程已经被启动，并且没有被阻塞，没有挂起的ThreadAbortException.<br></td></tr><tr><td valign="top"><br><br>StopRequested<br></td><td valign="top"><br><br>线程正在请求停止，该状态只供内部使用。<br></td></tr><tr><td valign="top"><br><br>SuspendRequested<br></td><td valign="top"><br><br>现在正在请求暂停。<br></td></tr><tr><td valign="top"><br><br>Background<br></td><td valign="top"><br><br>线程将被作为后台线程执行，而不是前台线程。该状态是通过设置Thread.IsBackground属性控制的。<br></td></tr><tr><td valign="top"><br><br>Unstarted<br></td><td valign="top"><br><br>Thread.Start方法还没有在线程上被调用<br></td></tr><tr><td valign="top"><br><br>Stopped<br></td><td valign="top"><br><br>线程已经停止。<br></td></tr><tr><td valign="top"><br><br>WaitSleepJoin<br></td><td valign="top"><br><br>线程被阻塞，这可能是对Thread.Sleep或者Thread.Join的调用结果，或者是正在请求一个锁。例如，通过调用Monitor.Enter或者Monitor.Wait或者正在等待一个线程同步对象，如ManualResetEvent。<br></td></tr><tr><td valign="top"><br><br>Suspended<br></td><td valign="top"><br><br>线程已经被暂停<br></td></tr><tr><td valign="top"><br><br>AbortRequested<br></td><td valign="top"><br><br>Thread.Abort方法已经在线程上被调用，但是线程还没有接受到挂起的System.Threading.ThreadAbortException来企图终止它<br></td></tr><tr><td valign="top"><br><br>Abort<br></td><td valign="top"><br><br>线程状态包含AbortRequested，并且线程现在已经“死”了，但它的状态还没有变成Stopped。<br></td></tr></tbody></table><br><br>摘自：<a href="http://msdn.microsoft.com/en-us/library/system.threading.threadstate.aspx" target="_blank" rel="external">MSDN ThreadState page</a><br><br><strong><span style="font-size:24px">关于此更多的细节</span></strong><br><br>在这一节，我将通过一些代码来检查上面提到的一些状态。可能涉及不到每一个状态，但是我会尽力覆盖他们中的大部分。<br><br><strong>Join</strong><br><br>Join 方法(没有任何参数)阻塞调用线程(调用该方法的线程)直到当前线程被终止。需要注意的是，如果当前线程没用终止，调用者线程将会无限期阻塞。如果在调用Join方法时，线程已经阻塞了，那么方法将会立刻返回。<br><br>Join方法有一个重载，它可以让你设置线程等待完成的毫秒数。当时间到了，如果线程还没有完成，Join将结束并返回控制权给调用线程（同时被“Join”的线程会继续执行）。<br><br>该方法修改调用线程的状态为WaitSleepJoin。<br><br>当一个线程依赖另一个线程的时候，该方法相当有用。<br><br>让我们来看一个小例子，在该例子中，我们有两个线程。我想让第一个线程先运行，第二个线程在第一个线程完成之后再运行。<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace ThreadJoin<br>{<br>    class Program<br>    {<br>        public static Thread T1;<br>        public static Thread T2;<br><br>        public static void Main(string[] args)<br>        {<br>            T1 = new Thread(new ThreadStart(First));<br>            T2 = new Thread(new ThreadStart(Second));<br>            T1.Name = &quot;T1&quot;;<br>            T2.Name = &quot;T2&quot;;<br>            T1.Start();<br>            T2.Start();<br>            Console.ReadLine();<br>        }<br><br>        //thread T1 threadStart<br>        private static void First()<br>        {<br>            for (int i = 0; i &lt; 5; i++)<br>            {<br>                Console.WriteLine(<br>                    &quot;T1 state [{0}], T1 showing {1}&quot;,<br>                    T1.ThreadState,  i.ToString());<br>            }<br>        }<br><br>        //thread T2 threadStart<br>        private static void Second()<br>        {<br>            //what the state of both threads<br>            Console.WriteLine(<br>                &quot;T2 state [{0}] just about to Join, T1 state [{1}], CurrentThreadName={2}&quot;,<br>                T2.ThreadState, T1.ThreadState,<br>                Thread.CurrentThread.Name);<br><br>            //join T1<br>            T1.Join();<br><br>            Console.WriteLine(<br>                &quot;T2 state [{0}] T2 just joined T1, T1 state [{1}], CurrentThreadName={2}&quot;,<br>                T2.ThreadState, T1.ThreadState,<br>                Thread.CurrentThread.Name);<br><br>            for (int i = 5; i &lt; 10; i++)<br>            {<br>                Console.WriteLine(<br>                    &quot;T2 state [{0}], T1 state [{1}], CurrentThreadName={2} showing {3}&quot;,<br>                    T2.ThreadState, T1.ThreadState,<br>                    Thread.CurrentThread.Name, i.ToString());<br>            }<br><br>            Console.WriteLine(<br>                &quot;T2 state [{0}], T1 state [{1}], CurrentThreadName={2}&quot;,<br>                T2.ThreadState, T1.ThreadState,<br>                Thread.CurrentThread.Name);<br>        }<br>    }<br>}</pre><br><br>这里是该小程序的输出，我们的确可以看到线程1完成之后，线程2开始运行。<br><br><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322224970ul1n.jpg" alt=""><br><br>注意：线程1继续运行然后结束，接着线程2指定的操作开始运行。<br><br><strong>Sleep</strong><br><br>Thread类静态的Thread.Sleep方法相当简单。它简单地暂停当前线程一段时间。看接下来的一个例子，两个线程运行两个独立的计数方法：线程1(T1)计数范围从0-50；线程2(T2)计数范围从51-100。<br><br>当计数器到达10的时候T1将睡眠10秒，而当T2计数到70的时候，它将睡眠5秒。<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace ThreadSleep<br>{<br>    class Program<br>    {<br>        public static Thread T1;<br>        public static Thread T2;<br><br>        public static void Main(string[] args)<br>        {<br>            Console.WriteLine(&quot;Enter Main method&quot;);<br><br>            T1 = new Thread(new ThreadStart(Count1));<br>            T2 = new Thread(new ThreadStart(Count2));<br>            T1.Start();<br>            T2.Start();<br>            Console.WriteLine(&quot;Exit Main method&quot;);<br>            Console.ReadLine();<br><br>        }<br><br>        //thread T1 threadStart<br>        private static void Count1()<br>        {<br>            Console.WriteLine(&quot;Enter T1 counter&quot;);<br>            for (int i = 0; i &lt; 50; i++)<br>            {<br>                Console.Write(i + &quot; &quot;);<br>                if (i == 10)<br>                    Thread.Sleep(1000);<br>            }<br>            Console.WriteLine(&quot;Exit T1 counter&quot;);<br>        }<br><br>        //thread T2 threadStart<br>        private static void Count2()<br>        {<br>            Console.WriteLine(&quot;Enter T2 counter&quot;);<br>            for (int i = 51; i &lt; 100; i++)<br>            {<br>                Console.Write(i + &quot; &quot;);<br>                if (i == 70)<br>                    Thread.Sleep(5000);<br>            }<br>            Console.WriteLine(&quot;Exit T2 counter&quot;);<br>        }<br>    }<br>}</pre><br><br>输入结果：<br><br><img src="http://hi.csdn.net/attachment/201111/26/2983011_1322285032Vho9.jpg" alt=""><br><br>在这个例子中，线程T1首先运行，开始计数（在后面我们将看到，T1可能没必要先运行）到10。在该点线程T1睡眠1秒然后状态变为WaitSleepJoin。在该点然后线程T2开始运行，也同时开始它的计数，直到70它也被强制睡眠(被代之以WaitSleepJoin状态)，在该点线程T1被唤醒以继续执行到完成。T2然后才会被唤醒以完成执行(仅当T1已经完成之后，T2才会完成余下的工作)。<br><br><strong>Interrupt</strong><br><br>当一个线程被“要求”睡眠，线程状态会变为WaitSleepJoin。如果线程在该状态，它可能会被放回正在被调度的线程队列中(通过使用Interrupt方法)。当一个线程处在WaitSleepJoin状态时调用Interrupt方法，将导致一个ThreadInterruptedException异常被抛出，所以这里写的任何代码都需要被catch该异常。<br><br>如果该线程目前不是处于等待、睡眠或者连接的“阻塞”状态。当它下次开始被阻塞时将会被中断。<br><br>让我们看一个小例子：<br><pre lang="cs" id="pre2" style="padding-top:6px; padding-right:6px; padding-bottom:6px; padding-left:6px; font:normal normal normal 9pt/normal 'Courier New',Courier,mono; white-space:pre-wrap; overflow-x:auto; overflow-y:auto; border-top-style:solid; border-right-style:solid; border-bottom-style:solid; border-left-style:solid; border-top-width:1px; border-right-width:1px; border-bottom-width:1px; border-left-width:1px; border-top-color:rgb(251,237,187); border-right-color:rgb(251,237,187); border-bottom-color:rgb(251,237,187); border-left-color:rgb(251,237,187); word-wrap:break-word; margin-top:0px"><span class="code-keyword" style="color:blue">using</span> System;<br><span class="code-keyword" style="color:blue">using</span> System.Threading;<br><br><span class="code-keyword" style="color:blue">namespace</span> ThreadInterrupt<br>{<br>    <span class="code-keyword" style="color:blue">class</span> Program<br>    {<br>        <span class="code-keyword" style="color:blue">public</span> <span class="code-keyword" style="color:blue">static</span> Thread sleeper;<br>        <span class="code-keyword" style="color:blue">public</span> <span class="code-keyword" style="color:blue">static</span> Thread waker;<br><br>        <span class="code-keyword" style="color:blue">public</span> <span class="code-keyword" style="color:blue">static</span> <span class="code-keyword" style="color:blue">void</span> Main(<span class="code-keyword" style="color:blue">string</span>[] args)<br>        {<br>            Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">Enter Main method&quot;</span>);<br>            sleeper = <span class="code-keyword" style="color:blue">new</span> Thread(<span class="code-keyword" style="color:blue">new</span> ThreadStart(PutThreadToSleep));<br>            waker = <span class="code-keyword" style="color:blue">new</span> Thread(<span class="code-keyword" style="color:blue">new</span> ThreadStart(WakeThread));<br>            sleeper.Start();<br>            waker.Start();<br>            Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">Exiting Main method&quot;</span>);<br>            Console.ReadLine();<br>        }<br><br>        <span class="code-comment" style="color:rgb(0,128,0); font-style:italic">//</span><span class="code-comment" style="color:rgb(0,128,0); font-style:italic">thread sleeper threadStart<br></span>        <span class="code-keyword" style="color:blue">private</span> <span class="code-keyword" style="color:blue">static</span> <span class="code-keyword" style="color:blue">void</span> PutThreadToSleep()<br>        {<br>            <span class="code-keyword" style="color:blue">for</span> (<span class="code-keyword" style="color:blue">int</span> i = <span class="code-digit" style="color:navy">0</span>; i &lt; <span class="code-digit" style="color:navy">50</span>; i++)<br>            {<br>                Console.Write(i + <span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple"> &quot;</span>);<br>                <span class="code-keyword" style="color:blue">if</span> (i == <span class="code-digit" style="color:navy">10</span> || i == <span class="code-digit" style="color:navy">20</span> || i == <span class="code-digit" style="color:navy">30</span>)<br>                {<br>                    <span class="code-keyword" style="color:blue">try</span><br>                    {<br>                        Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">Sleep, Going to sleep at {0}&quot;</span>,<br>                            i.ToString());<br>                        Thread.Sleep(<span class="code-digit" style="color:navy">20</span>);<br>                    }<br>                    <span class="code-keyword" style="color:blue">catch</span> (ThreadInterruptedException e)<br>                    {<br>                        Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">Forcibly &quot;</span>);<br>                    }<br>                    Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">woken&quot;</span>);<br>                }<br>            }<br>        }<br><br>        <span class="code-comment" style="color:rgb(0,128,0); font-style:italic">//</span><span class="code-comment" style="color:rgb(0,128,0); font-style:italic">thread waker threadStart<br></span>        <span class="code-keyword" style="color:blue">private</span> <span class="code-keyword" style="color:blue">static</span> <span class="code-keyword" style="color:blue">void</span> WakeThread()<br>        {<br><br>            <span class="code-keyword" style="color:blue">for</span> (<span class="code-keyword" style="color:blue">int</span> i = <span class="code-digit" style="color:navy">51</span>; i &lt; <span class="code-digit" style="color:navy">100</span>; i++)<br>            {<br>                Console.Write(i + <span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple"> &quot;</span>);<br><br>                <span class="code-keyword" style="color:blue">if</span> (sleeper.ThreadState == ThreadState.WaitSleepJoin)<br>                {<br>                    Console.WriteLine(<span class="code-string" style="color:purple">&quot;</span><span class="code-string" style="color:purple">Interrupting sleeper&quot;</span>);<br>                    sleeper.Interrupt();<br>                }<br>            }<br><br>        }<br>    }<br>}</pre><br><br>运行结果：<br><br><img src="http://hi.csdn.net/attachment/201111/26/2983011_1322285149J88L.jpg" alt=""><br><br>从该输出可以看到，“睡眠”线程开始正常执行，当它到达10，开始睡眠，所以它的状态改变为WaitSleepJoin。然后，“唤醒”线程开始执行并且立即尝试Interrupt方法中断“睡眠”线程(当前“睡眠”线程正处在WaitSleepJoin状态，所以ThreadInterruptedException被抛出并且被捕获)。但是，作为初始的“睡眠”线程的睡眠时间间隔，它被再次允许执行直到完成。<br><br>我个人不是经常使用Interrupt方法，但是我真的认为中断线程是一个非常危险的操作，当你不能保证线程处于怎样状态的时候。<br><br>“<em>随意地中断一个线程是很危险的，因为在调用堆栈的任何类库的或者第三方组件的方法都可能会受到并非你预期的中断(你没有能很好地控制中断，而使它到处传播)。它将采取一种简单的锁机制或者同步资源来阻塞线程，任何挂起的中断都将不会发生。如果方法没有被设计来应对中断(比如在finally块中有一些清理代码)，可能会导致对象处于一种无用且不可达的状态，或者资源最终无法完全释放。</em><br><br><em>中断一个线程是安全的，当你完全知道它在那里的时候</em>”<br><br><strong>Pause</strong><br><br>线程通常会以调用Pause()方法的调用被暂停。但现在该方法已经过时了，所以你必须使用一个替代方法，比如WaitHandles。为了展示该方法，这里有一个合并过的应用程序包含了Pause/Resume以及后台线程的Abort方法示例。<br><br><strong>Resume</strong><br><br>线程也可以调用Resume()方法的调用被暂停。但现在该方法已经过时了，所以你必须使用一个替代方法，比如WaitHandles。为了展示该方法，这里有一个合并过的应用程序包含了Pause/Resume以及后台线程的Abort方法示例。<br><br><strong>Abort</strong><br><br>首先，我说明，确实是有一个Abort()方法，但你不应该使用它(我认为你确实不应该使用)。我想先引用两个很典型的使用Abort()方法很危险的例子：<br><br>“<em>一个被阻塞的线程通过它的Abort方法也可以被强行释放。它的功效看起来有点像Interrupt，并且异常：ThreadAbortException异常取代ThreadInterruptedException异常被抛出。另外，在catch块的结尾，异常会被再次抛出(当你企图终止线程的时候)，除非Thread.ResetAbort在catch块中被调用。在该过度时期，线程有一个AbortRequested的线程状态。</em><br><br><em>Interrupt和Abort尽管两者都是在一个不阻塞的线程上被调用，但却有很大的不同。Interrupt在做任何事情之前会等待直到线程下次被阻塞，Abort在线程正在执行的地方抛出一个异常—可能不止是在你自己的代码中，也可能是别人的代码（当你的方法被别人调用时）。</em>”<br><br>一旦你有一些并发工作需要完成，一个很平常的问题就会出现：我该如何组织它？这里有两个关于想要停止某些正在出的的工作的很“受欢迎”的原因：<br><br>你需要关闭你的应用程序。让用户取消操作。在第一种情况下，这种方案往往是可以被接受的，放弃所有的中间过程，“干净地”关闭，因为此时程序的内部状态不再重要，并且应用被关闭时操作系统将释放需要被我们的应用程序持有的资源。唯一需要关心的是，如果应用程序持久化地存储了状态—当我们的应用程序关闭时，确信是否有任何诸如此类的持久状态非常重要。<br><br>然而，如果我们是依赖数据库来保存这些状态，我们仍然可以不必放弃这些中间状态。特别是如果我们正在使用事务，那么就终止事务，回滚一切到事务开始之前的状态。所以，这应该足够让系统恢复到一致的状态。<br><br>当然，会有很多情况——当我们丢弃所有的一切，将无法工作。如果应用程序存储它的状态到磁盘中而不是到数据库，这将需要采取步骤，以确保磁盘上的表示和在放弃一个操作之前是一致的！在某些情况下，一个应用程序可能与一些外部系统的应用程序或者服务发生交互，那就需要明确地清理自动发生之外的东西。<br><br>因此，综合这些，我创建了一个小程序，它展示了一个很出色的工作线程，它允许用户执行某些后台工作，并且可以暂停/恢复以及取消。所以这些操作都是安全以及简单的。当然，不是只有这种方法才能实现它，但它确实是一种方法。<br><br>不幸的是，在这里我不得不包含一些UI代码，来允许用户点击不同的按钮以执行不同的操作，但我只是贴出了包含我觉得能够暂时本主题的部分UI代码。<br><br>首先，这是一个工作线程类，很重要的一点是注意volatile关键字的使用。<br><br>Volatile关键字指示一个字段在程序中是可以被诸如操作系统、硬件、当前正在执行的并发线程改变的。<br><br>系统总是在它需要的时候读取一个volatile对象的当前值，尽管可能之前的指令已经从相同的对象那里获取过值。同时，该对象的值也是实时写入的。<br><br>Volatile 修改器经常被多线程访问对象时使用，这样就不需要使用lock状态来序列化访问。使用volatile修改器能够确保一个线程检索到其被其他线程所写入的最新值。<br><pre name="code" class="csharp">using System;<br>using System.ComponentModel;<br>using System.Threading;<br><br>namespace ThreadResumePause_StopUsingEventArgs<br>{<br>    public delegate void ReportWorkDoneEventhandler(object sender,<br>    WorkDoneCancelEventArgs e);<br><br>    /// &lt;summary&gt;<br>    /// This class provides a background worker that finds prime numbers, that<br>    /// are reported to the UI via the ReportWorkDone event. The UI may pause<br>    /// the worker by calling the Pause() method, and may resume the worker by<br>    /// calling the Resume() method. The UI may also cancel the worker by setting<br>    /// the ReportWorkDone events event args Cancel property to true.<br>    /// &lt;/summary&gt;<br>    public class WorkerThread<br>    {<br>        private Thread worker;<br>        public event ReportWorkDoneEventhandler ReportWorkDone;<br>        private volatile bool cancel = false;<br>        private ManualResetEvent trigger = new ManualResetEvent(true);<br><br>        //ctor<br>        public WorkerThread()<br>        {<br><br>        }<br><br>        //Do the work, start the thread<br>        public void Start(long primeNumberLoopToFind)<br>        {<br>            worker = new Thread(new ParameterizedThreadStart(DoWork));<br>            worker.Start(primeNumberLoopToFind);<br>        }<br><br>        //Thread start method<br>        private void DoWork(object data)<br>        {<br>            long primeNumberLoopToFind = (long)data;<br><br>            int divisorsFound = 0;<br>            int startDivisor = 1;<br><br>            for (int i = 0; i &lt; primeNumberLoopToFind; i++)<br>            {<br>                //wait for trigger<br>                trigger.WaitOne();<br><br>                divisorsFound = 0;<br>                startDivisor = 1;<br><br>                //check for prime numbers, and if we find one raise<br>                //the ReportWorkDone event<br>                while (startDivisor &lt;= i)<br>                {<br>                    if (i % startDivisor == 0)<br>                        divisorsFound++;<br>                    startDivisor++;<br>                }<br><br>                if (divisorsFound == 2)<br>                {<br>                    WorkDoneCancelEventArgs e =<br>                        new WorkDoneCancelEventArgs(i);<br>                    OnReportWorkDone(e);<br>                    cancel = e.Cancel;<br><br>                    //check whether thread should carry on,<br>                    //perhaps user cancelled it<br>                    if (cancel)<br>                        return;<br>                }<br>            }<br>        }<br><br>        /// &lt;summary&gt;<br>        /// make the worker thread wait on the ManualResetEvent<br>        /// &lt;/summary&gt;<br>        public void Pause()<br>        {<br>            trigger.Reset();<br>        }<br><br>        /// &lt;summary&gt;<br>        /// signal the worker thread, raise signal on<br>        /// the ManualResetEvent<br>        /// &lt;/summary&gt;<br>        public void Resume()<br>        {<br>            trigger.Set();<br>        }<br><br>        /// &lt;summary&gt;<br>        /// Raise the ReportWorkDone event<br>        /// &lt;/summary&gt;<br>        protected virtual void OnReportWorkDone(WorkDoneCancelEventArgs e)<br>        {<br>            if (ReportWorkDone != null)<br>            {<br>                ReportWorkDone(this, e);<br>            }<br>        }<br>    }<br><br>    //Simple cancellable EventArgs, that also exposes<br>    //current prime number found to UI<br>    public class WorkDoneCancelEventArgs : CancelEventArgs<br>    {<br>        public int PrimeFound { get; private set; }<br><br>        public WorkDoneCancelEventArgs(int primeFound)<br>        {<br>            this.PrimeFound = primeFound;<br>        }<br>    }<br>}</pre><br><br>下面是UI的部分代码(WinForms，C#)。注意，我没有检查一个调用是否存在，在做一个调用之前。<br><br>MSDN对Control.InvokeRequired属性：<br><br>获得一个值来说明，是否调用者必须调用一个Invoke方法，因为调用者在一个不同的线而不是预先创建的唯一控制点。<br><br>Windows窗体中的控件是绑定到一个特定的线程上的，该线程不是线程安全的。因此，如果你正在从一个不同的线程上调用一个控件的方法，你必须使用控件的其中一个Invoke方法来提挈调用到正确的线程上。该属性可以用来决定是否你必须调用一个Invoke方法，如果你不知道哪个线程拥有控制权，该属性将会变得很有用。<br><br>所以，你可以使用它来确定是否最终需要调用一个Invoke方法。调用InvokeRequired/Invoke/BeginInvoke/EndInvoke都是线程安全的。<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.ComponentModel;<br>using System.Data;<br>using System.Drawing;<br>using System.Linq;<br>using System.Text;<br>using System.Windows.Forms;<br>using System.Threading;<br><br>namespaceThreadResumePause_StopUsingEventArgs<br>{<br>    public partial class Form1 : Form<br>    {<br>        private WorkerThread wt = newWorkerThread();<br>        private SynchronizationContext context;<br>        private bool primeThreadCancel = false;<br><br>        public Form1()<br>        {<br>            InitializeComponent();<br>            //obtain the currentSynchronizationContext<br>            context =SynchronizationContext.Current;<br>        }<br><br>        void wt_ReportWorkDone(object sender,WorkDoneCancelEventArgs e)<br>        {<br><br>           //+++++++++++++++++++++++++++++++++++++++++++++++++++++<br>            //NOTE : This would also work tomarshal call to UI thread<br>            //+++++++++++++++++++++++++++++++++++++++++++++++++++++<br><br>            //this.Invoke(newEventHandler(delegate<br>            //{<br>            //   lstItems.Items.Add(e.PrimeFound.ToString());<br>            //}));<br><br>            //marshal call to UI thread<br>            context.Post(newSendOrPostCallback(delegate(object state)<br>            {<br>               this.lstItems.Items.Add(e.PrimeFound.ToString());<br>            }), null);<br><br>            //should worker thread becaneclled, has user clicked cancel button?<br>            e.Cancel = primeThreadCancel;<br>        }<br><br>        private void btnStart_Click(objectsender, EventArgs e)<br>        {<br>            //start the worker and listen toits ReportWorkDone event<br>            wt.Start(100000);<br>            wt.ReportWorkDone +=<br>                newReportWorkDoneEventhandler(wt_ReportWorkDone);<br>            primeThreadCancel= false;<br>        }<br><br>        private void btnCancel_Click(objectsender, EventArgs e)<br>        {<br>            primeThreadCancel= true;<br>        }<br><br>        private void btnPause_Click(objectsender, EventArgs e)<br>        {<br>            wt.Pause();<br>        }<br><br>        private void btnResume_Click(objectsender, EventArgs e)<br>        {<br>            wt.Resume();<br>        }<br>    }<br>}</pre><br><br>当你运行的时候，就会看到类似如下的界面：<br><br><img src="http://hi.csdn.net/attachment/201111/25/2983011_13222256005hAF.jpg" alt=""><br><br>这一切都是如何工作的呢？这里有一些概念，例如：<br><br>l&nbsp; 使用一个输入参数，来开启工作线程的方式<br><br>l&nbsp; 将工作线程的输出转移到UI线程上<br><br>l&nbsp; 暂停工作线程<br><br>l&nbsp; 恢复工作线程<br><br>l&nbsp; 取消工作线程<br><br>我将尝试依次解释每一个话题。<br><br>&nbsp;<br><br><strong>使用一个输入参数来开启一个工作线程</strong><br><br>使用ParameterizedThreadStart&nbsp;可以很容易让你开启一个线程，用形如worker.Start(primeNumberLoopToFind)的方式传递输入参数，然后实际的执行方法形如：private void DoWork(object data)。你可以使用参数：data来获得参数，就像：long primeNumberLoopToFind = (long)data.<br><br>&nbsp;<br><br><strong>将工作线程的输出转移到UI线程上</strong><br><br>工作线程“勾住”被UI使用的ReportWorkDone事件，但当UI企图使用该ReportWorkDone的EventArg对象属性来为从属于UI的ListBox控件增加一项时，你将会得到一个跨线程操作的“异常”，除非你将你要在其他线程上做的某些事情转向到UI线程上。这被称之为线程联姻，创建UI控件的线程拥有这些控件，所以任何对UI控件的调用都必须通过UI线程。<br><br>有很多方式来实现这种“联姻”。我在这里使用.net2.0版本，并使用了一个称之为SynchronizationContext的类，我在窗体构造器中获得它。然后，我就可以自由得将工作线程处理的结果转到UI线程上，以使得他们能够被添加到UI控件中去。可以像如下这么做：<br><pre name="code" class="csharp">context.Post(newSendOrPostCallback(delegate(object state)<br>{<br>   this.lstItems.Items.Add(e.PrimeFound.ToString());<br>}), null);</pre><br><br><strong>暂停工作线程</strong><br><br>为了暂停工作线程，我使用线程对象调用一个ManualResetEvent，它既可以用来让线程等待也可以完成使其恢复的操作。这依赖于ManualResetEvent的信号量。本质上讲，在一个处于信号状态上，正在等待ManualResetEvent的线程被允许继续等待。并且在一个非信号状态上，正在等待ManualResetEvent的线程将被强制等待。我们现在将检查WorkerThread类的有关部分。<br><br>我们定义一个新的ManualResetEvent，它开始一个信号状态：<br><pre name="code" class="csharp">private ManualResetEvent trigger= new ManualResetEvent(true);</pre><br><br>我们然后企图在workerThreadDoWork上等待该信号状态。因为ManualResetEvent在信号状态上开始，那么线程将开始运行：<br><pre name="code" class="csharp">for (int i = 0; i&lt;primeNumberLoopToFind; i++)<br>{<br>    //wait for trigger<br>    trigger.WaitOne();<br>….<br>….<br> </pre><br><br>所以，对于暂停来讲，所有我们需要做的就是将ManualResetEvent设置为非信号状态（使用Reset方法），它能够导致工作线程处于等待状态，直到ManualResetEvent被再次设置为有信号状态。<br><pre name="code" class="csharp">trigger.Reset();</pre><br><br><strong>恢复工作线程</strong><br><br>恢复是相当容易的，所有我们需要做的同样是将ManualResetEvent设置为一个信号状态(使用set方法)，它将导致工作线程不再等待ManualResetEvent，因为它已经再次被设置为有信号状态了。<br><div><pre name="code" class="csharp">trigger.Set();</pre><br></div>
+
+<p><strong>取消工作线程</strong></p>
+<p>我使用了一个CancelEventArgs，它允许用户拥有一个工作线程的取消状态——直接设置CancelEventArgs，这样工作线程可以使用它来决定是否应该被取消。它是这么工作的：</p>
+<p>1、&nbsp; 工作线程启动；</p>
+<p>2、&nbsp; 工作线程挂住WorkDone事件，并hold住CancelEventArgs</p>
+<p>3、&nbsp; 如果用户点击了Cancel按钮，CancelEventArgs的cancel将被设置</p>
+<p>4、&nbsp; 工作线程看到CancelEventArgs 的cancel被设置，所以中断它的工作</p>
+<p>5、&nbsp; 因为没有更多工作线程需要做的事情，所以它被“杀死”了</p>
+<p>&nbsp;</p>
+<p>我只是觉得它比使用Abort()方法更为安全一点。</p>
+<p>&nbsp;</p>
+<p><strong>线程的使用场景</strong></p>
+<p>有一些非常明显的使用线程的场景，如下列出来的这些：</p>
+<p><strong>后台执行命令</strong></p>
+<p>如果一个任务可以在后台成功地运行，那它很适合采用线程来完成。例如，考虑一个搜索的场景，需要成千上万个匹配记录——这就是一个使用后台线程完成任务的“好机会”。</p>
+<p><strong>外部资源</strong></p>
+<p>另一个可能是，当你正在使用一个外部资源（比如数据库/Web Service/远程文件系统），访问这些资源可能有一定的性能损耗。通过线程访问这类资源，就可以减轻一些原来在单线程上访问这些资源的开销。</p>
+<p><strong>响应UI</strong></p>
+<p>想象一下，我们有一个UI，它允许用户做各种各样的操作。而其中某些任务可能需要花费很长的时间才能完成。把它带到真实的上下文中，让我们假设应用程序是一个邮件系统的客户端，它允许用户创建和接受邮件。接受邮件可能需要一段时间才能完成，作为电子邮件的读取必须与邮件服务器交互，来获取当前用户的电子邮件。线程收取邮件的代码将帮助你保持着UI的响应来支持更多的用户交互。如果我们不采用多线程任务，那将在UI上花费很多时间(等待)然后简单地返回给主线程。我们可能很轻易地就关闭一个反应迟钝的UI。所以这非常适合使用多线程。</p>
+<p><strong>Socket编程</strong></p>
+<p>如果你实现过任何的Socket编程，你可能不得不创建一个服务器，来让它连接客户端。一个通常的使用场景可能是一个聊天程序，它允许服务器接受1对n的客户端，并且能够从客户端读取数据以及写入客户端。这会涉及到大量的线程。尽管我注意到在.net中有一个异步的socketAPI，你可以使用它来取代创建大量的线程。Socket仍然是一个有用的多线程案例。</p>
+<p>我看过的最好的应用案例是<a href="http://www.switchonthecode.com/tutorials/csharp-tutorial-simple-threaded-tcp-server" target="_blank" rel="external">这个样子的</a>。最基本的结构是，你有一个服务器以及n个客户端。服务器正在运行（主线程处于激活状态），然后对于每一个客户端发出的连接请求，一个新线程就会被创建用来应对。在客户端访问结束后，通常客户端需要从另一个客户端(通过服务器)返回数据，然后客户端也允许其他客户端的用户处理消息。</p>
+<p>让我们思考一下客户端的问题。客户端能够发送消息给其他客户端(通过服务器)。所以，这意味着，有一个线程需要能够响应用户输入的数据。客户端也应该能够显示来自其他客户端的消息，所以，还需要一个线程。如果我们使用相同的线程侦听来自其他客户端的消息，我们将阻塞获得新数据再发送到其他客户端的能力。</p>
+<p>&nbsp;</p>
+<p><strong>陷阱</strong></p>
+<p>在这一节，我将讨论使用多线程时的一些陷阱。这并不意味着所有的陷阱，而是一些最常见的错误。</p>
+<p><strong>执行命令</strong></p>
+<p>如果我们考虑下面的代码：</p>
+<pre name="code" class="csharp">using System;
+using System.Threading;
+
+namespace ThreadTrap1
+{
+    /// &lt;summary&gt;
+    /// This example shows a threading Trap,you simply can't
+    /// rely on threads executing in the orderin which they
+    /// are started.
+    /// &lt;/summary&gt;
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Thread T1 = new Thread(newThreadStart(Increment));
+            Thread T2 = new Thread(newThreadStart(Increment));
+            T1.Name = &quot;T1&quot;;
+            T2.Name = &quot;T2&quot;;
+            T1.Start();
+            T2.Start();
+            Console.ReadLine();
+        }
+
+        private static void Increment()
+        {
+            for (int i = 0; i &lt; 100000;i++ )
+                if (i % 10000 == 0)
+                   Console.WriteLine(&quot;Thread Name {0}&quot;,
+                       Thread.CurrentThread.Name);
+           WriteDone(Thread.CurrentThread.Name);
+        }
+
+        private static void WriteDone(stringthreadName)
+        {
+            switch (threadName)
+            {
+                case &quot;T1&quot; :
+                    Console.WriteLine(&quot;T1Finished&quot;);
+                    break;
+                case &quot;T2&quot;:
+                    Console.WriteLine(&quot;T2Finished&quot;);
+                    break;
+            }
+        }
+    }
+}
+ </pre>
+
+<p>从上面的代码可以看出，有人认为名为T1的线程永远都是第一个完成，因为它是首先开始的。然而，事实并不是这样子，可能有时它首先完成，而在其他情况下，并不是的。看下面的两幅截图，是这段相同代码的两种不同的运行结果：</p>
+<p>第一幅截图，T1率先完成：</p>
+<p><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322226161OTWV.jpg" alt=""></p>
+<p>而在第二幅截图中可以看到，T2率先完成：</p>
+<p><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322226206zmWI.jpg" alt=""></p>
+<p>所以这是一个“陷阱”，你永远都不能确定你先运行的线程先完成。</p>
+<p><strong>执行命令/非同步的代码</strong></p>
+<p>考虑下面的例子：</p>
+<pre name="code" class="csharp">using System;
+using System.Threading;
+
+namespace ThreadTrap2
+{
+    /// &lt;summary&gt;
+    /// This example shows a threading Trap,you simply can't
+    /// rely on threads executing in the orderin which they
+   /// are started. And also whathappens when access to a
+    /// shared field in not synchronized
+    /// &lt;/summary&gt;
+    class Program
+    {
+
+        protected static long sharedField = 0;
+
+        static void Main(string[] args)
+        {
+            Thread T1 = new Thread(newThreadStart(Increment));
+            Thread T2 = new Thread(newThreadStart(Increment));
+            T1.Name = &quot;T1&quot;;
+            T2.Name = &quot;T2&quot;;
+            T1.Start();
+            T2.Start();
+            Console.ReadLine();
+        }
+
+        private static void Increment()
+        {
+            for (int i = 0; i &lt; 100000; i++)
+                if (i % 10000 == 0)
+                   Console.WriteLine(&quot;Thread Name {0}, Shared value ={1}&quot;,
+                        Thread.CurrentThread.Name,sharedField.ToString());
+            sharedField++;
+           WriteDone(Thread.CurrentThread.Name);
+        }
+
+        private static void WriteDone(stringthreadName)
+        {
+            switch (threadName)
+            {
+               case &quot;T1&quot;:
+                    Console.WriteLine(&quot;T1Finished, Shared value ={0}&quot;,
+                                     sharedField.ToString());
+                    break;
+                case &quot;T2&quot;:
+                    Console.WriteLine(&quot;T2 Finished,Shared value ={0}&quot;,
+                                     sharedField.ToString());
+                    break;
+            }
+        }
+    }
+}</pre>
+
+<p>这段代码和前面例子中的代码很相似。我们仍然不能依赖线程的执行。当我引进一个需要被两个线程访问的共享字段的时候，情况变得有些糟糕。可以在下面的两幅截图中看到，不同时间的运行有不同的结果。这是一个相当糟糕的消息，想象一下你的银行账号。我们可以引入“同步”机制来解决这个问题，在本系列之后的文章中会有关于此的讲解。</p>
+<p>该截图展示了第一次运行，我们获得的结果：</p>
+<p><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322226320x6e8.jpg" alt=""></p>
+<p>该截图展示了又一次运行，我们获得的结果：</p>
+<p><img src="http://hi.csdn.net/attachment/201111/25/2983011_1322226320x6e8.jpg" alt=""></p>
+<p>所以，这是一个“陷阱”，永远不要相信线程会把共享的数据“处理”得很好，因为它们永远都不会。</p>
+<p>&nbsp;</p>
+<p><strong>循环</strong></p>
+<p>考虑接下来的问题。系统必须给每一位已下订单的用户发送发票。这个处理过程应该运行在后台并且不应该有任何对用户界面的不利影响。</p>
+<p>参考下面的代码：</p>
+<p>(不要运行它，它只是展示了一个反面示例)</p>
+<pre name="code" class="csharp">using System;
+using System.Collections.Generic;
+using System.Threading;
+
+namespace ThreadTrap3
+{
+    /// &lt;summary&gt;
+    /// This code is bad as it starts a newthread for each invoice that it
+    /// has to send to a Customer. This couldbe 1000nds of threads, that will
+    /// all incur some overhead when the CPUhas to context switch between the
+    /// threads.For this example it probablywill not occur as the threads work is
+    /// so small, but for longer runningoperations there could be issues.
+    /// &lt;/summary&gt;
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            List&lt;Customer&gt; custs = newList&lt;Customer&gt;();
+            custs.Add(new Customer {CustomerEmail = &quot;fred@gmail.com&quot;,
+                InvoiceNo = 1, Name =&quot;fred&quot; });
+            custs.Add(new Customer {CustomerEmail = &quot;same@gmail.com&quot;,
+                InvoiceNo = 2, Name =&quot;sam&quot; });
+            custs.Add(new Customer {CustomerEmail = &quot;john@gmail.com&quot;,
+                InvoiceNo = 3, Name =&quot;john&quot; });
+            custs.Add(new Customer {CustomerEmail = &quot;ted@gmail.com&quot;,
+                InvoiceNo = 4, Name =&quot;ted&quot; });
+            InvoiceThread.CreateAllInvoices(custs);
+            Console.ReadLine();
+        }
+    }
+
+    public class InvoiceThread
+    {
+        private static CustomercurrentCustomer;
+
+        public static voidCreateAllInvoices(List&lt;Customer&gt; customers)
+        {
+            //Create a new thread for everyInvoice we need to send. Bad news
+            foreach (Customer cust incustomers)
+            {
+                currentCustomer=cust;
+                Thread thread = new Thread(newThreadStart(SendCustomerInvoice));
+                thread.Start();
+            }
+        }
+
+        private static voidSendCustomerInvoice()
+        {
+            //Simulate sending an invoice
+            Console.WriteLine(&quot;Sendinvoice {0}, to Customer {1}&quot;,
+                currentCustomer.InvoiceNo.ToString(),
+                currentCustomer.Name);
+        }
+    }
+
+    /// &lt;summary&gt;
+    /// Simple data class
+    /// &lt;/summary&gt;
+    public class Customer
+    {
+        public string Name { get; set; }
+        public string CustomerEmail { get; set;}
+        public int InvoiceNo { get; set; }
+    }     
+}
+这个例子是非常糟糕的，因为它为每一个需要发送发票的客户都创建了一个线程。
+foreach (Customer cust incustomers)
+{
+    currentCustomer=cust;
+      Thread thread = new Thread(newThreadStart(SendCustomerInvoice));
+      thread.Start();
+}
+ </pre>
+
+<p>但为什么它是如此糟糕呢？它需要好一会儿才能通过邮件发送出客户的发票。那么，为什么线程失去作用？当我们在一个循环中创建一个新线程(就像我上面那样做)，每一个线程都需要被分配一些CPU时间，比如，CPU将花费如此多的时间上下文交换(一个上下文交换包含存储来自CPU【寄存器】的上下文信息到当前线程的内核堆栈，并且从被选择执行线程的内核堆栈加载上下文信息到CPU)来允许每一个线程占用一些CPU时间，而最终线程执行的指令非常的少，并且系统有可能被锁定。</p>
+<p>这是其中之一，还有一个操作是很耗性能的，那就是开启一个线程。这就是ThreadPool类存在的原因。我们将在之后的文章中谈论它。</p>
+<p>更有意义的做法是，有一个单独的后台线程，使用它发送所有的发票。或者使用一个线程池，一旦一个线程完成任务，它可以回到共享池里面来。我们在本系列后面的文章中将谈论线程池。</p>
+<p>&nbsp;</p>
+<p><strong>持有锁太长的时间</strong></p>
+<p>我们还没有涉及到锁(第三篇会谈论它)，所以在这里我不想花太多时间来谈论它，但我将稍微提及一下。</p>
+<p>我们可以想象一下，两个或者更多线程共享某些公共数据的情况。我们需要确保安全。现在，在.net中有很多方式能够确保数据的安全，其中的一种方式就是使用“lock”关键字，它能够确保被锁定的代码是以“互斥”的形式被访问的。可能出现的一个问题是，程序员锁住一个实例方法来尝试和确保被共享的数据是安全的，但真实的情况是，其实他们只需要锁住其中的关于那些处理共享数据的代码就可以了。我觉得我曾经听过的最好的描述是——锁的粒度。本质上来讲，你只需要锁住你真正需要锁住的代码。</p>
+<p>&nbsp;</p>
+<p><strong>下一讲</strong></p>
+<p>下一讲，我们将探讨同步的问题。</p>
+<p></p></div><p></p>
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/11/26/从零开始学-net多线程系列-二/" data-id="cii1bfd9z002hgaz2qk75jney" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/11/27/性能优化之页面缓存（以Javascript方式缓存页面部件）/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          性能优化之页面缓存（以Javascript方式缓存页面部件）
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/11/20/异步调用Web服务方法/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">异步调用Web服务方法</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-从零开始学-net多线程系列-二" data-title="从零开始学.net多线程系列(二)" data-url="http://vinoyang.com/2011/11/26/从零开始学-net多线程系列-二/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

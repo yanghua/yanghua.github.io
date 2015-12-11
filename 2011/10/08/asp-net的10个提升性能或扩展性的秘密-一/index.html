@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>asp.net的10个提升性能或扩展性的秘密(一) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="简介Asp.net有很多&amp;#20540;得你挖掘的“秘密”，当你发现了它们，将会给你网站的性能和可扩展性带来巨大提升！例如，对于Membership以及Profile提供程序有一些秘密的瓶颈，它们很容易被解决，从而使认证和授权更加快速。另外，asp.net的http管线可以为每一个请求作处理，防止执行了某些不必要的代码而遭受攻击。不只是这些，asp.net工作进程能够突破默认限制，从而完全发挥它的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="asp.net的10个提升性能或扩展性的秘密(一)">
+<meta property="og:url" content="http://vinoyang.com/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="简介Asp.net有很多&amp;#20540;得你挖掘的“秘密”，当你发现了它们，将会给你网站的性能和可扩展性带来巨大提升！例如，对于Membership以及Profile提供程序有一些秘密的瓶颈，它们很容易被解决，从而使认证和授权更加快速。另外，asp.net的http管线可以为每一个请求作处理，防止执行了某些不必要的代码而遭受攻击。不只是这些，asp.net工作进程能够突破默认限制，从而完全发挥它的">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996380s79K.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996431oas7.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_13179964975TU5.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996539SS1s.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996630sjdN.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996764ZOBV.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_13179968500xs0.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996897DxD4.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317996967Gr3i.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997019bury.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_13179970575lZl.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997100ZsIE.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997136pmg1.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997206w7fz.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997258a9xI.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997303OTwa.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_13179973837nI8.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997424lTk2.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997509iu59.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997587VPr1.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/7/0_1317997631XwXF.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="asp.net的10个提升性能或扩展性的秘密(一)">
+<meta name="twitter:description" content="简介Asp.net有很多&amp;#20540;得你挖掘的“秘密”，当你发现了它们，将会给你网站的性能和可扩展性带来巨大提升！例如，对于Membership以及Profile提供程序有一些秘密的瓶颈，它们很容易被解决，从而使认证和授权更加快速。另外，asp.net的http管线可以为每一个请求作处理，防止执行了某些不必要的代码而遭受攻击。不只是这些，asp.net工作进程能够突破默认限制，从而完全发挥它的">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-asp-net的10个提升性能或扩展性的秘密-一" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/" class="article-date">
+  <time datetime="2011-10-07T22:25:00.000Z" itemprop="datePublished">2011-10-08</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      asp.net的10个提升性能或扩展性的秘密(一)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><span style="font-size:24px; background-color:rgb(192,192,192)"><strong>简介</strong></span><br><br><span style="font-size:16px">Asp.net有很多&#20540;得你挖掘的“秘密”，当你发现了它们，将会给你网站的性能和可扩展性带来巨大提升！例如，对于Membership以及Profile提供程序有一些秘密的瓶颈，它们很容易被解决，从而使认证和授权更加快速。另外，asp.net的http管线可以为每一个请求作处理，防止执行了某些不必要的代码而遭受攻击。不只是这些，asp.net工作进程能够突破默认限制，从而完全发挥它的威力。在浏览器端(不是在服务器端)的页面分段输出缓存能显著减少由于请求访问所需要占用的大量下载时间。在需要的用户界面上的加载能够给你的网站带来快速而平稳的体验。最后，内容分发网络(CDN)以及对HTTP缓存头的正确使用能够使你的网站得到快速响应。</span><br><br><a id="more"></a><br><br><span style="font-size:16px">在这篇文章中，你将学习这些技术，给你的asp.net应用程序性能和可扩展性带来巨大的提升。下面是接下来将要讨论的技术：</span><br><br><em>   <span style="font-size:16px">&nbsp; Asp.net管线优化</span>
+</em>   <span style="font-size:16px">&nbsp; Asp.net进程配置优化</span><br><em>   <span style="font-size:16px">&nbsp; Asp.net网站上线之前你必须要做的事</span>
+</em>   <span style="font-size:16px">&nbsp; 内容分发网络(CDN)</span><br><em>   <span style="font-size:16px">&nbsp; 浏览器端缓存Ajax调用</span>
+</em>   <span style="font-size:16px">&nbsp; 最大限度地正确使用浏览器缓存</span><br><em>   <span style="font-size:16px">&nbsp; 在需要的UI上逐步加载以提供快速平滑的体验</span>
+</em>   <span style="font-size:16px">&nbsp; 优化asp.net 2.0Profile 提供程序</span><br><em>   <span style="font-size:16px">&nbsp; 怎样在不“下线”站点的情况下查询asp.net 2.0的Membership表</span>
+</em>   <span style="font-size:16px">&nbsp; 防止拒绝服务攻击</span><br><br><span style="font-size:16px">上面的技术都能够在任何的asp.net网站中实现，特别是那些使用了asp.net 2.0的Membership以及Profile 提供程序的网站。</span><br><br><span style="font-size:24px; background-color:rgb(192,192,192)">Asp.net管线优化</span><br><br><span style="font-size:16px">有一些asp.net默认的HttpModules被设置在请求管线中，它们会参与每一个请求。例如，SessionStateModule会处理每一个请求，转换会话cookie然后给HttpContext加载适当的session。不是所有的这些模块都总是被需要的。例如，如果你没有使用Membership 以及 Profile provider，你就不需要FormsAuthentication模块。如果你没有对你的用户使用Windows认证，你就不需要WindowsAuthentication模块。这些模块只是被安置在管线之内，对每一个请求执行某些不是必须要的代码。</span><br><br><span style="font-size:16px">这些默认模块被定义在machine.config文件中(位于$WINDOWS$\Microsoft.NET\Framework\$VERSION$\CONFIG directory)</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996380s79K.gif" alt=""><br><br></span><br><br><span style="font-size:16px">你可以从你的web应用程序中通过在web.config文件中加入&lt;remove&gt;节点移除这些默认的modules。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996431oas7.gif" alt=""><br><br></span><br><br><span style="font-size:16px">上面的配置非常适合那些使用数据库并基于Forms认证，并且不需要任何Session支持的网站。所以，所有上面这些模块都能够被安全地移除。</span><br><br><strong><span style="font-size:24px; background-color:rgb(192,192,192)">Asp.net进程配置优化</span></strong><br><br><span style="font-size:16px">Asp.net进程模型配置定义了一些进程级别的属性，例如asp.net使用了多少线程数，在超时之前它会阻塞线程多久，允许多少请求 等待I/O工作完成等。这些默认的配置在很多情况下有太多的限制。现在，硬件已经变得相当便宜，技嘉科技的双核RAM服务器已经变成了非常普遍的选择。所以，进程模型配置可以配置得让asp.net线程使用更多的系统资源，并为每一个服务器提供更好的扩展性。</span><br><br><span style="font-size:16px">一个通常的asp.net的安装将按如下的配置创建一个machine.config：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_13179964975TU5.gif" alt=""><br><br></span><br><br><span style="font-size:16px">你需要修改这个自动配置，为不同的属性使用一些特殊&#20540;来自定义asp.net工作进程的工作。例如：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996539SS1s.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这里除了以下的一些&#20540;，其他&#20540;都是默认&#20540;：</span><br><br><em>   <span style="font-size:16px"><span style="color:#3333ff">maxWorkerThreads</span>-对每个进程来说20是默认&#20540;。在一个双核计算机上，将会给asp.net分配40个线程。这意味着asp.net一台双核机器上一次能够并行处理40个请求在。我将它增加到100，给予asp.net每个进程更多的线程。如果你有一个不是CPU密集型应用程序，可以很容易地处理更多地请求量，那么你可以增加该&#20540;。特别是如果你的Web应用程序使用许多Web Service调用或者下载/上传的许多数据没有给CPU带来压力的话。当asp.net运行超过它允许的工作线程数，它将会停止处理更多到来的请求。请求被放进一个队列中，并保持等待知道一个工作线程被释放。当你的站点开始遭受比你预期的更多的攻击时，通常会发生这样的情况。如果遇到这种情况，如果你的CPU有空闲，给每个进程(asp.net进程)增加工作线程数。</span>
+</em>   <span style="font-size:16px"><span style="color:#3333ff">maxIOThreads</span>-对每个进程来说20是默认&#20540;。在一个双核计算机上，将会给asp.net分配40个线程来进行I/O操作。这意味着在一台双核服务器上asp.net一次可以并行处理40个I/O请求。I/O请求可能是文件的读写、数据库操作、Web Service的调用Web应用程序内部生成的Http请求等。所以，你可以将它设置为100，如果你的服务器有足够的系统资源来处理更多的I/O请求的话。特别是，当你的Web应用程序经常下载或上传数据，并行调用许多外部的webservice时，效率提升会很明显。</span><br><em>   <span style="font-size:16px"><span style="color:#3333ff">minWorkerThreads</span>-当可用的asp.net工作线程数下降到该&#20540;以下时，asp.net开始将即将到来的请求压入队列。所以你可以将该&#20540;设置为一个很低的数字来增加可被处理的当前请求的数目。然而，不要将它设置地过低，因为Web应用程序代码可能需要做某些后台处理以及某些并行处理需要一定数量的空闲工作线程。</span>
+</em>   <span style="font-size:16px">minIOThreads-与minWorkerThreads相同，但这个&#20540;涉及的是I/O线程数。但是，你可以给它设置一个比minWorkerThreads更低得数字，因为没有发生在I/O线程上并行处理的情况。</span><br><em>   <span style="font-size:16px"><span style="color:#3333ff">momoryLimit</span>-指定允许使用内存大小的最大&#20540;，是与系统总内存的百分比。它是在asp.net在启动一个新进程和重新分配正在处理的请求之前工作进程可以消耗的内存大小。如果只有你的Web应用程序允许在一个“专用的盒子里”并且没有其他的进程需要RAM，你可以设置它为一个很高的&#20540;，比如80。但是，如果你有一个内存泄露的应用程序总是不断泄露内存，最好将它设置为一个低一点的&#20540;，以便泄露内存的进程可以在它变得无法处理之前尽快被彻底回收。特别是，当你正在使用一个COM组件并且它产生内存泄露时，就会遇到这种情况。</span><br><br><span style="font-size:16px">除了processModel节点，还有一个非常重要的节点——system.net，你可以指定给一个IP它能外发请求数的最大&#20540;。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996630sjdN.gif" alt=""></span><br><br><span style="font-size:16px">默认&#20540;为2，它太低了。这意味着你不能从你的Web应用程序到一个IP建立超过两个同时连接。那些需要获取外部内容的站点很大程度上都受到这个默认配置的制约。这里我将它设置为100，如果你的Web应用程序需要对特定服务器有很多调用需求的话，你可以考虑设这一个甚至更高的&#20540;。</span><br><br><strong><span style="font-size:24px; background-color:rgb(192,192,192)">Asp.net网站上线之前你必须要做的事</span></strong><br><br><span style="font-size:16px">如果你正在使用Asp.net 2.0的Membership Provider，你应该对你的web.config做一些调整：</span>
+
+</em>   <span style="font-size:16px">在ProfileProvider中加入applicationname属性。如果你没有加入一个特别的名称，ProfileProvider将使用一个GUID。所以，在你的本地机器上，你将有一个GUID而在发布的服务器上又将有另外一个GUID。如果你拷贝你本地数据库到发布服务器，你将不能重用在你本地数据库中以存在的记录，并且asp.net将在发布服务器上创建一个新的应用程序。你需要在这里加入它：</span><br><div><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996764ZOBV.gif" alt=""></span></div>
+
+<ul>
+<li><p><span style="font-size:16px">无论什么时候一个页面的请求完成之后，ProfileProvider将自动地保存profile。所以，这可能导致你数据库的一个不必要的更新，它有很显著的性能损失！关闭自动保存并且在你的代码中使用Profile.Save()明确地完成。</span></p>
+<div><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_13179968500xs0.gif" alt=""></span></div>
+</li>
+<li><p><span style="font-size:16px">Role Manager一直查询着数据库来获取用户的角色。这同样也有显著的性能损失。你可以让Role Manager缓存角色信息到cookie中来避免它。但是它也会为那些没有很多角色的用户分配差不多2KB的Cookie，但这也不是一种常见的场景。所以，你可以很安全地在cookie中存储角色信息。</span><br><div><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996897DxD4.gif" alt=""></span></div></p>
+<div>
+
+</div></li>
+</ul>
+<p><span style="font-size:16px">上面的三个设置主要是为了高访问量的网站。</span></p>
+<p><span style="font-size:24px"><span style="background-color:rgb(192,192,192)">内容分发网络</span></span></p>
+<p><span style="font-size:16px">来自浏览器的每一个请求都是通过了跨越世界的骨干网到达你的服务器的。请求需要经过一定数量的国家、大陆、海洋才传递给你的服务器，所以它会变得很慢。例如，如果你将你的服务器架在USA，并且一些人在澳大利亚浏览你的网站，每一个请求都从地球的一端到另一段才能到达你的服务器，然后再返回给浏览器。如果你的站点有很大数量的静态文件，像图片、CSS、Javascript。为它们发送请求，跨越世界去下载它们，将会花费大量的时间。如果你能够在澳大利亚架设一台服务器，并且重定向用户到你在澳大利亚的服务器上去，那每一个这样的请求将比到达美国花费更少的时间。不仅网络延迟会更小，数据传输的路由也将更为快速，因此静态内容将能够以更快的速度下载。</span></p>
+<p><span style="font-size:16px; color:#ff6666">注：由于本节与asp.net技术无关，牵扯到网络规划，所以不作讨论，仅仅给出一张示意图：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317996967Gr3i.gif" alt=""></span></p>
+<p></p></div><p></p>
+<div><br><br><span style="font-size:24px"><span style="background-color:rgb(192,192,192)">在浏览器上缓存AJAX调用</span></span><br><br><span style="font-size:16px">浏览器能缓存图片，JS文件，CSS文件到硬盘上。它同时也能缓存XML HTTP调用，如果调用是Http GET的话。缓存是基于URL的。如果是相同的URL，再次请求时，它被缓存到计算机上，然后响应从缓存去加载，而不是从服务器。基本上，浏览器能缓存任何的HttpGet请求调用，并返回基于该URL的缓存数据。如果你像HttpGet请求一样发出XML HTTP请求，并且服务器返回某些特殊响应头，指示浏览器缓存响应数据。在未来再次调用的时候，响应将会直接从缓存返回数据。因此节省了网络往返延时和下载时间。</span><br><br><span style="font-size:16px">我们缓存了用户的状态，那样当用户在接下来的一些天再次访问网站，用户从浏览器的缓存中直接获取缓存过的页面，而不是从服务器获得。因此第二次加载会变得非常快。我们也缓存了页面的某些部分，这取决于用户的操作。当用户再次执行相同的操作，一个缓存的结果就被直接从本地缓存加载，因此省去了网络往返的时间。</span><br><br><span style="font-size:16px">如果你在请求的响应期间返回Expires头，浏览器将缓存XML HTTP响应。有两个响应头你需要随着响应返回来让浏览器缓存响应数据：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997019bury.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这指示浏览器缓存响应数据知道2030年1月。尽管你发起携带相同参数的相同的XML HTTP请求，你也将仅会从你本地计算机中获得缓存后的响应数据。当然还有一个更合理的方式来控制浏览器缓存。例如，有些请求头指示浏览器缓存60秒，但在60秒之后会重新连接服务器并获得一个刷新的数据。当浏览器本地缓存超过60秒时它也将防止代理返回缓存的响应数据。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_13179970575lZl.gif" alt=""><br><br></span></div>
+
+<p><span style="font-size:16px">让我们通过一个asp.net web service调用来输出这样的响应头。</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997100ZsIE.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">这将导致请求头变成如下的形式：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997136pmg1.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">Expires头被正确地设置了。但起决定作用的还是Cache-control。你可以看到max-age被设置为0，它将防止浏览器做任何形式的缓存。如果你确信想要防止缓存，你应该设置这样的一个cache-control头。看起来就好像事情都是实时发生的。</span></p>
+<p><span style="font-size:16px">输出就像下面一样，没有缓存：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997206w7fz.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">Asp.net 2.0有一个Bug——你不能改变max-age头。因为max-age被设置为0，asp.net 2.0设置Cache-control为私有的。因为max-age=0意味着不需要缓存。所以，没有办法让asp.net 2.0返回缓存了响应的适当的头。这是由于asp.net Ajax 框架它在执行发出一个请求前可以拦截对Web Services的调用以及默认地不正确地设置max-age为0。</span></p>
+<p><span style="font-size:16px">“黑客”时刻到来！在反编译HttpCachePolicy类(Context.Response.Cache对象所属的类)的源码后，我发现如下的代码：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997258a9xI.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">不管怎样，this._maxAge将会被设置为0，并且检查——if (!this._isMaxAgeSet || (delta &lt; this._maxAge))也将组织设置一个更大的&#20540;。由于这个原因，我们需要绕开SetMaxAge方法，直接设置_maxAge的&#20540;。当然，这需要用到“反射”机制：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997303OTwa.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">这将返回下面的头：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_13179973837nI8.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">现在，max-age被设置为60，因此浏览器将缓存响应60秒。如果你在60秒内再次发出相同的请求。它将返回相同的响应。这里有个输出测试，显示了从服务器返回的日期/时间：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997424lTk2.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">在一分钟之后，缓存失效，浏览器向服务器再次发出一个请求。客户端代码如下：</span></p>
+<p></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997509iu59.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">还有另一个问题有待解决：在web.config中，你将看到asp.net ajax将看到：</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997587VPr1.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px">这将阻止我们设置Response对象的_maxAge对象，因为它要求反射。所以你将不得不删除该项设置，或者将&#20540;改为：Full。</span></p>
+<p><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/7/0_1317997631XwXF.gif" alt=""></span></p>
+<p></p>
+<p><span style="font-size:16px; color:#ff0000">未完，待续。。。</span></p>
+<p><span style="font-size:16px"></span></p>
+<p><span style="font-size:16px"></span></p>
+<p><span style="font-size:16px"></span></p>
+<p></p>
+<p></p>
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/" data-id="cii1bfdb6003egaz2ucuagkao" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/10/14/asp-net的10个提升性能或扩展性的秘密-二/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          asp.net的10个提升性能或扩展性的秘密(二)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/10/03/asp-net使用httphandler打包多CSS或JS文件以加快页面加载速度/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">asp.net使用httphandler打包多CSS或JS文件以加快页面加载速度</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-asp-net的10个提升性能或扩展性的秘密-一" data-title="asp.net的10个提升性能或扩展性的秘密(一)" data-url="http://vinoyang.com/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

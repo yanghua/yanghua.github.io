@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>使用ASP.NET实现WindowsService定时执行任务 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; 我们怎样才能在服务器上使用asp.net定时执行任务而不需要安装windows service？我们经常需要运行一些维护性的任务或者像发送提醒邮件给用户这样的定时任务。这些仅仅通过使用Windows Service就可以完成。Asp.net通常是一个无状态的提供程序，不支持持续运行代码或者定时执行某段代码。所以，我们不得不构建自己的windo">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用ASP.NET实现WindowsService定时执行任务">
+<meta property="og:url" content="http://vinoyang.com/2011/11/05/使用ASP-NET实现WindowsService定时执行任务/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; 我们怎样才能在服务器上使用asp.net定时执行任务而不需要安装windows service？我们经常需要运行一些维护性的任务或者像发送提醒邮件给用户这样的定时任务。这些仅仅通过使用Windows Service就可以完成。Asp.net通常是一个无状态的提供程序，不支持持续运行代码或者定时执行某段代码。所以，我们不得不构建自己的windo">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/5/0_13204585764pQP.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用ASP.NET实现WindowsService定时执行任务">
+<meta name="twitter:description" content="&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; 我们怎样才能在服务器上使用asp.net定时执行任务而不需要安装windows service？我们经常需要运行一些维护性的任务或者像发送提醒邮件给用户这样的定时任务。这些仅仅通过使用Windows Service就可以完成。Asp.net通常是一个无状态的提供程序，不支持持续运行代码或者定时执行某段代码。所以，我们不得不构建自己的windo">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-使用ASP-NET实现WindowsService定时执行任务" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/11/05/使用ASP-NET实现WindowsService定时执行任务/" class="article-date">
+  <time datetime="2011-11-05T10:04:00.000Z" itemprop="datePublished">2011-11-05</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      使用ASP.NET实现WindowsService定时执行任务
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>&nbsp; &nbsp; &nbsp; &nbsp; 我们怎样才能在服务器上使用asp.net定时执行任务而不需要安装windows service？我们经常需要运行一些维护性的任务或者像发送提醒邮件给用户这样的定时任务。这些仅仅通过使用Windows Service就可以完成。Asp.net通常是一个无状态的提供程序，不支持持续运行代码或者定时执行某段代码。所以，我们不得不构建自己的windows service来运行那些定时任务。但是在一个共享的托管环境下，我们并不总是有机会部署我们自己的windwos service到我们托管服务提供商的web服务器上。我们要么买一个专用的服务器，当然这是非常昂贵的，要么就牺牲我们网站的一些功能。然而，运行一个定期执行的任务是一个非常有用的功能，特别是对那些需要发送提醒邮件的用户、需要维护报表以及运行清理操作的的管理员而言。我将给你展示一种无须使用任何windows<br> service，仅仅采用asp.net来运行定期任务的方式。<br><br> <a id="more"></a><br><br><span style="font-size:24px"><strong>它怎样工作</strong></span><br><br>首先，我们需要asp.net中的某些“场景”，能够持续不断地运行并且给我们一个回调。而IIS上的web服务器就是一个很不错的选择。所以，我们需要从它那里很“频繁”地获得回调，这样我们可以查看一个任务队列，并且能够看到是否有任务需要执行。现在，这里有一些方式可以为我们获得对web服务器的“操作权”：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp; 当一个页面被请求<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp; 当一个应用程序被启动<br><br>(3)&nbsp;&nbsp;&nbsp;&nbsp; 当一个应用程序被停止<br><br>(4)&nbsp;&nbsp;&nbsp;&nbsp; 当一个会话开启、结束或者超时<br><br>(5)&nbsp;&nbsp;&nbsp;&nbsp; 当一个缓存项失效<br><br>一个页面被请求是随机的。如果几个小时内没有人访问你的站点，那么几个小时内你都无法完成任何“任务”。另外，一个请求的执行时间是非常短的，并且它本身也需要越快越好。如果你计划在页面请求的时候执行“计划任务”，这样页面将会被迫执行很长时间，这将导致一个很糟糕的用户体验。所以，选择在页面请求的时机做这样的操作不是一个好的选择。<br><br>一个页面被请求是随机的。如果几个小时内没有人访问你的站点，那么几个小时内你都无法完成任何“任务”。另外，一个请求的执行时间是非常短的，并且它本身也需要越快越好。如果你计划在页面请求的时候执行“计划任务”，这样页面将会被迫执行很长时间，这将导致一个很糟糕的用户体验。所以，选择在页面请求的时机做这样的操作不是一个好的选择。<br><br>当一个应该程序启动时，Global.asax内的<code>Application_Start``方法给我们提供了一个回调。所以这是一个开启后台线程的好地方，后台线程可以永久运行以执行“计划任务”。然而，当该线程在``web``服务器由于零负载而“休息”一会儿的时候，却可能被随时“杀死”。</code><br><br>当一个应用程序停止的时候，我们同样可以从Application_End方法获得一个回调。但是我们在这里却不能做任何事情，因为整个应该程序都已经快要结束运行了。Global.asax里的Session_Start会在当一个用户访问一个需要被实例化为新会话的页面时被触发。所以这也是一个随机事件。而我们需要一个能持久且定期运行的“场景”。<br><br><code>一个缓存项的失效可以提供一个时间点或持续时间。在``asp.net``中你可以在``Cache``对象中增加一个实体，并且可以设置一个绝对失效时间，或者设置当其被从缓存中移除后失效。你可以利用下面的``Cache``类中的方法来做这些：</code><br><br><pre name="code" class="csharp">public void Insert ( System.String key , System.Object value ,<br>                     System.Web.Caching.CacheDependency dependencies ,<br>                     System.DateTime absoluteExpiration ,<br>                     System.TimeSpan slidingExpiration ,<br>                     System.Web.Caching.CacheItemPriority priority ,<br>                     System.Web.Caching.CacheItemRemovedCallback onRemoveCallback )</pre><br><br><code>onRemoveCallback``是一个方法的委托，该方法在一个缓存项失效时被调用。在该方法中，我们可以做任何我们想做的事情。所以，这是一个定期、持续运行代码而不需要任何页面请求的很好的候选。</code><br><br><code>&lt;code&gt;</code><br><br>这意味着，我们可以在一个缓存项失效时模拟一个简单的windows service。<br><br><strong><span style="font-size:24px">创建缓存项的回调</span></strong><br><br>首先，在Application_Start中，我们需要注册一个缓存项，并让它在两分钟后失效。请注意，你设置回调的失效时间的最小&#20540;是两分钟。尽管你可以设置一个更小的&#20540;，但它&#20284;乎不会工作。出现该问题最大的可能是，asp.net工作进程每两分钟才查看一次缓存项。<br><br><pre name="code" class="csharp">private const string DummyCacheItemKey = &quot;GagaGuguGigi&quot;;<br><br>protected void Application_Start(Object sender, EventArgs e)<br>{<br>    RegisterCacheEntry();<br>}<br><br>private bool RegisterCacheEntry()<br>{<br>    if( null != HttpContext.Current.Cache[ DummyCacheItemKey ] ) return false;<br><br>    HttpContext.Current.Cache.Add( DummyCacheItemKey, &quot;Test&quot;, null,<br>        DateTime.MaxValue, TimeSpan.FromMinutes(1),<br>        CacheItemPriority.Normal,<br>        new CacheItemRemovedCallback( CacheItemRemovedCallback ) );<br><br>    return true;<br>}</pre><br><br>该缓存实体是一个虚设的实体。我们不需要在这里存储任何有价&#20540;的信息，因为无论我们在这里存储什么，他们都有可能在应用程序重启时丢失。另外，我们所需要的只是使该项的频繁回调。<br><br>在回调的内部，我们就可以完成“计划任务”：<br><br><pre name="code" class="csharp">public void CacheItemRemovedCallback( string key,<br>            object value, CacheItemRemovedReason reason)<br>{<br>    Debug.WriteLine(&quot;Cache item callback: &quot; + DateTime.Now.ToString() );<br><br>    DoWork();<br>}</pre><br><br><strong><span style="font-size:24px">在缓存项失效时再次存储缓存项</span></strong><br><br>无论何时缓存项失效，我们都能够获得一个回调同时该项将永久地从缓存中消失。所以，我们将不能再次获得回调了。为了能提供一个持续的回调，我们需要在下次失效之前重新存储一个缓存项。这看起来&#20284;乎相当容易：我们可以在回调函数中调用我们上面展示的RegisterCacheEntry方法，可以这么做吗？它不会工作！当回调发生，HttpContext已经无法访问。HttpContext仅仅在一个请求正在被处理的时候才可以被访问。因为回调发生在web服务器的幕后，所以这里没有请求需要被处理，因而HttpContext对象无法获得。因此，你也无法从回调中访问Cache对象。<br><br>方案是，我们需要一个简单的请求。我们可以利用.netFramework中的WebClient类来实现一个对虚拟页面的“虚拟”访问。当虚拟页面被执行，我们可以Hold住HttpContext对象，然后再次注册一个缓存项的回调。<br><br>所以，回调方法作一点修改来发出一个虚拟调用。<br><br><pre name="code" class="csharp">public void CacheItemRemovedCallback( string key,<br>            object value, CacheItemRemovedReason reason)<br>{<br>    Debug.WriteLine(&quot;Cache item callback: &quot; + DateTime.Now.ToString() );<br><br>    HitPage();<br><br>    // Do the service works<br><br>    DoWork();<br>}</pre><br><br>HitPage方法对一个虚拟页面发出调用：<br><br><pre name="code" class="csharp">private const string DummyPageUrl =<br>    &quot;<a href="http://localhost/TestCacheTimeout/WebForm1.aspx&amp;quot" target="_blank" rel="external">http://localhost/TestCacheTimeout/WebForm1.aspx&amp;quot</a>;;<br><br>private void HitPage()<br>{<br>    WebClient client = new WebClient();<br>    client.DownloadData(DummyPageUrl);<br>}</pre>无论虚拟页面在什么时候被调用，Application_BeginRequest方法都将被调用。在那里，我们可以核查是否它是一个“虚拟”页面。<br><br><pre name="code" class="csharp">protected void Application_BeginRequest(Object sender, EventArgs e)<br>{<br>    // If the dummy page is hit, then it means we want to add another item<br><br>    // in cache<br><br>    if( HttpContext.Current.Request.Url.ToString() == DummyPageUrl )<br>    {<br>       // Add the item in cache and when succesful, do the work.<br><br>       RegisterCacheEntry();<br>    }<br>}</pre><br><br>我们仅仅截获虚拟页面的请求，并且让其他的页面以他们原来的方式继续执行。<br><br><strong><span style="font-size:24px">Web进程重启时重启缓存项回调</span></strong><br><br>这里有很多情况，可能导致web服务器重启。例如，如果系统管理员重启IIS，或者重启电脑，或者web进程陷入死循环（在windows 2003下）。在这样的情况下，服务将停止运行，直到一个页面被请求和Application_Start被调用。Application_Start仅仅在当一个页面第一次被访问时才会被调用。所以，当web进程被重启时为了让“服务”运行起来，我们只能手动调用“虚拟”页面，或者某人需要访问你站点的主页。<br><br>一个“滑头”的方案是：可以把搜索引擎加入你的站点中。搜索引擎时常会爬行页面。因此，它们将访问你站点的一个网页，这就可以触发Application_Start的执行，因此服务将被再次启动运行。<br><br>另一个方案是向某些通信或可用性监控服务注册你的站点。有许多关注你站点以及可以检查你的站点是否正常并且性能是否良好的Web 服务。所有这些服务都需要访问你站点的页面然后收集统计信息。所以，通过注册这样的服务，你可以保证你的站点一直“存活”着。<br><br><strong><span style="font-size:24px">测试可执行任务的类型</span></strong><br><br>让我们来测试一下，是否我们能够做一个windowsservice能够做的一切任务。首先，第一个问题是，我们不能做一个windows service能够做的所有事情，因为windowsservice运行在一个本地系统账户的权限下。这是一个具有非常高权限的账户，使用这个账户你可以在你的系统中做任何事情。然而，asp.net web线程运行在ASPNET账户下(windows xp)或者NETWORKSERVICE账户下(windows 2003)。这是一个低权限的账户，并且没有权限访问硬盘。为了允许服务向硬盘写东西，web进程需要被授予对文件夹的写权限。我们都知道关于此的安全问题，所以我将不再详述细节。<br><br>现在，我们将开始测试我们通常利用windowsservice完成的事情：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;向文件写东西<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;数据库操作<br><br>(3)&nbsp;&nbsp;&nbsp;&nbsp;Web Service调用<br><br>(4)&nbsp;&nbsp;&nbsp;&nbsp;MSMQ 操作<br><br>(5)&nbsp;&nbsp;&nbsp;&nbsp;Email 发送<br><br>让我们来写一些测试代码：<br><br><pre name="code" class="csharp">private void DoWork()<br>{<br>    Debug.WriteLine(&quot;Begin DoWork…&quot;);<br>    Debug.WriteLine(&quot;Running as: &quot; +<br>          WindowsIdentity.GetCurrent().Name );<br><br>    DoSomeFileWritingStuff();<br>    DoSomeDatabaseOperation();<br>    DoSomeWebserviceCall();<br>    DoSomeMSMQStuff();<br>    DoSomeEmailSendStuff();<br><br>    Debug.WriteLine(&quot;End DoWork…&quot;);<br>}</pre><br><br><strong><span style="font-size:24px">测试文件“写”操作</span></strong><br><br>让我们来测试一下是否我们真的能够向文件内写东西。在C盘创建一个文件夹，将其命名为“temp”(如果磁盘的&#26684;式是NTFS，允许ASPNET/NETWORKSERVICE账户向该文件夹的写权限)。<br><br><code>&lt;code&gt;</code><pre name="code" class="csharp">private void DoSomeFileWritingStuff()<br>{<br>    Debug.WriteLine(&quot;Writing to file…&quot;);<br><br>    try<br>    {<br>       using( StreamWriter writer =<br>        new StreamWriter(@&quot;c:\temp\Cachecallback.txt&quot;, true) )<br>       {<br>        writer.WriteLine(&quot;Cache Callback: {0}&quot;, DateTime.Now);<br>        writer.Close();<br>       }<br>    }<br>    catch( Exception x )<br>    {<br>       Debug.WriteLine( x );<br>    }<br><br>    Debug.WriteLine(&quot;File write successful&quot;);<br>}</pre><br><br>打开该文件，然后你应该看到这样的信息：<br><br><pre name="code" class="plain">Cache Callback: 10/17/2005 2:50:00 PM<br>Cache Callback: 10/17/2005 2:52:00 PM<br>Cache Callback: 10/17/2005 2:54:00 PM<br>Cache Callback: 10/17/2005 2:56:00 PM<br>Cache Callback: 10/17/2005 2:58:00 PM<br>Cache Callback: 10/17/2005 3:00:00 PM</pre><br><br><strong><span style="font-size:24px">测试数据库的可连接性</span></strong><br><br>在你的“tempdb”数据库中运行下面的代码(也可以自己建数据库测试)<br><br><pre name="code" class="sql">IF EXISTS (SELECT <em> FROM dbo.sysobjects WHERE id =<br>    object_id(N’[dbo].[ASPNETServiceLog]’) AND<br>    OBJECTPROPERTY(id, N’IsUserTable’) = 1)<br>DROP TABLE [dbo].[ASPNETServiceLog]<br>GO<br><br>CREATE TABLE [dbo].[ASPNETServiceLog] (<br>    [Mesage] [varchar] (1000)<br>    COLLATE SQL_Latin1_General_CP1_CI_AS NOT NULL ,<br>    [DateTime] [datetime] NOT NULL<br>) ON [PRIMARY]<br>GO</em></pre><br><br>上面的代码将创建一个名为ASPNETServiceLog的表。记住，因为该表创建于tempdb中，所以该表在SQL Server重启的时候将消失。<br><br>接下来，为ASPNET/NETWORKSERVICE账户授予tempdb数据库的db_datawriter权限。另外，你可以定义更多特殊的权限，并且只允许往表中写权限。<br><br>现在，写下测试方法：<br><br><pre name="code" class="csharp">private void DoSomeDatabaseOperation()<br>{<br>    Debug.WriteLine(&quot;Connecting to database…&quot;);<br><br>    using( SqlConnection con = new SqlConnection(&quot;Data Source&quot; +<br>           &quot;=(local);Initial Catalog=tempdb;Integrated Security=SSPI;&quot;) )<br>    {<br>        con.Open();<br><br>        using( SqlCommand cmd = new SqlCommand( &quot;INSERT&quot; +<br>               &quot; INTO ASPNETServiceLog VALUES&quot; +<br>               &quot; (@Message, @DateTime)&quot;, con ) )<br>        {<br>            cmd.Parameters.Add(&quot;@Message&quot;, SqlDbType.VarChar, 1024).Value =<br>                               &quot;Hi I’m the ASP NET Service&quot;;<br>            cmd.Parameters.Add(&quot;@DateTime&quot;, SqlDbType.DateTime).Value =<br>                               DateTime.Now;<br><br>            cmd.ExecuteNonQuery();<br>        }<br><br>        con.Close();<br>    }<br><br>    Debug.WriteLine(&quot;Database connection successful&quot;);<br>}</pre><br><br>这将在log表中产生一些记录，你可以测试来确保“服务”的执行是否有延迟。你应该会再每两分钟获得一行数据。<br><br><img src="http://hi.csdn.net/attachment/201111/5/0_13204585764pQP.gif" alt=""><br><br><span style="font-size:24px"><strong>测试邮件的分发</strong></span><br><br>对运行一个windows service最基本的需求是定期发送邮件提醒，状态报告等等。所以，测试是否可以像windows service一样发送email很重要：<br><br><pre name="code" class="csharp">private void DoSomeEmailSendStuff()<br>{<br>    try<br>    {<br>       MailMessage msg = new MailMessage();<br>       msg.From = &quot;abc@cde.fgh&quot;;<br>       msg.To = &quot;ijk@lmn.opq&quot;;<br>       msg.Subject = &quot;Reminder: &quot; + DateTime.Now.ToString();<br>       msg.Body = &quot;This is a server generated message&quot;;<br><br>       SmtpMail.Send( msg );<br>    }<br>    catch( Exception x )<br>    {<br>       Debug.WriteLine( x );<br>    }<br>}</pre><br><br>请将From和To 修改为某些有效的地址，并且你应该每两分钟就可以收到一次邮件提醒。<br><br><strong><span style="font-size:24px">测试MSMQ</span></strong><br><br>让我们写一个简单的方法来测试是否我们可以从asp.net直接访问MSMQ：<br><br><pre name="code" class="csharp">private void DoSomeMSMQStuff()<br>{<br>    using( MessageQueue queue = new MessageQueue(MSMQ_NAME) )<br>    {<br>        queue.Send(DateTime.Now);<br>        queue.Close();<br>    }<br>}</pre><br><br>另外，你可以调用队列的Receive方法来解析队列中需要被处理的消息。<br><br>这里，有一个你必须记住的问题是，不要订阅队列的Receive事件。因为线程可能随时会被杀死，并且web服务器可能随时会被重启，一个持续阻塞的Receive将不能正常地工作。另外，如果你调用BeginReceive方法同时阻塞代码的执行直到一个消息到达，服务将被卡住然后其他的代码将不会再运行。所以，在这种情况下，你将不得不调用Receive方法来解析消息。<br><br><em>*<span style="font-size:24px">扩展系统功能</span></em><br><br>Asp.net服务可以被用来扩展那些可插拔的任务。你可以从web页面中引入作业排队，让这种服务定期执行。例如，你可以将作业队列放入一个缓存项，让“服务”来选择任务然后执行它。采用这种方式，你可以在你的asp.net项目中实现一个简单的任务处理系统。<br><br>让我们实现一个简单的Job类，它包含了一个任务执行的信息。<br><br><pre name="code" class="csharp">public class Job<br>{<br>    public string Title;<br>    public DateTime ExecutionTime;<br><br>    public Job( string title, DateTime executionTime )<br>    {<br>        this.Title = title;<br>        this.ExecutionTime = executionTime;<br>    }<br><br>    public void Execute()<br>    {<br>        Debug.WriteLine(&quot;Executing job at: &quot; + DateTime.Now );<br>        Debug.WriteLine(this.Title);<br>        Debug.WriteLine(this.ExecutionTime);<br>    }<br>}</pre>在一个简单的aspx页面上，我们将一个任务排入一个定义在Global.Asax中的名为_JobQueue的ArrayList中。<br><br><pre name="code" class="csharp">Job newJob = new Job( &quot;A job queued at: &quot; + DateTime.Now,<br>                      DateTime.Now.AddMinutes(4) );<br>lock( Global._JobQueue )<br>{<br>    Global._JobQueue.Add( newJob );<br>}</pre>所以，被排入队列中的任务将在4分钟之后被执行。该服务的代码每两分钟执行一次，它会检查任务队列，是否有任何逾期且需要被执行的任务。如果有任何的任务在等待，它将被从队列中移除并执行。服务代码有一个额外的方法，叫做ExecuteQueuedJobs。该方法做定期任务的执行：<br><br><pre name="code" class="csharp">private void ExecuteQueuedJobs()<br>{<br>    ArrayList jobs = new ArrayList();<br><br>    // Collect which jobs are overdue<br><br>    foreach( Job job in _JobQueue )<br>    {<br>       if( job.ExecutionTime &lt;= DateTime.Now )<br>        jobs.Add( job );<br>    }<br><br>    // Execute the jobs that are overdue<br><br>    foreach( Job job in jobs )<br>    {<br>       lock( _JobQueue )<br>       {<br>        _JobQueue.Remove( job );<br>       }<br><br>       job.Execute();<br>    }<br>}</pre><br><br>不要忘记锁住静态的“任务集合”，因为asp.net是多线程的。并且页面会在不同的线程上执行，所以同时往任务队列中写是很有可能的。<br><br><code>&lt;code&gt;</code><code>&lt;code&gt;</code><code>
+</code><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/11/05/使用ASP-NET实现WindowsService定时执行任务/" data-id="cii1bfd9p002dgaz26clsgnq2" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/11/08/分布式命令模式——互联系统的一种可扩展的命令模式/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          分布式命令模式——互联系统的一种可扩展的命令模式
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/10/31/使用AOP使C-代码更清晰/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">使用AOP使C#代码更清晰</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-使用ASP-NET实现WindowsService定时执行任务" data-title="使用ASP.NET实现WindowsService定时执行任务" data-url="http://vinoyang.com/2011/11/05/使用ASP-NET实现WindowsService定时执行任务/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

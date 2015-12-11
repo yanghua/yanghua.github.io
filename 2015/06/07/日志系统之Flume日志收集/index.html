@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>日志系统之Flume日志收集 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近接手维护一个日志系统，它用于对应用服务器上的日志进行收集然后提供实时分析、处理并最后将日志存储到目标存储引擎。针对这三个环节，业界已经有一套组件来应对各自的需求需求，它们是flume+kafka+hdfs/hbase。我们在实时分析、存储这两个环节，选择跟业界的实践相同，但agent是团队自己写的，出于对多种数据源的扩展需求以及原来收集日志的方式存在的一些不足，于是调研了一下flume的age">
+<meta property="og:type" content="article">
+<meta property="og:title" content="日志系统之Flume日志收集">
+<meta property="og:url" content="http://vinoyang.com/2015/06/07/日志系统之Flume日志收集/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="最近接手维护一个日志系统，它用于对应用服务器上的日志进行收集然后提供实时分析、处理并最后将日志存储到目标存储引擎。针对这三个环节，业界已经有一套组件来应对各自的需求需求，它们是flume+kafka+hdfs/hbase。我们在实时分析、存储这两个环节，选择跟业界的实践相同，但agent是团队自己写的，出于对多种数据源的扩展需求以及原来收集日志的方式存在的一些不足，于是调研了一下flume的age">
+<meta property="og:image" content="http://img.blog.csdn.net/20150606202851629?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150606204622861?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150606210904454?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="日志系统之Flume日志收集">
+<meta name="twitter:description" content="最近接手维护一个日志系统，它用于对应用服务器上的日志进行收集然后提供实时分析、处理并最后将日志存储到目标存储引擎。针对这三个环节，业界已经有一套组件来应对各自的需求需求，它们是flume+kafka+hdfs/hbase。我们在实时分析、存储这两个环节，选择跟业界的实践相同，但agent是团队自己写的，出于对多种数据源的扩展需求以及原来收集日志的方式存在的一些不足，于是调研了一下flume的age">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-日志系统之Flume日志收集" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/06/07/日志系统之Flume日志收集/" class="article-date">
+  <time datetime="2015-06-06T21:09:00.000Z" itemprop="datePublished">2015-06-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      日志系统之Flume日志收集
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>最近接手维护一个日志系统，它用于对应用服务器上的日志进行收集然后提供实时分析、处理并最后将日志存储到目标存储引擎。针对这三个环节，业界已经有一套组件来应对各自的需求需求，它们是flume+kafka+hdfs/hbase。我们在实时分析、存储这两个环节，选择跟业界的实践相同，但agent是团队自己写的，出于对多种数据源的扩展需求以及原来收集日志的方式存在的一些不足，于是调研了一下flume的agent。结果是flume非常契合我们的实际需求，并且拥有良好的扩展性与稳定性。于是打算采用flume的agent替换我们原先的实现。<br><br><a id="more"></a><br><br>本文介绍我们如何使用flume agent以及为了满足我们的需求进行了哪些扩展。备注：全文所指的flume均指flume-ng，版本基于1.6.0。<br><br># flume简介<br><br>flume 通过Agent对各个服务器上的日志进行收集，它依赖三大核心组件，它们分别是：source，channel，sink。它们之间的串联关系如下图：<br><br><img src="http://img.blog.csdn.net/20150606202851629?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>之间的关系也比较简单：source负责应对各种数据源进行日志收集；channel负责日志的中间暂存，将日志收集跟日志发送解耦；sink负责日志的发送，将日志发送到目的地。更详细的讲解，请移步<a href="https://flume.apache.org/FlumeUserGuide.html#starting-an-agent" target="_blank" rel="external">官网</a>。下面谈谈，我们对flume的使用与扩展。<br><br># Source的扩展<br><br>Flume提供了一个基于跟踪文件夹内“文件个数”变动的source称之为<a href="https://flume.apache.org/FlumeUserGuide.html#spooling-directory-source" target="_blank" rel="external">Spool Directory Source</a>。它跟踪目标日志文件夹，当有新的日志文件产生时就会触发对新日志文件的收集，但它不支持日志文件的追加。也就是说一旦它开始收集某个日志文件，那么这个日志文件就不能再被编辑，如果在读取日志文件的时候，日志文件产生了变动那么它将会抛出异常。也就是说，当收集到当日日志文件时，同时又有新的日志在往里面写入时，该source是不适合这种需求的。<br><br>如果你的需求是接近“准实时”的日志收集并且你非要用这个souce，应对的方案是：你只能选择将应用程序的日志框架（比如常用的log4j）的appender的“滚动机制”设置为按分钟滚动（也就是每分钟产生一个新日志文件）。这种机制不是不可行，但有些不足的地方，比如日志文件过多：当日志除了要被日志系统收集，还需要本地保留时，这种机制将非常难以接受。<br><br>我们希望日志文件按天滚动产生新的日志文件，当天的日志以追加的方式写入当天的日志文件并且Agent还要能够以接近实时的速度收集新产生的日志（追加）的。如果agent挂掉或者服务器宕机，日志文件不能丢失，agent能够自动跨日期收集。其实，spooling directory source已经为我们的实现提供了模板，但要进行一些改造，主要是以下几点：<br><br>（1）原先的Spooling Directory Source不支持对收集的日志文件的内容进行追加：<br><br><img src="http://img.blog.csdn.net/20150606204622861?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>如果文件有任何改动，将以异常的形式抛出。此处需要移除异常<br><br>（2）对当日日志文件进行持续监控<br><br>原先的实现，当获取不到event直接删除或者重命名当前文件，并自动混动到下一个文件：<br><pre code_snippet_id="686468" snippet_file_name="blog_20150606_1_8947004" name="code" class="java">/<em> It’s possible that the last read took us just up to a file boundary.
+     </em> If so, try to roll to the next file, if there is one. */<br>    if (events.isEmpty()) {<br>      retireCurrentFile();<br>      currentFile = getNextFile();<br>      if (!currentFile.isPresent()) {<br>        return Collections.emptyList();<br>      }<br>      events = currentFile.get().getDeserializer().readEvents(numEvents);<br>    }</pre><br>修改后的实现，当当前文件不是当天的日志文件时才处理当前文件并自动滚动到下一个文件，如果是当日文件，则继续跟踪：<pre code_snippet_id="686468" snippet_file_name="blog_20150606_2_4713028" name="code" class="java">if(!isTargetFile(currentFile) //Only CurrentFile is no longer the target, at the meanwhile, next file exists.<br>    &amp;&amp; (isExistNextFile()) ){//Then deal with the history file(ever target file)<br>  logger.info(&quot;File:{} is no longer a TARGET File, which will no longer be monitored.&quot;, currentFile.get().getFile().getName());<br>  retireCurrentFile();<br>  currentFile = getNextFile();<br>}</pre><br>flume 该source的源码见：<a href="https://github.com/apache/flume/blob/flume-1.5/flume-ng-core/src/main/java/org/apache/flume/client/avro/ReliableSpoolingFileEventReader.java#L242" target="_blank" rel="external">github</a>。<br><br>另外此处，我们判断是否是目标文件（当日日志文件）的处理方式是比对服务器日期跟文件名中包含的日期是否一致：<br><pre code_snippet_id="686468" snippet_file_name="blog_20150606_3_9757629" name="code" class="java">private boolean isTargetFile(Optional&lt;FileInfo&gt; currentFile2) {<br><br>  String inputFilename = currentFile2.get().getFile().getName();<br>  SimpleDateFormat dateFormat = new SimpleDateFormat(targetFilename);<br>  String substringOfTargetFile = dateFormat.format(new Date());<br><br>  if(inputFilename.toLowerCase().contains(substringOfTargetFile.toLowerCase())){<br>    return true;<br>  }<br><br>  return false;<br>}</pre><br>所以在新的配置里还需要加入日期格式的配置，通常是：yyyy-MM-dd。<br><br># Sink 的扩展<br><br>Sink在Flume的agent组件中充当数据输出的作用。在flume之前的版本（1.5.2）中已经对多个数据持久化系统提供了内置支持（比如hdfs/HBase等），但默认是没有kafka的。如果我们想将日志消息发送到kafka，就需要自己扩展一个kafkaSink。后来通过搜索发现在最新的stable release版本：1.6.0中，官方已经集成了kafkaSink。不过1.6.0是5月20号刚刚发布，官方的Download页面以及User Guide还没有进行更新，所以请在版本列表页面下载1.6.0版本。在下载到的安装包内有最新的KafkaSink介绍。<br><br>核心的配置有：brokerList（为了高可用性，flume建议至少填写两个broker配置）、topic。详见列表：<br><br><img src="http://img.blog.csdn.net/20150606210904454?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>出于好奇心，在github上大概浏览了官方实现kafkaSink的源码，发现Event的Header部分并没有被打包进消息发送走：<br><br><pre code_snippet_id="686468" snippet_file_name="blog_20150606_4_8248578" name="code" class="java">        byte[] eventBody = event.getBody();<br>        Map&lt;String, String&gt; headers = event.getHeaders();<br><br>        if ((eventTopic = headers.get(TOPIC_HDR)) == null) {<br>          eventTopic = topic;<br>        }<br><br>        eventKey = headers.get(KEY_HDR);<br><br>        if (logger.isDebugEnabled()) {<br>          logger.debug(&quot;{Event} &quot; + eventTopic + &quot; : &quot; + eventKey + &quot; : &quot;<br>            + new String(eventBody, &quot;UTF-8&quot;));<br>          logger.debug(&quot;event #{}&quot;, processedEvents);<br>        }<br><br>        // create a message and add to buffer<br>        KeyedMessage&lt;String, byte[]&gt; data = new KeyedMessage&lt;String, byte[]&gt;<br>          (eventTopic, eventKey, eventBody);<br>        messageList.add(data);</pre><br>这一点，可能并不满足我们的需求：我们需要消息头里的信息成为消息的一部分，然后在storm里针对header信息进行一些处理。比如：<br><br>（1）我们会默认在头里加入产生日志的服务器的Host，以便对日志进行分流或对没有存储host的日志进行“补偿”<br><br>（2）我们会默认在头里加入日志类型的标识，以便区分不同的日志并分流到不同的解析器进行解析<br><br>因为日志的来源以及形式是多样的，所以header里这些携带的信息是必要的。而flume官方的KafkaSink却过滤掉了header中的信息。因此，我们选择对其进行简单的扩张，将Event的header跟body打包成一个完整的json对象。具体的实现：<br><br><pre code_snippet_id="686468" snippet_file_name="blog_20150606_5_5867474" name="code" class="java">    private byte[] generateCompleteMsg(Map&lt;String, String&gt; header, byte[] body) {<br>        LogMsg msg = new LogMsg();<br>        msg.setHeader(header);<br>        msg.setBody(new String(body, Charset.forName(&quot;UTF-8&quot;)));<br><br>        String tmp = gson.toJson(msg, LogMsg.class);<br>        logger.info(&quot; complete message is : &quot; + tmp);<br>        return tmp.getBytes(Charset.forName(&quot;UTF-8&quot;));<br>    }</pre><br><pre code_snippet_id="686468" snippet_file_name="blog_20150606_6_7946472" name="code" class="java">                // create a message and add to buffer<br>                KeyedMessage&lt;String, byte[]&gt; data = new KeyedMessage&lt;String, byte[]&gt;<br>                    (eventTopic, eventKey, generateCompleteMsg(headers, eventBody));<br>                messageList.add(data);</pre><br><br># Interceptor使用<br><br>上面提到日志的源以及格式多种多样，我们不可能将所有工具、组件的日志格式按照我们想要的方式作格式化，特别是一些封闭的组件或线上的系统。很显然source跟sink只负责日志的收集和发送，并不会区分日志内容。而flume提供的Interceptor这一功能，给flume提供了更强大的扩展性。而我们拦击日志，并给其添加特定的header就是通过flume内置的几个interceptor实现的。我们应用了这么几个interceptor：<br><br>（1）host：往header中设置当前主机的Host信息；<br><br>（2）static：往header中设置一个预先配好的key-value对，我们用它来鉴别不同的日志源<br><br>（3）regex：通过将Event的body转换成一个UTF-8的字符串，然后匹配正则表达式，如果匹配成功，则可以选择放行或者选择删除<br><br>前两个interceptor我们之前已经提及过它的用途，而第三个我们用它来匹配日志中是否存在“DEGUG”字样的tag，如此存在，则删除该日志（这个是可选的）。<br><br># Selector 的使用<br><br>目前没有使用Selector的需求，不过它的用途也很常见：它可以用来选择Channel，如果你有多个Channel，并且是有条件得选择性发送的情况下，可以使用Selector来提高日志收集的灵活性。比如：如果你需要将不同不同日志源的日志发往不同的目的地可以建立多个channel然后按一定的规则来匹配，这里主要用到<a href="https://flume.apache.org/FlumeUserGuide.html#multiplexing-channel-selector" target="_blank" rel="external">Multiplexing Channel Selector</a>。<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/06/07/日志系统之Flume日志收集/" data-id="cii1bfd7n001jgaz2a4qmhs6s" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/06/13/日志系统之HBase日志存储设计优化/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          日志系统之HBase日志存储设计优化
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/06/02/Google-Guava-EventBus源码解读/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Google-Guava-EventBus源码解读</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-日志系统之Flume日志收集" data-title="日志系统之Flume日志收集" data-url="http://vinoyang.com/2015/06/07/日志系统之Flume日志收集/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

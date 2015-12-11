@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>性能优化之页面缓存（以Javascript方式缓存页面部件） | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本篇文章为大家讲解一个关于客户端缓存页面的技巧——以Javascript的方式来缓存页面的静态“部件”。如果整个页面能够被缓存到浏览器上，一个满载HTML的巨大页面也能运行地很棒。你可以使用Http响应缓存头来解决这个问题，要么将它们手工注入你的代码，要么在aspx页面上使用@OutputCache标签来申明：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="性能优化之页面缓存（以Javascript方式缓存页面部件）">
+<meta property="og:url" content="http://vinoyang.com/2011/11/27/性能优化之页面缓存（以Javascript方式缓存页面部件）/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="本篇文章为大家讲解一个关于客户端缓存页面的技巧——以Javascript的方式来缓存页面的静态“部件”。如果整个页面能够被缓存到浏览器上，一个满载HTML的巨大页面也能运行地很棒。你可以使用Http响应缓存头来解决这个问题，要么将它们手工注入你的代码，要么在aspx页面上使用@OutputCache标签来申明：">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/27/0_1322374318FflF.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/27/2983011_1322374397fXR2.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/27/2983011_1322374449JfN8.jpg">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/27/2983011_1322377253x6c5.jpg">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="性能优化之页面缓存（以Javascript方式缓存页面部件）">
+<meta name="twitter:description" content="本篇文章为大家讲解一个关于客户端缓存页面的技巧——以Javascript的方式来缓存页面的静态“部件”。如果整个页面能够被缓存到浏览器上，一个满载HTML的巨大页面也能运行地很棒。你可以使用Http响应缓存头来解决这个问题，要么将它们手工注入你的代码，要么在aspx页面上使用@OutputCache标签来申明：">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-性能优化之页面缓存（以Javascript方式缓存页面部件）" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/11/27/性能优化之页面缓存（以Javascript方式缓存页面部件）/" class="article-date">
+  <time datetime="2011-11-27T14:59:00.000Z" itemprop="datePublished">2011-11-27</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      性能优化之页面缓存（以Javascript方式缓存页面部件）
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>本篇文章为大家讲解一个关于客户端缓存页面的技巧——以Javascript的方式来缓存页面的静态“部件”。<br><br>如果整个页面能够被缓存到浏览器上，一个满载HTML的巨大页面也能运行地很棒。你可以使用Http响应缓存头来解决这个问题，要么将它们手工注入你的代码，要么在aspx页面上使用@OutputCache标签来申明：<br><br><a id="more"></a><br><br><pre name="code" class="plain">&lt;%@ OutputCache Location=”Client” Duration=”86400” VaryByParam=”<em>” VaryByHeader=”</em>” %&gt;</pre><br><br>但是，浏览器上的这些缓存记录一般只能维持一天的时间。如果你有一个既有静态内容又有动态内用的页面，你则不能再页面级别使用这种输出缓存的形式。一般来讲，站点的页面、logo、左边的导航菜单和页脚都是静态部分，参考下图：<br><br><img src="http://hi.csdn.net/attachment/201111/27/0_1322374318FflF.gif" alt=""><br><br>上图中，其实只有区域二是绝对动态的，区域一和区域三以及页脚和菜单都是可以部分甚至全部缓存！<br><br>有时候在页面的主体区域也有很多部分不是经常变化。将所有这些合并起来的时候，会占用相当长的下载时间。这样，当一些有效部分从不发生变化的时候，用户也不得不将其页面记录不断地下载到本地。如果你能够将这些静态部分缓存到浏览器上，每次页面加载的时候你会少下载很多字节。如果整个页面的大小为50KB，则至少有20KB的内容是静态的，而其他30KB也许是动态的。如果你能使用页面片段的客户端缓存（并不是asp.net的服务端页面的输出缓存），你可以很容易地节约40%的下载时间。此外，也不需要为这些静态内容发送请求到服务端，因为它们已经缓存到了浏览器上。因此，每次加载的时候，服务端不必处理这么巨大的页面。<br><br>Asp.net 通过使用@Outputcache的方式提供了页面片段缓存，虽然这样确实很有好处，但是问题是该缓存是基于服务端的。它负责返回用户控件的输出并从服务端缓存中返回。但是你不能消除下载这些字节所付出的代价。因为它仅仅节省了服务器上一些CPU处理能力，这对用户来讲没有多大的益处。<br><br>对页面部分进行缓存仅有的方式是允许浏览器单独地下载这些部分并使得这些部分就像图像、CSS或Javascript文件一样是缓存的。因此，我们需要单独地下载页面片段并将它们缓存到浏览器缓存中。Iframe框架很容易实现这种方式，但是它会使页面很笨拙并且也不支持适应父框架的页面CSS样式。在Iframe框架内部，你需要再次下载你可能要使用的其他Javascript代码和Ajax框架。由于这些文件是从缓存中获取，虽然下载速度&#20284;乎很快，但是再次下载整个框架以及大量的Javascript代码时会增加浏览器的压力。<br><br>有一种更好的办法：使用Javascript代码来呈现页面内容；这样Javascript将从浏览器的缓存中获得内容。想法如下：<br><br>1、&nbsp; 将整个页面分割成很多部分。<br><br>2、&nbsp; 使用Javascript代码生成页面内容。每块可缓存的部分都由Javascript代码控制，然后再呈现给Html<br><br>3、&nbsp; 浏览器仅缓存可缓存的部分，因此它们不会再次下载（直到用户进行刷新或清除缓存为止）。页面上那些不可缓存的部分和虽然频繁发生变化但浏览器没有缓存的部分被考虑作为页面布局，如下图所示：<br><br><img src="http://hi.csdn.net/attachment/201111/27/2983011_1322374397fXR2.jpg" alt=""><br><br>上图为典型的主页布局，其中主体段是动态的，而页眉页脚、左菜单和logo是静态的<br><br>因为仅仅主体部分是动态的，页面的其余部分是完全可缓存的。因此，Default.aspx呈现出的整个页面看起来类&#20284;如下代码：<br><br><pre name="code" class="html">&lt;%@ Page Language=&quot;C#&quot; AutoEventWireup=&quot;true&quot; CodeFile=&quot;Default.aspx.cs&quot; Inherits=&quot;_Default&quot; %&gt;<br>&lt;%@ OutputCache NoStore=&quot;true&quot; Location=&quot;None&quot; %&gt;<br><br>&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;<a href="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt</a>;<br><br>&lt;html xmlns=&quot;<a href="http://www.w3.org/1999/xhtml&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/1999/xhtml&quot;&amp;gt</a>;<br>&lt;head runat=&quot;server&quot;&gt;<br>    &lt;title&gt;&lt;/title&gt;<br>&lt;/head&gt;<br>&lt;body&gt;<br>    &lt;form id=&quot;form1&quot; runat=&quot;server&quot;&gt;<br>    &lt;table width=&quot;100%&quot; border=&quot;1&quot; style=&quot;height:450px&quot;&gt;<br>        &lt;tr&gt;<br>            &lt;td&gt;Some logo here&lt;/td&gt;<br>            &lt;td&gt;&lt;script id=&quot;script1&quot; src=&quot;Header.aspx&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/td&gt;<br>        &lt;/tr&gt;<br>        &lt;tr&gt;<br>            &lt;td&gt;&lt;script id=&quot;script2&quot; src=&quot;LeftMenu.aspx&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;&lt;/td&gt;<br>            &lt;td bgcolor=&quot;lightgrey&quot;&gt;<br>                &lt;div&gt;This is hte dynamic part which gets changed on every load.<br>                Check out the time when it was generated:&lt;%=DateTime.Now %&gt;&lt;/div&gt;<br>            &lt;/td&gt;<br>        &lt;/tr&gt;<br>        &lt;tr&gt;<br>            &lt;td colspan=&quot;2&quot;&gt;<br>                &lt;script id=&quot;script3&quot; src=&quot;Footer.aspx&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;<br>            &lt;/td&gt;<br>        &lt;/tr&gt;<br>    &lt;/table&gt;<br>    &lt;/form&gt;<br>&lt;/body&gt;<br>&lt;/html&gt;<br></pre><br><br>在浏览器上缓存页面的各个部分可以消除下载静态块的发生。例如，页眉、左菜单和页脚都是不会发生变化的部分，因此它们被缓存起来以便用户的重复访问，但是主体部分每次用户访问的时候都需要从服务器上获取新内容。<br><br>被缓存的部分会持续30min以上，因为浏览器根本不会从服务器上下载它们，并且这也节省了大数据的传输耗费。仅仅主体部分才从服务器上下载。<br><br>首次访问的时候，页面部分会一个接着一个地进行下载，正如你从下图中看到的一样：<br><br><img src="http://hi.csdn.net/attachment/201111/27/2983011_1322374449JfN8.jpg" alt=""><br><br>但是在第二次访问的时候，仅下载Default.aspx页面并且其他部分会立即从缓存中进行加载。下面一份图展示了加载页面不同缓存部分的实例。<br><br><img src="http://hi.csdn.net/attachment/201111/27/2983011_1322377253x6c5.jpg" alt=""><br><br>第二次访问时，缓存部分的内容立即从浏览器缓存中获得。因此，整个下载字节仅为Default.aspx页面进行，而不是页面上的各个小部分区域。因此，下载时间大大地减少了并且再次访问时也非常地快。<br><br>与第一次访问页面上的每块要用1S的下载时间相比，第二次访问页面部分区域的下载时间是5-7ms之间。这说明了再次访问页面缓存部分区域时是多么的快。<br><br>让我们看看一个名为Header.aspx的文件，其内容是从缓存中获得的。<br><br>缓存Header.aspx页面；注意到与一个标准的aspx页面相比变化的仅是ContentType属性<br><br><pre name="code" class="html">&lt;%@ Page Language=&quot;C#&quot; AutoEventWireup=&quot;true&quot; CodeFile=&quot;Header.aspx.cs&quot; Inherits=&quot;Header&quot; ContentType=&quot;text/html/javascript&quot; %&gt;<br>&lt;%@ OutputCache Location=&quot;Client&quot; Duration=&quot;86400&quot; VaryByParam=&quot;<em>&quot; %&gt;<br><br>&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;<a href="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt</a>;<br><br>&lt;html xmlns=&quot;<a href="http://www.w3.org/1999/xhtml&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/1999/xhtml&quot;&amp;gt</a>;<br>&lt;head runat=&quot;server&quot;&gt;<br>    &lt;title&gt;&lt;/title&gt;<br>&lt;/head&gt;<br>&lt;body&gt;<br>    &lt;form id=&quot;form1&quot; runat=&quot;server&quot;&gt;<br>    &lt;div&gt;<br>        &lt;h1&gt;This is the big fat header.Lots of HTML&lt;/h1&gt;<br>        Generater on server at:&lt;%=DateTime.Now %&gt;<br>    &lt;/div&gt;<br>    &lt;/form&gt;<br>&lt;/body&gt;<br>&lt;/html&gt;<br></em></pre><br><br>Content type被设置为text/html/javascript&#20540;，这使得你需要对页面进行一些手工实现。<br><br>当你在某个脚本标签里放置一个aspx页面的时候，会出现错误。因为&lt;script id=”script1” src=”Header.aspx” type=”type/javascript”&gt;的预期输出为Javascript而不是HTML内容。如果提供了HTML输出，浏览器会完全地忽略它。因此，首先要满足&lt;script&gt;标签能正常工作，Header.aspx页面必须返回Javascript代码而不是HTML内容。其次，借助document.writeln方法使得javascript呈现Header.aspx页面的HTML输出。<br><br>一个Http Module会截获所有对.aspx页面的调用请求。当某个页面准备发送到浏览器端的时候，会检查content type是否为text/html/javascript。如果是，然后将页面输出转换为一个类&#20284;于javascript表现。<br><br>我们先创建一个名为Html2JSPageFilter.cs的响应过滤器文件对响应流的Write方法进行重写，并将页面的HTML转换为Javascript表示。因此，asp.net为你产生Html，并且你将它转换为Javascript表示用来在浏览器上呈现源Html。<br><br><strong>HttpResponse的Filter属性</strong><br><br>这里我们将使用到HttpResponse的Filter属性，这是一个非常有用但很少被使用的属性。MSDN对其的解释是——获取或设置一个包装的筛选器对象以在传输到客户端之前修改Http实体内容。也就是说，你可以给你的每个页面输出设置你自己的筛选器。HttpResponse将发送所有的内容到筛选器<br><br><strong>使用Http Module</strong><br><br>你也许在想，是否可以使用一个Http handler来处理这个问题。例如，你需要使用asp.net的默认页面handler来截获发送所有以.aspx为扩展名文件的调用请求。但是你不能将相同的扩展名的文件注册为另一个handler。本方案中，你需要使用HttpModule，它能截获任何一个来自asp.net管道的请求。为了实现这个功能，你需要：<br><br>1、&nbsp; 以Html的方式返回整个页面输出<br><br>2、&nbsp; 过滤包含在&lt;form&gt;标签内的内容。Asp.net总是会产生一个&lt;form&gt;标签，并且页面上的内容仅在该标签内部时才是可用的<br><br>下面的代码从aspx页面返回产生的HTML内容，并从&lt;form&gt;标签中解析出内容<br><br><pre name="code" class="csharp">public override void Write(byte[] buffer, int offset, int count)<br>    {<br>        string strBuffer = System.Text.UTF8Encoding.UTF8.GetString(buffer, offset, count);<br>        //——————————–<br>        //Wait for the colsing &lt;/html&gt; tag<br>        //——————————–<br>        Regex eof = new Regex(&quot;&lt;/html&gt;&quot;, RegexOptions.IgnoreCase);<br><br>        if (!eof.IsMatch(strBuffer))<br>        {<br>            responseHtml.Append(strBuffer);<br>        }<br>        else<br>        {<br>            responseHtml.Append(strBuffer);<br>            string finalHtml = responseHtml.ToString();<br><br>            int formTagStart = finalHtml.IndexOf(&quot;&lt;form&quot;);<br>            int formTagStartEnd = finalHtml.IndexOf(‘&gt;’, formTagStart);<br>            int formTagEnd = finalHtml.LastIndexOf(&quot;&lt;/form&gt;&quot;);<br><br>            string pageContentInsideFormTag = finalHtml.Substring(formTagStartEnd + 1, formTagEnd - formTagStartEnd - 1);</pre><br><br>3、&nbsp; 移出隐藏字段的ViewState，否则它会与Default.aspx页面上的Viewstate发生冲突（默认页面有它自己的Viewstate）。因此，包含Viewstate的&lt;input&gt;标签不能再次发送到浏览器端。这意味着你不能使用带Viewstate的控件，虽然它是实现这种方法的快捷方式。通常来说，缓存部分存放的都是静态内容，因此不管怎样，需要Viewstate在这里是不应该的。<br><br>下面的代码移出&lt;input&gt;字段的Viewstate，以避免它和Default.aspx页面的Viewstate发生冲突：<br><br><pre name="code" class="csharp">Regex re = new Regex(&quot;(&lt;input.<em>?__VIEWSTATE.</em>?/&gt;)&quot;, RegexOptions.IgnoreCase);<br><br>pageContentInsideFormTag = re.Replace(pageContentInsideFormTag, string.Empty);</pre><br><br>4、&nbsp; 将整个HTML输出转换为Javascript字符串&#26684;式。该字符串包含一个未&#26684;式化的HTML，可以作为innerHTML使用或者在document.write(‘’)语句的方法里是使用<br><br>下面的代码将HTML输出转换为一个Javascript字符串表示并且消除新的行、空&#26684;、省略符号，等。可将这一的字符串设置为一个元素的innerHTML&#20540;或将它传递给document方法：<br><br><pre name="code" class="csharp">string javascript2html = pageContentInsideFormTag.Replace(&quot;\r&quot;, &quot;&quot;)<br>                .Replace(&quot;\n&quot;, &quot;&quot;)<br>                .Replace(&quot;    &quot;, &quot; &quot;)<br>                .Replace(&quot;  &quot;, &quot; &quot;)<br>                .Replace(&quot;   &quot;, &quot; &quot;)<br>                .Replace(&quot;\&quot;, &quot;\\&quot;)<br>                .Replace(&quot;’&quot;, &quot;\‘&quot;);</pre><br><br>5、&nbsp; 使用document.write方法，它能够将javascript字符串输出到浏览器上。HTML被直接添加到页面内容<br><br>生成一个document.write的语句，用来将Html输出到浏览器上：<br><br><pre name="code" class="csharp">string pageOutput = &quot;document.write(‘&quot;+javascript2html+&quot;’);&quot;;<br>byte[] data = System.Text.UTF8Encoding.UTF8.GetBytes(pageOutput);<br><br>responseStream.Write(data, 0, data.Length);</pre><br><br>这是一个非常完美的骗局。先使用一个响应过滤器来返回.aspx文件的输出，然后将它转换为Javascript表示。使用document.write方法将HTML在浏览器的DOM中呈现并获得该Javascript代码的缓存。为了方便，这里使用一个HttpModule对象来挂钩asp.net管道，并等待.aspx文件发送text/html/javascript形式的内容。然后再挂钩该响应过滤器到asp.net请求管道。<br><br>&nbsp;<br><br><strong>注册HttpModule</strong><br><br>HttpModule对象非常简单。它会挂钩上下文的ReleaseRequestState事件，当页面输出准备发送到浏览器的时候会激活该事件。在该事件的句柄中，调用响应过滤器来将HTML转换为Javascript表示的&#26684;式<br><br>下面是实现代码：<br><br><pre name="code" class="csharp">public void Init(HttpApplication context)<br>    {<br>        context.ReleaseRequestState += new EventHandler(InstallResponseFilter);<br>    }<br><br>    private void InstallResponseFilter(object sender, EventArgs e)<br>    {<br>        HttpResponse response = HttpContext.Current.Response;<br><br>        if (response.ContentType==&quot;text/html/javascript&quot;)<br>        {<br>            response.ContentType = &quot;text/javascript&quot;;<br>            response.Filter = new Html2JSPageFilter(response.Filter);<br>        }<br>    }</pre><br><br>最后，通过在web.config文件中添加一个入口节点&lt;httpModule&gt;来进行注册<br><br><pre name="code" class="plain">&lt;httpModules&gt;<br>&lt;add name=&quot;Html2JSModule&quot; type=&quot;Html2JSModule&quot;/&gt;<br>&lt;/httpModules&gt;</pre><br><br>你可以在你的.aspx文件中使用这种方法在客户端充分节省用户的下载时间。虽然首次访问时会稍微增加下载时间——每块脚本标签在网络上的平均往返时间大约是200ms，但是再次访问时会更加轻松。你自己留意一下这些不同的性能问题：登陆<a href="http://www.pageflakes.com/" target="_blank" rel="external">www.pageflakes.com</a>站点并让整个站点完成加载。然后，关闭浏览器，再打开它，并再次输入URL地址。可以看到再次访问速度是多么地快。没错，它们使用的就是这种技巧！你会看到与第一次访问发送的大约400KB的数据相比，第二次访问时仅仅发送了10-12KB的数据。这是因为所有页面片段都被缓存到浏览器中了，只要缓存没有过期，后续的用户访问站点时并不需要多少下载时间.<br><br><a href="http://download.csdn.net/detail/yanghua_kobe/3848344" target="_blank" rel="external"><span style="font-size:18px">源代码下载</span></a><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/11/27/性能优化之页面缓存（以Javascript方式缓存页面部件）/" data-id="cii1bfd7s001mgaz2ccqpbeob" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/12/05/开发自己的Web服务处理程序-以支持Ajax框架异步调用Web服务方法/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          开发自己的Web服务处理程序(以支持Ajax框架异步调用Web服务方法)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/11/26/从零开始学-net多线程系列-二/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">从零开始学.net多线程系列(二)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-性能优化之页面缓存（以Javascript方式缓存页面部件）" data-title="性能优化之页面缓存（以Javascript方式缓存页面部件）" data-url="http://vinoyang.com/2011/11/27/性能优化之页面缓存（以Javascript方式缓存页面部件）/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

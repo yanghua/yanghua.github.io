@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>细说Cookies | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="什么是Cookies？Cookies是一些小文件，它们被创建在客户端的系统里，或者被创建在客户端浏览器的内存中（如果是临时性的话）。用它可以实现状态管理的功能。我们可以存储一些少量信息到可以短的系统上，以便在需要的时候使用。最有趣的事情是，它是对用户透明的。在你的web应用程序中，你可以到处使用它，它极其得简单。Cookies是以文本形式存储的。如果一个web应用程序使用cookies，那么服务器">
+<meta property="og:type" content="article">
+<meta property="og:title" content="细说Cookies">
+<meta property="og:url" content="http://vinoyang.com/2011/12/12/细说Cookies/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="什么是Cookies？Cookies是一些小文件，它们被创建在客户端的系统里，或者被创建在客户端浏览器的内存中（如果是临时性的话）。用它可以实现状态管理的功能。我们可以存储一些少量信息到可以短的系统上，以便在需要的时候使用。最有趣的事情是，它是对用户透明的。在你的web应用程序中，你可以到处使用它，它极其得简单。Cookies是以文本形式存储的。如果一个web应用程序使用cookies，那么服务器">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323610640D7Gf.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323610689Pr84.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323610892jjYk.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_13236109588hmY.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323611137S3z0.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323611609ckCC.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323611716vfoB.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201112/11/0_1323611845QAeN.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="细说Cookies">
+<meta name="twitter:description" content="什么是Cookies？Cookies是一些小文件，它们被创建在客户端的系统里，或者被创建在客户端浏览器的内存中（如果是临时性的话）。用它可以实现状态管理的功能。我们可以存储一些少量信息到可以短的系统上，以便在需要的时候使用。最有趣的事情是，它是对用户透明的。在你的web应用程序中，你可以到处使用它，它极其得简单。Cookies是以文本形式存储的。如果一个web应用程序使用cookies，那么服务器">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-细说Cookies" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/12/12/细说Cookies/" class="article-date">
+  <time datetime="2011-12-11T21:47:00.000Z" itemprop="datePublished">2011-12-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      细说Cookies
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><strong><span style="font-size:16px">什么是Cookies？</span></strong><br><br>Cookies是一些小文件，它们被创建在客户端的系统里，或者被创建在客户端浏览器的内存中（如果是临时性的话）。用它可以实现状态管理的功能。我们可以存储一些少量信息到可以短的系统上，以便在需要的时候使用。最有趣的事情是，它是对用户透明的。在你的web应用程序中，你可以到处使用它，它极其得简单。Cookies是以文本形式存储的。如果一个web应用程序使用cookies，那么服务器负责发送cookies，客户端浏览器将存储它。浏览器在下次请求页面的时候，会返回cookies给服务器。最常用的例子是，使用一个cookie来存储用户信息，用户的喜好，“记住密码”操作等。Cookies有许多优点，当然也有许多缺点。我将在接下来讲述。<br><br><a id="more"></a><br><br><span style="font-size:16px"><strong>Cookies是如何创建的？</strong></span><br><br>当一个客户端向服务器发出请求，服务器发送cookies给客户端。而相同的cookies可以被后续的请求使用。例如，如果codeproject.com将Session ID作为cookies存储。当一个客户端首次向web服务器请求页面，服务器生成Session ID，并将其作为cookies发送往客户端。<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323610640D7Gf.gif" alt=""><br><br>现在，所有来自相同客户端的后续请求，它将使用来自cookies的Session ID，就像下面这幅图片展示的那样。<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323610689Pr84.gif" alt=""><br><br>浏览器和web服务器以交换cookies信息来作为响应。对不同的站点，浏览器会维护不同的cookies。如果一个页面需要cookies中的信息，当某个URL被“点击”，首先浏览器将搜索本地系统的cookies的信息，然后才转向服务器来获得信息。<br><br><span style="font-size:16px"><strong>Cookies的优势</strong></span><br><br>下面是使用cookies的主要优势：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;实现和使用都是非常简单的<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;由浏览器来负责维护发送过来的数据（cookies内容）<br><br>(3)&nbsp;&nbsp;&nbsp;&nbsp;对来自多个站点的cookies来讲，浏览器自动管理它们<br><br><span style="font-size:16px"><strong>Cookies的劣势</strong></span><br><br>下面是cookies的主要劣势：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;它以简单的文本&#26684;式来存储数据，所以它一点也不安全<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;对于cookies数据，有大小限制（4kB）<br><br>(3)&nbsp;&nbsp;&nbsp;&nbsp;Cookies最大数目也有限制。主流浏览器提供将cookies的个数限制在20条。如果新cookies到来，那么老的将被删除。有些浏览器能支持到300条的cookies数。<br><br>(4)&nbsp;&nbsp;&nbsp;&nbsp;我们需要配置浏览器，cookies将不能工作在浏览器配置的高安全级别环境下。<br><br><span style="font-size:16px"><strong>如何创建Cookies</strong></span><br><br>为了使用cookies，我们首先需要引入System.Web这个命名空间：<br><br><pre name="code" class="csharp">using System.Web;</pre><br><br>看下面的代码，来看看我们如何创建cookies以及如何将它加入到web响应中去：<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323610892jjYk.gif" alt=""><br><br>Cookies被创建后将持续到浏览器关闭。我们可以使其持续更长的时间。该如何实现呢？我接下来将来讲解它<br><br><strong><span style="font-size:16px">如何从Cookies中读取信息</span></strong><br><br>在读取cookies之前，首先我们需要检查是否能找到该cookie。在读取cookies之前，先检查它总是一个很好的习惯，因为浏览器可能禁用cookies。<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_13236109588hmY.gif" alt=""><br><br><strong><span style="font-size:16px">什么是持久化的和非持久化的Cookies</span></strong><br><br>我们可以将cookies分成两类：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;持久化的cookies<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;非持久化的cookies<br><br><strong>持久化的cookies</strong>：这可以被称为永久性的cookies，它被存储在客户端的硬盘内，直到它们失效。持久化的cookies应该被设置一个失效时间。有时，它们会一直存在直到用户删除它们。持久化的cookies通常被用来为某个系统收集一个用户的标识信息。<br><br><strong>非持久化cookies</strong>：也可以被称之为临时性的cookies。如果没有定义失效时间，那么cookie将会被存储在浏览器的内存中。我上面展示的例子就是一个非持久的cookies。<br><br>修改一个持久化的cookies与一个非持久化的cookies并没有什么不同。它们唯一的区别是——持久化的cookies有一个失效时间的设置。<br><br><strong><span style="font-size:16px">怎样创建持久化的cookies</span></strong><br><br>我已经给出了创建一个非持久化cookies的例子。对于持久化的cookies而言，我们需要为其定义一个过期时间。下面的代码中，我定义了一个持久化的cookies，因为我将其失效时间标识为5天。<br><br><pre name="code" class="csharp">//Creting a Cookie Object<br>HttpCookie _userInfoCookies = new HttpCookie(&quot;UserInfo&quot;);<br><br>//Setting values inside it<br>_userInfoCookies[&quot;UserName&quot;] = &quot;Abhijit&quot;;<br>_userInfoCookies[&quot;UserColor&quot;] = &quot;Red&quot;;<br>_userInfoCookies[&quot;Expire&quot;] = &quot;5 Days&quot;;<br><br>//Adding Expire Time of cookies<br> _userInfoCookies.Expires = DateTime.Now.AddDays(5);<br><br>//Adding cookies to current web response<br>Response.Cookies.Add(_userInfoCookies);</pre><br><br>最有趣的事情是，它们到底存储在硬盘的什么地方呢？<br><br><strong><span style="font-size:16px">Cookies到底存储在本地硬盘的什么地方</span></strong><br><br>其中一个有趣的事情是知晓cookies在你硬盘的哪个地方。首先，进入浏览文件夹选项，选择“显示隐藏文件和文件夹”。<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323611137S3z0.gif" alt=""><br><br>现在，导航到当前用户cookies的文件夹。看下面的这幅图：<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323611609ckCC.gif" alt=""><br><br><strong><span style="font-size:16px">怎样在它失效时间之前移除Cookies</span></strong><br><br>这是一个有趣的任务。如果你想在失效时间之前移除持久化的cookies，唯一的方式就是用一个过去的时间作为失效时间来代替老的失效时间。<br><br><pre name="code" class="csharp">HttpCookie _userInfoCookies = new HttpCookie(&quot;UserInfo&quot;);<br>//Adding Expire Time of cookies before existing cookies time<br>_userInfoCookies.Expires = DateTime.Now.AddDays(-1);<br>//Adding cookies to current web response<br>Response.Cookies.Add(_userInfoCookies);</pre><br><br><strong><span style="font-size:16px">怎样控制Cookies域</span></strong><br><br>我们可以以下面的方式来控制cookies的域：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;限制cookies的路径<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;限制cookies的域<br><br><strong><span style="font-size:16px">什么是Cookies Munging？</span></strong><br><br>默认的，asp.net使用cookies来存储session id，但就像我之前提到的，有些浏览器不支持cookies。为了克服这个问题，asp.net使用“Cookies Munging”技术来管理session变量，而不使用cookies。<br><br><strong><span style="font-size:16px">为什么我们在asp.net使用Cookies Munging</span></strong><br><br>这里有一些特殊原因导致了我们在asp.net中使用Cookies Munging：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;一些浏览器不支持cookies<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;有时用户让浏览器禁用cookies<br><br><strong><span style="font-size:16px">Cookies Munging如何工作？</span></strong><br><br>当用户向服务器请求一个页面，服务器编码“session id”然后将它们加入到页面的每一个HREF 的链接中。当用户点击一个链接，asp.net解码session id并传递它给用户请求的页面。现在，正在被请求的页面就可以检索到任何的session变量。这一切都将平滑地发生——当asp.net检测到用户浏览器不支持cookies时。<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323611716vfoB.gif" alt=""><br><br><strong><span style="font-size:16px">怎样实现Cookies Munging</span></strong><br><br>为了实现它，我们不得不让session状态变成非cookies形式：<br><br><pre name="code" class="plain">&lt;sessionState cookieless= &quot;true /&gt;</pre><br><br><strong><span style="font-size:16px">怎样在浏览器中配置cookies</span></strong><br><br>我们现在来看看如何在浏览器中配置——启用或禁用cookies。我已经在之前讨论过IE浏览器的设置了。点击工具—&gt;Internet Options—&gt;转到隐私选项卡。在这里，你将能够看到一个像下面这样的滚动条：<br><br><img src="http://hi.csdn.net/attachment/201112/11/0_1323611845QAeN.gif" alt=""><br><br>第一个选项将允许所有的cookies，而最后一个选项将阻止所有的cookies。你可以在滚动的时候获得更多的信息。<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/12/12/细说Cookies/" data-id="cii1bfd50000bgaz2bnhothzg" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/12/22/细说Cache/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          细说Cache
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/12/05/开发自己的Web服务处理程序-以支持Ajax框架异步调用Web服务方法/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">开发自己的Web服务处理程序(以支持Ajax框架异步调用Web服务方法)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-细说Cookies" data-title="细说Cookies" data-url="http://vinoyang.com/2011/12/12/细说Cookies/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

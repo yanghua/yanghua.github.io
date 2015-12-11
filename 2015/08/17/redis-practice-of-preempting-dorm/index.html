@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>redis在学生抢房应用中的实践总结 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="#背景简介最近一个月，我们做了一个学生抢房的项目。考虑到抢房有一定的并发量（其实并没有那么大，被批次给隔离开来了），我们在抢房的项目中采用了全量redis的做法，本文主要是关于这个项目中涉及到redis使用的一个总结。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis在学生抢房应用中的实践总结">
+<meta property="og:url" content="http://vinoyang.com/2015/08/17/redis-practice-of-preempting-dorm/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="#背景简介最近一个月，我们做了一个学生抢房的项目。考虑到抢房有一定的并发量（其实并没有那么大，被批次给隔离开来了），我们在抢房的项目中采用了全量redis的做法，本文主要是关于这个项目中涉及到redis使用的一个总结。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/redis-practice-of-preempting-dorm_queue.jpg">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis在学生抢房应用中的实践总结">
+<meta name="twitter:description" content="#背景简介最近一个月，我们做了一个学生抢房的项目。考虑到抢房有一定的并发量（其实并没有那么大，被批次给隔离开来了），我们在抢房的项目中采用了全量redis的做法，本文主要是关于这个项目中涉及到redis使用的一个总结。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-redis-practice-of-preempting-dorm" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/08/17/redis-practice-of-preempting-dorm/" class="article-date">
+  <time datetime="2015-08-17T12:54:55.000Z" itemprop="datePublished">2015-08-17</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      redis在学生抢房应用中的实践总结
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>#背景简介<br>最近一个月，我们做了一个学生抢房的项目。考虑到抢房有一定的并发量（其实并没有那么大，被批次给隔离开来了），我们在抢房的项目中采用了全量redis的做法，本文主要是关于这个项目中涉及到redis使用的一个总结。</p>
+<a id="more"></a>
+<p>为了行文的方便，下面简单介绍一下抢房项目。其实这个抢房应用的使用对象主要是给学校的硕士，博士使用（他们在选择宿舍的方面比本科生拥有更多的自由，本科生的宿舍目前还是走的分配流程）。抢房是将手动选择宿舍的过程自动化，来让系统代替你选房。而让系统帮你选的方法是告诉系统你的意愿，因此抢房的过程依赖意愿。另外，你可以邀请你愿意合住的人来一起抢房，这又延伸出一个功能——组团，当然你也可以直接手动选房，如果你不满意你选择的宿舍，可以反悔重选。本人在选房应用中主要实现了如下几个业务：<code>一键抢房</code>，<code>手动选房</code>，<code>反悔</code>，<code>组团/邀请</code>，<code>宿舍意愿</code>，这些也基本涵盖了选房的主要功能点。</p>
+<p>#分布式锁</p>
+<p>先简单说明一下，我们在这个版本的抢房设计中，并没有引入请求排队的机制，因此抢房基于的是抢占式的模式。在抢房的初期，是应用流量的高峰。在这样高并发的场景下，让redis里的数据尽量保持一致性，必须采用分布式锁的方式来保证对临界资源（主要指宿舍）的互斥读写。redis常用的分布式锁的实现方式：</p>
+<p>##setbit / getbit<br>用索引号为0的第一个比特位来表示锁定状态，其中:0表示未获得锁，1表示已获得锁。优势：简单；劣势：竞态条件（race condition），死锁。获得锁的过程至少需要两步：先getbit判断，后setbit上锁。由于不是原子操作，因此可能存在竞态条件；如果一个客户端使用setbit获取到锁，然后没来得及释放crash掉了，那么其他在等待的客户端将永远无法获得该锁，进而形成了死锁。所以，所以这种形式不太适合实现分布式锁。</p>
+<p>##setnx / del / getset<br>redis官网有一篇文章专门谈论了实现分布式锁的话题。基本的原则是：采用setnx尝试获取锁并判断是否获得了锁，setnx设置的值是它想占用锁的时间（预估）：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SETNX <span class="operator"><span class="keyword">lock</span>.foo &lt;<span class="keyword">current</span> Unix <span class="keyword">time</span> + <span class="keyword">lock</span> <span class="keyword">timeout</span> + <span class="number">1</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>setnx命令简介：即：set if not exist，如果key不存在则设置值，返回1；否则，不设置，直接返回0。</p>
+</blockquote>
+<p>通过del删除key来释放锁。某个想获得锁的客户端，先采用setnx尝试获取锁，如果获取失败了，那么会通过get命令来获得锁的过期时间以判断该锁的占用是否过期。如果跟当前时间对比，发现过期，那么先执行del，然后执行setnx获取锁。如果整个流程就这样，可能会产生死锁，请参考下面的执行序列：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>：user1 获取到锁，然后crash掉未释放锁</span><br><span class="line"><span class="number">2</span>：user2 get锁的过期时间，发现过期，del，并setnx获得锁</span><br><span class="line"><span class="number">3</span>：user3 get锁的过期时间，发现过期，del，并setnx获得锁</span><br><span class="line"><span class="number">4</span>：此时产生错误，因为步骤<span class="number">2</span>的user2跟步骤<span class="number">3</span>的user3都获得了锁</span><br></pre></td></tr></table></figure>
+<p>所以，在高并发的场景下，如果检测到锁过期，不能简单地进行del并尝试通过setnx获得锁。我们可以通过getset命令来避免这个问题。来看看，如果存在一个用户user4，它通过调用getset命令如何避免这种情况的发生：</p>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">user4：<span class="keyword">get</span>锁的过期时间，发现过期；</span><br><span class="line">user4: 通过getset命令尝试设置新的过期时间</span><br></pre></td></tr></table></figure>
+<p>getset设置的过期时间跟上面的setnx设置的相同：</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GETSET <span class="operator"><span class="keyword">lock</span>.foo &lt;<span class="keyword">current</span> Unix <span class="keyword">timestamp</span> + <span class="keyword">lock</span> <span class="keyword">timeout</span> + <span class="number">1</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>getset命令用于给一个key设置最新的结果并返回设置之前的结果。</p>
+</blockquote>
+<p>如果该命令返回的结果跟上一步通过get获得的过期时间一致，则说明这两步之间，没有新的客户端抢占了锁，则该客户端即获得锁。如果该命令返回的结果跟上一步通过get获得的过期时间不一致，则该锁可能已被其他客户端抢先获得，则本次获取锁失败。</p>
+<p>这种实现方式得益于getset命令的原子性，从而有效得避免了竞态条件。并且，通过将比对锁的过期时间作为获取锁逻辑的一部分，从而避免了死锁。</p>
+<p>##setnx / del / expire<br>这是我们目前的实现方式：setnx的目的同上，用来实现尝试获取锁以及判断是否获取到锁的原子性，del删除key来释放锁，与上面不同的是，使用redis自带的expire命令来防止死锁（可能出现某个客户端获得了锁，但是crash了，永不释放导致死锁）。这算是一种比较简单但粗暴的实现方式：因为，不管实际的情况如何，当你设置expire之后，它一定会在那个时间点删除key。如何当时某个客户端已获得了锁，正在执行临界区内的代码，但执行时间超过了expire的时间，将会导致另一个正在竞争该锁的客户端也获得了该锁，这个问题下面还会谈到。</p>
+<p>我们来看一下宿舍锁的简单实现很简单：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> lockDorm(<span class="keyword">String</span> dormId, <span class="keyword">String</span> batchId) <span class="keyword">throws</span> DaoException &#123;</span><br><span class="line">    <span class="keyword">String</span> <span class="variable">key</span> = <span class="keyword">String</span>.format(Constant.LOCK_FOR_DORM_WITH_BATCH_KEY_PATTERN, batchId, dormId);</span><br><span class="line">    <span class="built_in">boolean</span> gotLock = CacheUtil.setnx(<span class="variable">key</span>, <span class="string">""</span>);</span><br><span class="line">    <span class="keyword">if</span> (gotLock) &#123;</span><br><span class="line">        CacheUtil.expireWithMillis(<span class="variable">key</span>, Constant.DEFAULT_LOCK_EXPIRE_MILLIS_SECOND);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">long</span> counter = Constant.DEFAULT_LOCK_EXPIRE_MILLIS_SECOND / Constant.DEFAULT_SLEEP_MILLISECOND;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!CacheUtil.setnx(<span class="variable">key</span>, <span class="string">""</span>) &amp;&amp; --counter &gt; <span class="number">0</span>) &#123;</span><br><span class="line">                TimeUnit.MILLISECONDS.sleep(Constant.DEFAULT_SLEEP_MILLISECOND);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过一个while（true），在当前线程上进行阻塞等待，并通过一个计数器进行自减操作，防止永久等待。</p>
+<p>##double check<br>和在java中并发访问的代码段的if判断容易出现竞态条件一样。在使用分布式锁的时候，我们最好也同样在锁的前后做一下double check:</p>
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">//double<span class="instruction"> check</span><br><span class="line"></span>if<span class="function"> (</span>!dormChooseDao.hasAllocatedDorm(studentId<span class="function">)</span><span class="function">)</span> &#123;</span><br><span class="line">	try &#123;</span><br><span class="line">		dormChooseDao.lockDorm(dormId, batchId<span class="function">)</span>;</span><br><span class="line">      <span class="instruction"> if </span>(!dormChooseDao.hasAllocatedDorm(studentId<span class="function">)</span><span class="function">)</span> &#123;</span><br><span class="line">       		//business logic</span><br><span class="line">       &#125;</span><br><span class="line">    &#125;<span class="keyword"> final</span>ly &#123;</span><br><span class="line">	<span class="function"> 	dormChooseDao.unlockDorm(</span>dormId, batchId<span class="function">)</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是因为lock的时间可长可短，在任何时候redis的内存数据都可能发生改变。所以无论从业务逻辑还是技术实现上来看，double check都很有必要！</p>
+<p>##共同的缺陷<br>以上第二种、第三种实现分布式锁的方式都有共同的缺陷：失效时间都是<strong>预估时间</strong>。也就是说，理论上你无法判定你真正需要占用某个锁多少时间，你只能根据场景来评估一个所谓的<strong>“绝对安全时间”</strong>。它指的是你认为在当前的业务场景下，不管任务执行得多慢，这个锁都不会过期，它的目的是用来防止死锁的。但一旦你评估的这个过期时间过短，可能存在在这段时间内无法执行完某个任务时，那么将导致多个客户端都能获得锁的问题。我们就遇到过这种情况，当时我们将锁的过期时间设置为10秒，结果在压测时由于线程太多，线程上线文切换太频繁，有任务没有被操作系统及时唤起，导致任务的执行时间超过10秒，而此时expire会使锁对应的key失效，这时该任务还没有释放锁，锁又被其他任务以setnx获得。而当我们将过期时间设置为2分钟之后，这种expire导致的Bug就没再发生过。</p>
+<p>##锁使用总结<br>在抢房业务中，我们主要使用了三个分布式锁：<code>宿舍锁</code>，<code>团成员锁</code>，<code>批次锁</code>。它们的作用：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">宿舍锁：抢房时，对宿舍床位数的修改必须保证其互斥性</span><br><span class="line">团成员锁：主要用于避免团里多个成员，分别点一键抢房或手动选房导致锁定的宿舍不一致的情况</span><br><span class="line">批次锁：当在选房的过程中修改批次时，需要锁定整个批次</span><br></pre></td></tr></table></figure>
+<p>其中，团成员锁跟宿舍锁是嵌套关系，也就是说，一个团里的所有成员一起抢房，在后端其实是顺序抢的。</p>
+<p>#内存一致性<br>在用redis做这个应用的后期，我们遇到越来越多的因为内存无法保证一致性带来的问题。这确实是个问题，比如：<br>在选房过程中，删除了一个意愿、在选房的过程中进行组团、退团的操作。这里我们忽略从业务角度来看允许这些操作的的合理性。这些操作都是针对redis的分布式内存进行的。可以将redis的分布式内存跟JVM的内存模型进行一个对比：其实两者都采用了经典的共享内存的通信方式，JVM内存模型的不同之处在于：主线程创建附属线程之后（这里我们为了简单起见，假设附属线程是由主线程创建），主线程跟附属线程之间共享的数据其实并不是实时、一致的，附属线程见到的只是主线程内相同数据的副本，但是JVM的内存模型提供了“<strong><em>happen before</em></strong>”原则来保证内存的可见性。这使得在这种原则下，一些设置可以对其他线程立即可见。而redis提供的这种分布式的内存，并没有这样的模型来保证内存的一致性，而且网络传输的时延，会让这一问题加剧，为了保障内存的一致性，只能采用锁机制来保证对核心共享数据修改操作的排他性跟顺序性。但<code>粒度大</code>,<code>数量少</code>的锁导致<code>性能太差</code>，<code>粒度小</code>，<code>数量多</code>的锁导致<code>复杂度太高</code>。目前我们的选择是，以性能为主，暂时忽略这些小概率事件带来的问题。</p>
+<p>#数据一致性<br>组团的协商来自于线下，但团里的每个成员对意愿都有平等的操作权（添加、删除、重新排序等），这些动作却是在系统中完成的，团里的每个人的意愿都是相同的。这就衍生出数据一致性问题——如何保证同一个团队里的每个成员，在最新的意愿集合上进行操作。</p>
+<p>这个问题无论是在RDBMS中还是Redis中都存在。当然数据库对于一致性的处理方式已经相当成熟（比如：行锁）。但在内存中，要保证这样的数据一致性并不容易。</p>
+<p>##设置版本时间戳<br>我们可以通过对比时间戳来解决这个问题。当团队的每个成员访问意愿操作页面时，后端会在页面上设置该团队对意愿操作的最新时间戳。每次只要涉及到对意愿的任何操作请求，都需要带着时间戳，后台在执行该操作命令之前，会去数据库比对时间戳（也即redis里的时间戳是否等于请求中传来的时间戳）如果不相等，则说明在这之前团队的意愿已经被其他成员修改过；如果相等，则执行该操作，并修改redis中的时间戳为当前最新时间戳，并将最新的时间戳返回给客户端作为最新的存根。</p>
+<p>##时间戳的一致性<br>目前，我们暂时还采用的web服务器的本机时间，这种情况当web server是一个集群环境时，将要求非常严格的时钟同步，并且很难不出现误差。所以下一步我们的打算直接采用redis自带的时间戳机制。redis自从2.6.0开始，提供一个<code>time</code>命令，它能返回redis Server的unix timestamp。这样对单台redis server而言，所有web 服务器的时间戳也都是一致的。</p>
+<p>#DDOS黑名单设计</p>
+<p>抢房场景跟抢购类似，它有个开始倒计时页面。不管给出怎样的设计，总有人在这个倒计时页面上狂刷，妄图更早得进入开抢环节。所以，为了保证系统的可靠性，我们对一些可以预先感知的高频页面URL以及API接口进行了DDOS（拒绝服务攻击）的防护。</p>
+<p>我们的业务系统外层有Nginx做反向代理，它已经从技术层面上做了一层DDOS拦截，下面谈及的DDOS防护是业务层面上的，针对那些过了外层限制之后能够进到业务系统内部的、我们认为不合理的请求频次。举个例子：在系统说明页面，我们告诫用户不要过度刷新倒计时页面，但如果我们还是在后台检测到某用户的请求频次大于10次/秒；或者某个API，只有点击按钮才能触发一次请求，但我们在后台检测到某用户对该API的请求频次大于10次/秒。对于这样的请求频次，我们认为是恶意的，有可能客户端采用了非寻常的手段向服务器发起请求。</p>
+<p>对于恶意刷的后果是惩罚。惩罚的目的是劝诫或警告用户不要再进行此操作，惩罚的手段是：</p>
+<ul>
+<li>如果还没开始抢房，则延后抢房的开始时间；</li>
+<li>如果已开始抢房，则将用户重定向到一个繁忙页面，15秒后才能再次进入</li>
+</ul>
+<p>毫无疑问，这种DDOS统计肯定是以学生为粒度的，所以key会带着学生的编号的：</p>
+<figure class="highlight apache"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">key</span>：studentHitStatistics.<span class="cbracket">$&#123;studentId&#125;</span>.<span class="cbracket">$&#123;uri&#125;</span></span><br></pre></td></tr></table></figure>
+<p>而所谓的频次其实可以解读为：每多少秒内，命中了多少次。前面的每多少秒指代一个统计的region，命中多少次，这借助了redis的原子计数器，这个值将会与一个设定的threshold进行比对。当一个region结束之后，这段时间内的命中次数应该被清0，不应采取累积判断的方式。而清0的动作，正好借助于redis的expire命令，expire的具体时间则是region的时长。拦截的动作，借助于Filter即可。</p>
+<p>##expire的坑<br>在最初实现完这个功能后，我们并没有发现这样的实现有什么问题。直到有一次，我们进行了压力测试，测试完之后，我们每次正常访问黑名单内的URL，都会被重定向到busy页面（这是我们应用惩罚的页面）。理论上，一段时间之后，expire会导致之前的统计全部清0（key被删除），因此不可能再达到惩罚的阈值。我们查看了一下redis统计相关的key居然还是存活的，并且<code>ttl</code>命令显示这些key永不失效。这段代码的实现逻辑大概是这样的：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">long</span> <span class="title">incrStatistics</span><span class="params">(String batchId,</span><br><span class="line">                                        String studentId,</span><br><span class="line">                                        String uri,</span><br><span class="line">                                        <span class="keyword">long</span> milliSec)</span> <span class="keyword">throws</span> DaoException </span>&#123;</span><br><span class="line">    String key = String.format(Constant.STUDENT_HIT_STATISTICS_PATTERN,</span><br><span class="line">                               batchId, studentId, uri);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// if first init</span></span><br><span class="line">    <span class="keyword">if</span> (CacheUtil.setnx(key, <span class="string">"1"</span>)) &#123;</span><br><span class="line">        <span class="keyword">boolean</span> expiredSuccessfully = CacheUtil.expireWithMillis(key, milliSec);</span><br><span class="line">        <span class="keyword">if</span> (!expiredSuccessfully) &#123;</span><br><span class="line">            logger.info(<span class="string">"key : "</span> + key + <span class="string">" set expired failed! "</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> CacheUtil.increment(key, <span class="number">1</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一开始我们以为上面的这段代码可以一直使得设置的每个key带有过期时间，并将最终因为过期而被redis自动清除。但现实却不是这样。经过分析发现，可能存在着这样的一个执行序列：</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">step</span> <span class="number">1</span>: user1 成功初始化该统计为<span class="number">1</span>，并顺便设置<span class="keyword">key</span>的生存时间，假设<span class="number">10</span>秒</span><br><span class="line"><span class="keyword">step</span> <span class="number">2</span>: 后面每次在该统计时间段内触发刷新，都会走到<span class="keyword">else</span>分支，将统计进行++操作</span><br><span class="line">...</span><br><span class="line"><span class="keyword">step</span> n-<span class="number">1</span>: 直到统计快结束的前夕(<span class="keyword">key</span>快过期了)，user1进来后，判断<span class="keyword">if</span>还是返回<span class="literal">false</span></span><br><span class="line"><span class="keyword">step</span> n: 程序开始走<span class="keyword">else</span>分支的++操作，但不巧，在incr命令到达redis之前，或者已到达但命令还没执行时，<span class="keyword">key</span>失效了。此时incr命令，会初始化该<span class="keyword">key</span>为<span class="number">0</span>，然后再执行incr命令。</span><br></pre></td></tr></table></figure>
+<p>当出现上面的执行序列之后，被<code>incr</code>命令初始化的key是不带过期时间的！因此这时你用ttl命令查看该key的剩余过期时间，将会看到-1（即永不过期）！当出现这种情况时，后面的统计将会一直走else分支，并且一直累加，过了阈值之后，每次都满足惩罚条件，也就永远停留在了惩罚的界面上。</p>
+<p>这种情况，没有办法避免，因为代码虽然是可控的，但内存却是分布式的，expire的时机也不受我们控制，这里没有JVM内存模型的保障(<code>volatile</code>关键字以及<code>happen before</code>原则)。</p>
+<p>所以，针对这种情况，只能选择一种补救措施。做法跟unlock类似：每应用一次惩罚，就将该key直接删除。这样虽然统计的区间(expire设置的过期时间)是动态变化的，但不会出现上面的这种永不过期、一直累加的情况。而且惩罚一次，就清空一次记录，逻辑上也没太大问题。</p>
+<blockquote>
+<p>关于这个设计更好的解决方案，我另开了一篇文章进行了说明：<a href="http://vinoyang.com/2015/08/23/redis-incr-implement-rate-limit/">《redis实现访问频次限制的几种方式》</a></p>
+</blockquote>
+<p>#处理关系的痛苦<br>redis只有基于key的一级索引，这种情况使得原先可以通过数据库实现的一些关系查询变得更加繁琐。<br>举个例子，在组团/邀请业务中，想要组团的同学之间需要相互发送邀请。每个人都可以邀请别人和被别人邀请。如果从数据库的角度来看，这就是一个典型的多对多关系表。我们来看看，如果将这个功能改为全量redis实现需要哪些步骤。首先我们需要给每个学生设计两个list：</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//当前学生发起的邀请</span></span><br><span class="line"><span class="string">key :</span> invitationFrom.$&#123;studentId&#125;</span><br><span class="line"><span class="comment">//当前学生收到的邀请</span></span><br><span class="line"><span class="string">key :</span> invitationTo.$&#123;studentId&#125;</span><br></pre></td></tr></table></figure>
+<p>因为有按时序排序的需求，所以这里邀请的集合我们选择list而不是set。</p>
+<p>为了节约空间，我们将邀请对象序列化为json格式后的字符串进行存储，邀请对象设计如下：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> class Invitation &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">String</span> studentId;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">String</span> studentName;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">long</span>   timestamp;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">String</span> status;      <span class="comment">//0: 未处理； 1:同意； 2: 拒绝</span></span><br><span class="line">    </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>发送的邀请与接收到的邀请共用上面同一个对象。</p>
+<p>接受邀请的逻辑是：只能接受来自一个团成员或单个学生的邀请，一旦接受邀请，将会自动拒绝发送给自己的其他邀请。因此要将invitationTo.${当前学生编号}的其他邀请全部都标记为拒绝，与此同时，还需要将这些被拒绝的邀请人的invitationFrom.${被拒绝的学生编号}集合中的发送给自己的邀请对象的状态置为拒绝。</p>
+<p>这种双向关系查找在redis里极其麻烦，需要手动在很多集合中遍历，当一个用户收到的邀请很多时，遍历的开销会更大。这里其实跟邀请对象的存储没有关系（即使你将邀请对象存储为hash结构，情况也不会好到哪儿去）。主要的问题是缺乏对如下两点的有效评估：redis没有二级索引、数据关系处理支持的缺失。</p>
+<p>这不是redis的问题，而是应该选择合适的存储引擎存储合适的数据的问题。因此，我们应该更早得认识到redis并不擅长处理强关联关系，它更适合存储一些简单的数据，比如静态对象。这里所谓的静态对象，具体指的是几乎不会变动的核心基础数据。比如，这个业务场景里的学生基本信息、宿舍基础信息等。它们在这里纯粹是被当作缓存来加快数据的访问速度。</p>
+<p>#关于事务<br>redis并没有对事务提供支持。这也使得在实现一些逻辑关联性很强的并且应该被视为原子性的业务时，显得力不从心。我们的替代方案是<code>分布式锁+pipeline</code>。分布式锁用于实现互斥地修改，pipeline主要用于多命令批量提交。分布式锁在这里非常重要，它有助于提高高并发下数据的一致性，但也不能做到完全保证，并且最大的硬伤是没有rollback(回滚)机制。所以，我们还有一道最后的保障——归档。归档用于保证数据的最终一致性，它会校验数据的一致性问题，并在适当的适合进行纠正。这跟抢购业务跟第三方<code>对账</code>的处理方法很相似。</p>
+<p>#pipeline批处理<br><code>pipeline</code> 以管道的形式批量地提交命令集。这种命令提交方式非常有效地减少client跟server之间的通信次数。另外pipeline的方式非常适合于那种关联性、紧凑性很强的“事务型”操作，这有助于减少在高并发下因为多次数据往返出现不一致的几率。</p>
+<p>从面向对象的设计角度来看，这种方式是违背松耦合性。耦合松散的代码的实践不推荐在一个方法/函数内部聚集太多功能集，因为这会降低可读性、复用性、可维护性。</p>
+<p>在程序设计时，是否使用pipeline需要具体问题具体分析：</p>
+<ul>
+<li>pipeline : 基础数据初始化、大量关联数据的读取、关联性极强的写(set)操作。</li>
+<li>功能拆分 : 适合大部分场景下的普通业务场景</li>
+</ul>
+<p>#交互设计的重要性</p>
+<p>抢房的原型设计将房源预览（意愿）、组团、抢房三个功能点集中在一个页面上（各个功能之间通过选项卡切换）。连同倒计时的入口页面，总共也就两个页面。因为时间比较赶再加上完全前后端分离的原因，这个问题并没有引起我们的注意。直到前后端开始集成的时候，才发现了这种设计的问题：因为几个功能点被集中到一个页面上，导致各种状态的判断很复杂。而前后端分离的方式，导致除了第一次加载页面时，后端渲染模板时能做一些逻辑判断，其他时间，很多状态的判断都需要前端完成（比如，选房选项卡的状态、多个选项卡内的操作需要连带局部刷新其他选项卡内的最新数据等等）。</p>
+<p>这还不是这种大页面带来的唯一坏处，最大的问题是：在选房快开始的那段时间内，用户为了快速进入选房选项卡，对页面的整页刷新会连带“惩罚”其他两个选项卡在初始化时发出的“多余”请求。从需求分析的角度来看，选房功能跟房源预览以及组团页面，它们的请求频次不是一个级别，但选房功能在呈现的时候却跟另外两个非高频请求的功能捆绑在一起，这是不合理的。</p>
+<p>当业务上可以预计到某个功能将会发生高频全页面刷新时，其他功能应尽量跟它隔离开来（拆成多个页面）。当然，幸好让各个选项卡的内容实现按需、异步加载。如果所有内容都要靠后端渲染，那么性能将会急剧下降。</p>
+<p>#请求队列</p>
+<p>现有的<code>多线程</code> <code>共享内存</code> <code>抢占式</code>式的选房设计，让我们有些如履薄冰。</p>
+<p>其原因之一是之前并没有太多的分布式高并发经验。另外一个原因：从设计的角度来看，将请求排队确实是一种伸缩性更强的实践。</p>
+<p>##队列的好处<br>伸缩性：前端的web server并发在线的峰值将会大大降低。</p>
+<p>复杂度：后端的设计复杂度会得到降低，需要一个独立的选房服务；而前端的复杂度会有所升高，前端将会是一种：<code>短请求</code>，<code>阻页面</code>，<code>多轮询</code>的方式。</p>
+<p>无锁化：通过对现有版本的抢房并发测试，我们也发现并发数越高、意愿越趋同，抢房耗时将越长，这里面大部分的时间都消耗在了锁竞争上。</p>
+<p>单线程：上面的<code>无锁化</code>是单线程带来的福利。单线程会省去锁带来的时间浪费和调试代价，但多线程对应用的并发能力的提升确实是立竿见影的。</p>
+<p>体验好：队列可以使得请求串行化，可控、可评估。也因此你甚至可以向用户直播抢房的进度：<code>前面还有多少人排队</code>、<code>你是第几位抢到宿舍的人，击败了百分之多少的同学</code>。而<code>多线程，抢占式</code>意味着<code>随机</code>，你无法把控整个进度。</p>
+<p>##数据按维度隔离<br>上面说到了队列的一些特点，但我们并不否认多线程、并行任务的优势。事实上，只要我们能够很好地将数据进行隔离，那么我们可以融合两种设计。</p>
+<p>在选房业务中，<strong>批次</strong>是界定很多资源的依据。每个学生只能从属于一个批次，每个批次中的每个宿舍的可用床位数都是预先分好了的。那么从这个角度来看，每个批次都可以成为功能分割单位。</p>
+<p>所以，我们可以以批次来区分请求队列。每个队列以单线程的形式抢房，因为每个队列所需要的资源是独立不耦合的，因此也就无需互斥锁。而如果多批次同时抢房，将会利用多线程带来的优势。</p>
+<p>关于这种模式一个很形象的类比图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/redis-practice-of-preempting-dorm_queue.jpg" alt="queue"></p>
+<p>##概要设计<br>为了避免太高的复杂度，我们可以使用redis的List结构实现队列。在key上以批次编号来区分：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">redis</span> key : requestQueueOfBatch.<span class="variable">$&#123;batchId&#125;</span></span><br></pre></td></tr></table></figure>
+<p>队列里的每一个请求，都是一个序列化后的json对象的字符串。请求对象大致包含如下一些属性：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">Request</span> </span>&#123;</span><br><span class="line">	<span class="built_in">String</span> requestId;				<span class="comment">//分布式请求编号</span></span><br><span class="line">	<span class="built_in">String</span> studentId;				<span class="comment">//学号</span></span><br><span class="line">	<span class="built_in">String</span> batchId;					<span class="comment">//批次编号</span></span><br><span class="line">	long requestTimestamp;			<span class="comment">//请求时间戳</span></span><br><span class="line">	short type;						<span class="comment">//类型: 0:手动选房 /1:一键选房</span></span><br><span class="line">	<span class="built_in">String</span> dormId;					<span class="comment">//宿舍编号(如果为手动选房)</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>选房服务是一个独立的服务。尽量不要放在web server上，因为它是一个CPU密集型的服务。有多少个批次就初始化多少个线程对应多少个队列，每个线程不断地处理属于自己队列的请求。走完选房逻辑之后，将结果回写到学生信息、分配结果相关的数据结构。</p>
+<p>最终，用户看到的结果来自于浏览器的ajax轮询。轮询的频次会对后端的web server有直接的影响。不过，对于选房这种不得不使用也不得不关心的硬需求，轮询频次低一点，无伤大雅。</p>
+<p>#总结<br>这是一个全量使用redis的项目，整个过程基本上还算顺利。redis作为抢购业务的选择，在性能上自不必多说，一般几千的并发几乎毫无压力。但由于分布式内存操作的原因，一致性很难做到绝对保证，所以最后必须有一个<code>落库</code>，<code>校准</code>，<code>补偿</code>的过程。另外一个建议是，慎用、少用分布式锁。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/08/17/redis-practice-of-preempting-dorm/" data-id="cii1bfdak0030gaz2q8uxv9zf" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/redis/">redis</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/分布式锁/">分布式锁</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/08/23/redis-incr-implement-rate-limit/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          redis实现访问频次限制的几种方式
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/07/01/messagebus-refactor-with-event-bus/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">消息总线重构之EventBus</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-redis-practice-of-preempting-dorm" data-title="redis在学生抢房应用中的实践总结" data-url="http://vinoyang.com/2015/08/17/redis-practice-of-preempting-dorm/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

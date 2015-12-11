@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="我想，淘宝网或者是人人网，应该是大家较为熟知的网站了。就算你不是它们的使用者，我想你也应该早有耳闻。人人网和淘宝网的右下角，都提供了&amp;quot;在线&amp;quot;通信功能：&amp;nbsp; &amp;nbsp;这次，我就和大家来谈谈我认为的这些网站实现这种在线聊天的“通信机制”。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信">
+<meta property="og:url" content="http://vinoyang.com/2011/09/05/浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="我想，淘宝网或者是人人网，应该是大家较为熟知的网站了。就算你不是它们的使用者，我想你也应该早有耳闻。人人网和淘宝网的右下角，都提供了&amp;quot;在线&amp;quot;通信功能：&amp;nbsp; &amp;nbsp;这次，我就和大家来谈谈我认为的这些网站实现这种在线聊天的“通信机制”。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_13151292460gaI.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_1315129410bf08.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_1315136924hvVZ.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_1315137183SkzK.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_131513745477rF.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_13151390431uRq.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/4/0_1315140043jD57.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信">
+<meta name="twitter:description" content="我想，淘宝网或者是人人网，应该是大家较为熟知的网站了。就算你不是它们的使用者，我想你也应该早有耳闻。人人网和淘宝网的右下角，都提供了&amp;quot;在线&amp;quot;通信功能：&amp;nbsp; &amp;nbsp;这次，我就和大家来谈谈我认为的这些网站实现这种在线聊天的“通信机制”。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/09/05/浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信/" class="article-date">
+  <time datetime="2011-09-04T21:29:00.000Z" itemprop="datePublished">2011-09-05</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>我想，淘宝网或者是人人网，应该是大家较为熟知的网站了。就算你不是它们的使用者，我想你也应该早有耳闻。人人网和淘宝网的右下角，都提供了&quot;在线&quot;通信功能：<br><br><img src="http://hi.csdn.net/attachment/201109/4/0_13151292460gaI.gif" alt="">&nbsp; &nbsp;<img src="http://hi.csdn.net/attachment/201109/4/0_1315129410bf08.gif" alt=""><br><br>这次，我就和大家来谈谈我认为的这些网站实现这种在线聊天的“通信机制”。<br><br><a id="more"></a><br><br>实现Web版的IM(即时消息)，是一种很实用的需求。比如：<span style="font-family:arial,nsimsun,sans-serif; text-align:left">监控系统：后台硬件热插拔、LED、温度、电压发生变化；<span style="font-family:arial,nsimsun,sans-serif; text-align:left">即时通信系统：其它用户登录、发送信息；<span style="font-family:arial,nsimsun,sans-serif; text-align:left">即时报价系统：后台数据库内容发生变化；等等。但受限于http协议（基于请求/应答模式）。很难实现“即时”响应功能，来满足这些需求。</span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">通常的解决方案有：基于基本的AJAX技术(不断请求服务端，以交互信息)、Flash Socket(需要有插件)、<span style="font-family:arial,nsimsun,sans-serif; text-align:left">Java Applet等等。这些方案，可以实现“效果”，但是都有或多或少的缺点。【在之后的资料中，会提供它们分析它们利弊的链接】。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">还有一种是基于Server Push技术——Comet。而人人网、淘宝这些大型网站正是采用了这种技术。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">首先，登录人人网，然后我们使用Http Watch（用于查看和分析网页请求等信息的工具），可以看到如下的两个连接：</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><img src="http://hi.csdn.net/attachment/201109/4/0_1315136924hvVZ.gif" alt=""><br></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">第一个连接的type是“text/html”，当我们在连接的右击，选择打开的时候，看到如下的画面：</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><img src="http://hi.csdn.net/attachment/201109/4/0_1315137183SkzK.gif" alt=""></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">这其实是一个初始化ajax“轮询”用的“页面”！</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">然后截图中的第二个连接，是一个“持续连接”。它保持着打开状态，一直在“侦听”服务端的响应，直到超时：</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><img src="http://hi.csdn.net/attachment/201109/4/0_131513745477rF.gif" alt=""><br></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">超时后返回的应该是“超时信息”，原来的“持续”连接有可能被废弃(aborted)，然后继续发起“持续”连接。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">—————————————————————————淘 宝 Comet 分 析———————————————————————————————-</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">同上，我们查看请求：</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><img src="http://hi.csdn.net/attachment/201109/4/0_13151390431uRq.gif" alt=""><br></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">上图中第一个请求，用于建立连接(bulidconnection)。并携带了两个参数(nkh/t)。截图中第二个也同样是一个Get请求，但是追加携带了两个参数：user/message，同时参数t的值也有所改变。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">第三个连接就是用来进行“轮询”的(polling)。见第三个参数：cmd。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">这在实现技术上有一些差别，人人网上的“长连接”确实如其名：超时时间设得很“长”。而你会看到淘宝的“长连接”一点也不长，非常短（见下图），取而代之的是采用非常平凡的请求来弥补连接不长的问题。</span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><img src="http://hi.csdn.net/attachment/201109/4/0_1315140043jD57.gif" alt=""><br></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif">我想：</span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">人人网采用的是：<a name="N1015F" style="font-family:arial,nsimsun,sans-serif; text-align:left"><span class="smalltitle" style="font-size:1.2em; font-weight:bold">基于 Iframe 及 htmlfile 的流（streaming）方式</span></a></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a name="N1015F" style="font-family:arial,nsimsun,sans-serif; text-align:left"><span class="smalltitle" style="font-size:1.2em"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">iframe· 是很早就存在的一种 HTML 标记， 通过在 HTML 页面里嵌入一个隐蔵帧，然后将这个隐蔵帧的 SRC 属性设为对一个长连接的请求，服务器端就能源源不断地往客户端输入数据。</span><br></span></a></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif"><span style="font-size:14px">淘宝网采用的是：<a name="N10132" style="font-family:arial,nsimsun,sans-serif; text-align:left"><span class="smalltitle" style="font-size:1.2em; font-weight:bold">基于 AJAX 的长轮询（long-polling）方式</span></a></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left">虽然有些许不同，他们几乎都采用了同样的技术：<strong>Server Push技术（</strong><span style="font-size:14px"><strong>也就是Comet技术）</strong></span></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-size:14px"><strong>资料 ：</strong></span></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-size:14px"><strong><a href="http://www.fengfly.com/plus/view-171609-1.html" target="_blank" rel="external">http://www.fengfly.com/plus/view-171609-1.html</a>
+</strong></span></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-size:14px"><a href="http://www.ibm.com/developerworks/cn/web/wa-lo-comet/" target="_blank" rel="external">http://www.ibm.com/developerworks/cn/web/wa-lo-comet/</a><br></span></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://www.ibm.com/developerworks/cn/web/wa-cometjava/index.html" target="_blank" rel="external">http://www.ibm.com/<wbr>developerworks/cn/web/wa-<wbr>cometjava/index.html</a><br></span></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://www.codeproject.com/KB/aspnet/CometAsync.aspx" target="_blank" rel="external">http://www.codeproject.com/KB/aspnet/CometAsync.aspx</a><br></span></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://www.codeproject.com/KB/aspnet/AspNetComet.aspx" target="_blank" rel="external">http://www.codeproject.com/KB/aspnet/AspNetComet.aspx</a><br></span></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://topic.csdn.net/u/20120813/10/5C468BD3-5DB7-4387-A408-CADDF19CD20E.html" target="_blank" rel="external">http://topic.csdn.net/u/20120813/10/5C468BD3-5DB7-4387-A408-CADDF19CD20E.html</a><br></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://blog.csdn.net/ibm_hoojo/article/details/7850540" target="_blank" rel="external">http://blog.csdn.net/ibm_hoojo/article/details/7850540</a><br></span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left">本人之前写过的几篇文章：</span><br><br><span style="font-family:arial,nsimsun,sans-serif; text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6737224" target="_blank" rel="external">http://blog.csdn.net/yanghua_kobe/article/details/6737224</a><br></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6744518" target="_blank" rel="external">http://blog.csdn.net/yanghua_kobe/article/details/6744518</a><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/5451910" target="_blank" rel="external">http://blog.csdn.net/yanghua_kobe/article/details/5451910</a><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/09/05/浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信/" data-id="cii1bfd6z0014gaz2z7ema3od" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/09/12/PDFKit-NET数字签名与文档处理/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          PDFKit.NET数字签名与文档处理
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/09/03/Asp-net构建可扩展的的CometWeb应用-二/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Asp.net构建可扩展的的CometWeb应用(二)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信" data-title="浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信" data-url="http://vinoyang.com/2011/09/05/浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

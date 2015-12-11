@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>《C#2.0锐利体验系列课程》第一讲——泛型 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="一个简单的泛型示例：定义：class Stack&amp;lt;T&amp;gt; {&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private T[] store;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private int size;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; p">
+<meta property="og:type" content="article">
+<meta property="og:title" content="《C#2.0锐利体验系列课程》第一讲——泛型">
+<meta property="og:url" content="http://vinoyang.com/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="一个简单的泛型示例：定义：class Stack&amp;lt;T&amp;gt; {&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private T[] store;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private int size;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; p">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="《C#2.0锐利体验系列课程》第一讲——泛型">
+<meta name="twitter:description" content="一个简单的泛型示例：定义：class Stack&amp;lt;T&amp;gt; {&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private T[] store;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; private int size;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp; p">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-《C-2-0锐利体验系列课程》第一讲——泛型" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/" class="article-date">
+  <time datetime="2010-02-11T22:00:00.000Z" itemprop="datePublished">2010-02-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      《C#2.0锐利体验系列课程》第一讲——泛型
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>一个简单的泛型示例：<br><br>定义：<br><br>class Stack&lt;T&gt; {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; private T[] store;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; private int size;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public Stack()<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store = new T[10]; size = 0;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void Push(T x) {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;store[size++] = x; }<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public T Pop() {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return store[–size];<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>}<br><br>&nbsp;<br><br><a id="more"></a><br><br>调用：<br><br>Stack&lt;int&gt; x = new Stack&lt;int&gt;();&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //类型初始化，并产生一个泛型实例；<br>x.Push(17);<br><br>&nbsp;<br><br><span style="color: #ff0000;">泛型</span>：通过参数化类型来实现在同一份代码上操作多种数据类型。<br><br>&nbsp;<br><br>C#泛型赋予了代码更强的类型安全，更好的复用，更高的效率，更清晰的约束。<br><br>&nbsp;<br><br><span style="color: #ff0000;">优势</span>：C#泛型能力由CLR在运行时支持，区别于C++的编译时模板机制，和Java的编译时&ldquo;搽拭法&rdquo;。这使得泛型能力可以在各个支持CLR的语言之间进行无缝的互操作。<br><br>&nbsp;<br><br>C#泛型代码在被编译为IL代码和元数据时，采用特殊的占位符来表示泛型类型，并用专有的IL指令支持泛型操作。而真正的泛型实例化工作以&ldquo;on-demand&rdquo; 的方式，发生在JIT编译时。<br><br>JIT&mdash;&mdash;Just In Time，即运行时编译机制<br><br>注：<span style="color: #ff0000;">on-demand</span>&mdash;&mdash;即需要时再实例化，也就是说如果代码中有这样的实例化代码，但在运行时却从未用到这样的实例，则这样的类型永远不会被实例化；<br><br>&nbsp;<br><br><strong><span style="font-size: medium;">泛型编译机制</span></strong>：<br><br>第一轮编译时，编译器只为Stack&lt;T&gt;类型产生&ldquo;泛型版&rdquo;的IL代码与元数据&mdash;&mdash;并不进行泛型类型的实例化，T在中间只充当占位符；<br><br>&nbsp;<br><br>JIT编译时，当JIT编译器第一次遇到Stack&lt;int&gt;时，将用int替换&ldquo;泛型版&rdquo;IL代码与元数据中的T&mdash;&mdash;进行泛型类型的实例化。<br><br>&nbsp;<br><br><span style="color: #ff0000;"><strong>注意</strong></span>：CLR为所有类型参数为&ldquo;<span style="color: #0000ff;">引用类型</span>&rdquo;的泛型类型产生<span style="color: #0000ff;">同一份</span>代码；但如果类型参数为&ldquo;<span style="color: #00ffff;">值类型</span>&rdquo;，对每一个不同的&ldquo;值类型&rdquo;，CLR将为其产生<span style="color: #00ffff;">一份独立</span>的代码<br><br>&nbsp;<br><br><span style="font-size: medium;"><strong>泛型的几个特点：</strong></span><br><br><span style="font-size: small;">如果实例化泛型类型的参数相同，那么JIT编译器会重复使用该类型，因此C#的动态泛型能力避免了C++静态模板可能导致的代码膨胀的问题。</span><br><br><span style="font-size: small;">&nbsp;</span><br><br><span style="font-size: small;">C#泛型类型携带有丰富的元数据，因此C#的泛型类型可以应用于强大的反射技术。</span><br><br><span style="font-size: small;">&nbsp;</span><br><br><span style="font-size: small;">C#的泛型采用&ldquo;基类, 接口, 构造器, 值类型/引用类型&rdquo;的约束方式来实现对类型参数的&ldquo;显式约束&rdquo;，提高了类型安全的同时，也丧失了C++模板基于&ldquo;签名&rdquo;的隐式约束所具有的高灵活性。</span><br><br>&nbsp;<br><br><span style="font-size: x-small;"><strong><span style="font-size: medium;">泛型类与结构：</span></strong></span><br><br><span style="font-size: x-small;">class C&lt;U, V&gt; {} //合法<br>class D: C&lt;string,int&gt;{} //合法<br>class E&lt;U, V&gt;: C&lt;U, V&gt; {} //合法<br>class F&lt;U, V&gt;: C&lt;string, int&gt; {} //合法<br>class G : C&lt;U, V&gt; { } //<span style="color: #ff0000;">非法&mdash;&mdash;也就是说，基类的类型必须是确定的</span></span><br><br>&nbsp;<br><br><span style="font-size: x-small;"><span style="color: #000000;">C#除可单独声明泛型类型（包括类与结构）外，也可在基类中包含泛型类型的声明。但基类如果是泛型类，它的类型参数要么已实例化，要么来源于子类（同样是泛型类型）声明的类型参数。</span></span><br><br>&nbsp;<br><br><span style="font-size: x-small;"><span style="color: #000000;">泛型类型的成员：</span></span><br><br><span style="font-size: x-small;"><span style="color: #000000;">class C&lt;V&gt;{<br>public V f1; //声明字段<br>public D&lt;V&gt; f2; //作为其他泛型类型的参数<br>public C(V x) {<br>this.f1 = x;<br>}<br>}<br>泛型类型的成员可以使用泛型类型声明中的类型参数。但<span style="color: #ff0000;">类型参数如果没有任何约束，则只能在该类型上使用从System.Object继承的公有成员</span>。</span></span><br><br>&nbsp;<br><br><span style="font-size: x-small;"><span style="color: #000000;"><span style="font-size: medium;"><strong>泛型接口</strong></span>：</span></span><br><br><span style="font-size: x-small;"><span style="color: #000000;">interface IList&lt;T&gt; {<br>T[] GetElements();<br>}<br>interface IDictionary&lt;K,V&gt; {<br>void Add(K key, V value);<br>}<br>// 泛型接口的类型参数要么已实例化，<br>// 要么来源于实现类声明的类型参数<br>class List&lt;T&gt; : IList&lt;T&gt;, IDictionary&lt;int, T&gt; {<br>&nbsp; public T[] GetElements() { return null; }<br>&nbsp; public void Add(int index, T value) { }<br>}</span></span><br><br>&nbsp;<br><br><span style="font-size: x-small;"><span style="color: #000000;"><span style="font-size: medium;"><strong>泛型方法简介</strong></span>：</span></span><br><br><span style="font-size: x-small;"><span style="color: #000000;">C#泛型机制只支持&ldquo;在方法声明上包含类型参数&rdquo;&mdash;&mdash;即泛型方法</span></span><br><br>&nbsp;<br><br>&nbsp;C#泛型机制不支持在除方法外的其他成员（包括属性、事件、索引器、构造器、析构器）的声明上包含类型参数，但这些成员本身可以包含在泛型类型中，并使用泛型类型的类型参数<br><br>&nbsp;泛型方法既可以包含在泛型类型中，也可以包含在非泛型类型中<br><br>&nbsp;<br><br>&nbsp;<br><br>泛型方法的声明与调用：<br><br>public class Finder {<br>// 泛型方法的声明<br>public static int Find&lt;T&gt; ( T[] items, T item) {<br>for(int i=0;i&lt;items.Length;i++){<br>if (items[i].Equals(item)) { return i; }<br>}<br>return -1;<br>}<br>}<br>// 泛型方法的调用<br>int i=Finder.Find&lt;int&gt; ( new int[]{1,3,4,5,6,8,9}, 6);<br><br>&nbsp;<br><br>泛型方法的重载：<br><br>class MyClass {<br>void F1&lt;T&gt;(T[] a, int i); // 不可以构成重载方法<br>void F1&lt;U&gt;(U[] a, int i);<br>void F2&lt;T&gt;(int x); //可以构成重载方法<br>void F2(int x);<br>void F3&lt;T&gt;(T t) where T : A; //不可以构成重载方法<br>void F3&lt;T&gt;(T t) where T : B;<br>}<br><br>当方法定义格式从语法上无法区分时，编译器认为这样类似的定义不能构成重载方法，因为它们无从区分；<br><br>&nbsp;<br><br>泛型方法的重写：<br><br>abstract class Base<br>{<br>public abstract T F&lt;T,U&gt;(T t, U u) where U: T;<br>public abstract T G&lt;T&gt;(T t) where T: IComparable;<br>}<br><br>class Derived: Base{<br>//合法的重写，约束被默认继承<br>public override X F&lt;X,Y&gt;(X x, Y y) { }<br>//<span style="color: #ff0000;">非法的重写，指定任何约束都是多余的</span><br>public override T G&lt;T&gt;(T t) where T: IComparable {}<br>}<br><br>&nbsp;<br><br><strong><span style="font-size: medium;">泛型约束简介：</span></strong><br><br>C#泛型要求对&ldquo;所有泛型类型或泛型方法的类型参数&rdquo;的任何假定，都要基于&ldquo;显式的约束&rdquo;，以维护C#所要求的类型安全。<br><br>&nbsp;&ldquo;显式约束&rdquo;由where子句表达，可以指定&ldquo;基类约束&rdquo;，&ldquo;接口约束&rdquo;，&ldquo;构造器约束&rdquo;，&ldquo;值类型/引用类型约束&rdquo;共四种约束。<br><br>&ldquo;显式约束&rdquo;并非必须，如果没有指定&ldquo;显式约束&rdquo;，泛型类型参数将只能访问System.Object类型中的公有方法。<br><br>&nbsp;<br><br>基类约束：<br><br>class A { public void F1() {&hellip;} }<br>class B { public void F2() {&hellip;} }<br><br>class C&lt;S,T&gt;<br>where S: A // S继承自A<br>where T: B // T继承自B<br>{<br>// 可以在类型为S的变量上调用F1，<br>// 可以在类型为T的变量上调用F2<br>&hellip;.<br>}<br><br>&nbsp;<br><br>接口约束：<br><br>interface IPrintable { void Print(); }<br>interface IComparable&lt;T&gt; { int CompareTo(T v);}<br>interface IKeyProvider&lt;T&gt; { T GetKey(); }<br><br>class Dictionary&lt;K,V&gt;<br>where K: IComparable&lt;K&gt;<br>where V: IPrintable, IKeyProvider&lt;K&gt;<br>{<br>// 可以在类型为K的变量上调用CompareTo，<br>// 可以在类型为V的变量上调用Print和GetKey<br>&hellip;.<br><br>&nbsp;<br><br>构造器约束：<br>class A { public A() { } }<br>class B { public B(int i) { } }<br><br>class C&lt;T&gt;<br>where T : new()<br>{<br>//可以在其中使用T t=new T();<br>&hellip;.<br>}<br>C&lt;A&gt; c=new C&lt;A&gt;(); //可以，A有无参构造器<br>C&lt;B&gt; c=new C&lt;B&gt;(); //错误，B没有无参构造器<br>}<br><br>&nbsp;<br><br>值类型/引用类型约束：<br>public struct A { &hellip; }<br>public class B { &hellip; }<br><br>class C&lt;T&gt;<br>where T : struct<br>{<br>// T在这里面是一个值类型<br>&hellip;<br>}<br>C&lt;A&gt; c=new C&lt;A&gt;(); //可以，A是一个值类型<br>C&lt;B&gt; c=new C&lt;B&gt;(); //错误，B是一个引用类型<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/" data-id="cii1bfda9002ugaz2o45epg18" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2010/02/23/关于23种设计模式的有趣见解-转载/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          关于23种设计模式的有趣见解(转载)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2010/02/04/《C-面向对象设计模式纵横谈》——1、面向对象设计模式与原则-第一讲/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">《C#面向对象设计模式纵横谈》——1、面向对象设计模式与原则|第一讲</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-《C-2-0锐利体验系列课程》第一讲——泛型" data-title="《C#2.0锐利体验系列课程》第一讲——泛型" data-url="http://vinoyang.com/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Asp.net构建可扩展的的CometWeb应用(一) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="说明这篇文章用来提供在asp.net中使用comet的一种理论上的解决方案。它包含了Comet技术在服务端的实现以及怎样去解决可扩展的问题。我将在不久以后发表一般文章，使用我接下来要讲到的Comet 线程池技术演示一个小游戏，来提供客户端的代码。它可能会给你在真实的环境下解决问题带来一些思路。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Asp.net构建可扩展的的CometWeb应用(一)">
+<meta property="og:url" content="http://vinoyang.com/2011/09/01/Asp-net构建可扩展的的CometWeb应用-一/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="说明这篇文章用来提供在asp.net中使用comet的一种理论上的解决方案。它包含了Comet技术在服务端的实现以及怎样去解决可扩展的问题。我将在不久以后发表一般文章，使用我接下来要讲到的Comet 线程池技术演示一个小游戏，来提供客户端的代码。它可能会给你在真实的环境下解决问题带来一些思路。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314797264Gx2M.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_13147975167hZ7.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314797830i7wa.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314798055BE03.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314798198pgG8.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314798789pHNs.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314798973nuuD.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314799164F1Uu.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314799231rZ8t.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314799322i8MT.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314799809M7Hy.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_13147998632X6T.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314800033c3rt.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314800289256a.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_131480036495PB.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314800659L6bL.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201108/31/0_1314800715EG9m.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Asp.net构建可扩展的的CometWeb应用(一)">
+<meta name="twitter:description" content="说明这篇文章用来提供在asp.net中使用comet的一种理论上的解决方案。它包含了Comet技术在服务端的实现以及怎样去解决可扩展的问题。我将在不久以后发表一般文章，使用我接下来要讲到的Comet 线程池技术演示一个小游戏，来提供客户端的代码。它可能会给你在真实的环境下解决问题带来一些思路。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Asp-net构建可扩展的的CometWeb应用-一" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/09/01/Asp-net构建可扩展的的CometWeb应用-一/" class="article-date">
+  <time datetime="2011-08-31T22:20:00.000Z" itemprop="datePublished">2011-09-01</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Asp.net构建可扩展的的CometWeb应用(一)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><strong><span style="font-size:24px">说明</span></strong><br><br>这篇文章用来提供在asp.net中使用comet的一种理论上的解决方案。它包含了Comet技术在服务端的实现以及怎样去解决可扩展的问题。我将在不久以后发表一般文章，使用我接下来要讲到的Comet 线程池技术演示一个小游戏，来提供客户端的代码。它可能会给你在真实的环境下解决问题带来一些思路。<br><br><a id="more"></a><br><br><strong><span style="font-size:24px">简介</span></strong><br><br>在过去的六个月里，我一直都在投入精力开发一个在线的象棋应用程序。它能够让玩家注册、登陆，并且像在真实世界中对弈一样。其中，我不得不克服的一个障碍就是，怎样在服务端和客户端实现一个类&#20284;在真实世界中的通信。要克服这个障碍，以下一系列的因素需要考虑：<br><br>(1)&nbsp;&nbsp;&nbsp;可扩展性 – 我想让它在一个负载均衡的环境中工作，并且不需要占用巨大的服务器资源。<br><br>(2)&nbsp;&nbsp;&nbsp;兼容性 – 我希望它能够在许多不同特性的浏览器中工作，希望不需要任何的浏览器插件。<br><br>(3)&nbsp;&nbsp;&nbsp;性能 – 我希望在一位玩家到任何可通信的对手之间提供尽可能快的响应。这可以让我更有效得控制时间和提供一个更友好的用户体验。<br><br>(4)&nbsp;&nbsp;&nbsp;简单 – 我想实现通信层儿不想涉及第三方服务应用程序。总得来说，它应该仅仅工作在宿主环境中，例如<a href="http://www.discountasp.net/" target="_blank" rel="external">www.discountasp.net</a><br><br>&nbsp;<br><br>我评估了以上所有我列出的选项。我构建的第一个原型是使用标准的ajax作为解决方案。它从服务端“拉取”数据。这造成了太长得延时并且太多次数的通信。因此，我很快地从可行性方案中把它移除掉了。我又调研了其他的通信方案。例如使用一个隐藏的Flash小程序进行socket通信。这需要一个浏览器插件，所以也不是我想要的答案。然后我发现了Comet，并且觉得这就是我想要的方案。于是，我做了一些调研，并且构建了一个原型。<br><br><strong><span style="font-size:24px">Comet的技术原理</span></strong><br><br>Comet在客户端(web浏览器，使用XmlHttpRequest)和服务端使用一个持续的连接。这个持续连接在一段预定义的时间内(例如5秒钟)对服务端保持着打开状态，并且将会客户端两种响应：要么超时信息，要么是服务端应用程序的某些部分的逻辑想要发送的信息。一旦客户端接收到信息，它将可以被实现在客户端的任何应用程序的逻辑处理。这个持续的连接然后会被重新打开，并且重复以上过程。<br><br>&nbsp;<br><br>这种方案解决了性能的问题。它意味着无论什么时候一条消息只要需要被发送，它就可以被发送会客户端。并且如果这个持续的连接被打开着，客户端接收它只需要很短的延时，几乎是瞬间的。<br><br>&nbsp;<br><br>另一个连接被用来发送信息给服务器。这个连接并不是“持续”的。并且通常情况下处理完之后立即返回。从这个象棋游戏的一端看来，这个持续的连接一直都在等待对手棋子的移动。而那个非持续的连接则只是发送我的移动。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314797264Gx2M.gif" alt=""><br><br>一个 Comet请求返回超时的顺序图<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_13147975167hZ7.gif" alt=""><br><br>一个Comet返回消息的顺序图<br><br><strong><span style="font-size:24px">真实环境中使用Comet</span></strong><br><br>&nbsp;<br><br>到现在为止，一切从纸面上看起来都很美好。我们有一种方案能够提供发送信息给一个浏览器的功能，在真实的环境并且不需要插件。但是在实践的过程当中，会遇到更多的麻烦。许多文章都在描述这样一个事实——采用一个持续的连接多么得”Hack”。我不太倾向于同意这样的观点。<br><br>&nbsp;<br><br>Comet在某些浏览器中运行，确实会遇到一些问题(主要是因为HTTP协议规定，每个浏览器只同时支持两个连接，并且限制在同一主机上)。Http协议的这个限制被用来为通常的在低带宽连接下的浏览提供更好地性能，这在运行Comet程序的时候导致了性能问题(有一些解决方法)。这个问题，仅仅只需要被IE关注(我猜想IE直到8.0的版本，才严&#26684;执行了标准)。FireFox 2运行更多的连接，并且将他们管理得更好。另外，FireFox 3甚至允许更多的连接，这意味着Comet风&#26684;的应用程序的前景是光明的。<br><br>&nbsp;<br><br>第二个问题来着这种技术的可扩展性。这也是这篇文章尝试补救的问题。这个问题源于现阶段各个平台缺乏对Comet这种风&#26684;协议的很好的支持，这导致了使用了持久连接的应用程序在未来可能不会具有很好的扩展性。我想说，这不是Comet技术思想本身的失败，而是对Comet服务器特殊实现的失败。<br><br>&nbsp;<br><br>很多其他的开发者已经将那些坐在我们平台之前的服务器放到了一起。这就允许我们将Comet的请求方式从web 服务器中分离开来。并且通过管理他们自己的持续连接可以实现扩展。我在这篇文章中阐明的就是你在哪些情况下不应该在asp.net中使用Comet，并且给出了可能的解决方案。<br><br>&nbsp;<br><br><strong><span style="font-size:24px">开始测试Comet</span></strong><br><br>&nbsp;<br><br>在asp.net中使用持续连接最主要的缺陷是，在asp.net中每一个连接都占用asp.net一个工作线程(那些连接可能持续着五秒，并且一直打开着)。因此，每一个客户端连接都将在asp.net线程池中占用一个线程。最终，无法卸载，服务器将停止响应。<br><br>&nbsp;<br><br>为了展示这种情况，我举一个非常简单的例子。它使用很简单的持续连接向asp.net发起请求。用一个handler占用请求，并在返回客户端之前使其保持打开状态5秒钟。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314797830i7wa.gif" alt=""><br><br>这个handler非常的简单，它持有请求的执行5秒钟。然后返回。这个简单的Comet请求将最终因为请求超时返回到客户端。<br><br>&nbsp;<br><br>我还写了一个控制台程序。使用WebRequest来调用CometSyncHandler。结果和预期的一样，每一个客户端占用了一个asp.net工作线程，最终在40或者更多的连接下，网站开始招架不住，页面渐渐响应非常缓慢。<br><br>&nbsp;<br><br>下面的截屏可以看到发生了什么：<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314798055BE03.gif" alt=""><br><br>可以清楚地看到，它不适合任何真实的应用程序。所以我做了一些“挖掘”，并且设计了一个解决方案。<br><br>&nbsp;<br><br><strong><span style="font-size:24px">IhttpAsyncHandler</span></strong><br><br>&nbsp;<br><br>这是方案的第一部分，这个小“魔法”在当我们向一个handler发出一个请求时。<br><br>，允许我们在服务器上异步地运行代码。如果你对IasyncHttpHandler不是很熟悉，那就阅读我下面的解释，来了解它如何工作：<br><br>&nbsp;<br><br>IhttpAsyncHandler 开放两个主要的需要被实现的方法。它们是：BeginProcessRequest和EndProcessRequest。通常的做法是：我们在请求开始的时候的处理逻辑放在BeginProcessRequest中，然后我们执行一系列的异步方法，例如数据库查询或者.net的异步方法。当这些异步方法执行完成之后，然后响应客户端的处理放在EndProcessRequest。<br><br>&nbsp;<br><br>下面的顺序图，展示了它如何工作：<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314798198pgG8.gif" alt=""><br><br><strong><span style="font-size:24px">CometThreadPool</span></strong><br><br>&nbsp;<br><br>上面的顺序图介绍了一个自定义的线程池用来处理Comet请求。需要它的原因是因为我们不想asp.net为每一个这样的请求开启一个它自己的线程，知道它需要等待一个Comet请求的超时。<br><br>&nbsp;<br><br>这段线程池技术的实现技术位于网站的CometAsync文件夹中。它包含了如下的文件：<br><br>&nbsp;<br><br>CometAsyncHandler – 这是一个IhttpAsyncHandler接口的实现。<br><br>CometAsyncResult – 这是IasyncResult接口的自定义实现。它包含了一个Comet异步操作的状态。<br><br>CometThreadPool – 这是一个静态类用来管理Comet线程池。<br><br>CometWaitRequest – 这是一个代表从客户端请求的对象。它们被排列自定义线程池中等待被处理。<br><br>CometWaitThread –这是一个线程用来处理来自队列中的CometWaitRequest对象。<br><br>&nbsp;<br><br>这个实现在第一次创建一系列的后台CometWaitThread对象。每一个这些对象都包含一个单独的线程，用来处理CometWaitRequest。在我们的web应用程序中，我们将在Application_Start实例化一个线程池。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314798789pHNs.gif" alt=""><br><br>这个被创建的五个线程一直被闲置在后台，直到等待CometWaitRequest实例的到来，以为这些实例提供服务。<br><br>&nbsp;<br><br>然后CometAsyncHandler等待来自客户端的请求。它的职责是将这些请求排列在线程池中。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314798973nuuD.gif" alt=""><br><br>为了我们能完全的跟踪哪些线程是存在的，BeginProcessRequest输出了一些debug信息。然后创建了CometAsyncResult类的一个实例来跟踪HttpContext，并且向asp.net返回并说明它已经开始了一个异步处理。在返回之前，它调用了BeginWaitRequest，用来把请求加入线程池。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314799164F1Uu.gif" alt=""><br><br>这段代码创建了一个CometWaitRequest类的新的实例并且把它排列到线程池中。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314799231rZ8t.gif" alt=""><br><br>这段代码逻辑中，挑选了一个CometWaitThread并基于循环方法来分配CometWaitRequest（例如，如果线程1接收之前的一个请求，线程2将接收第二个）。<br><br><strong><span style="font-size:24px">CometWaitThread类</span></strong><br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314799322i8MT.gif" alt=""><br><br>请求被加入到一个被选中的线程的用来存放CometWaitRequest对象的列表中。<br><br>&nbsp;<br><br>这一时刻，CometAsyncHandler已经将asp,net线程返回到线程池中。并且正在等待CometWaitThread完成异步处理，然后它就可以完成客户端的请求。CometWaitThread的代码看起来像下面这样：<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314799809M7Hy.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201108/31/0_13147998632X6T.gif" alt=""><br><br>QueueCometWaitRequest_WaitCallback是这个线程的入口点。它在Application_Start方法返回的时候开始执行。它执行了一个循环，并等待一个CometWaitRequest对象加入到它的队列中。一旦一个客户端请求CometAsyncHandlerhandler，它就会出现在队列中。<br><br>&nbsp;<br><br>它顺序处理队列中的每一个对象，在每一次循环中。例如，如果这里有三个请求。它将检查请求1,2,3 然后继续循环并且处理继续处理请求1,2,3 。这能够确保每一个请求都被尽可能快地处理而不是等到它的5秒超时完成。<br><br>&nbsp;<br><br>循环检查是否CometWaitRequest已经是否排列在队列中的时间已经超过了它预定的5秒超时时间。否则，它会检查是否有一个事件正在等待被返回给客户端。如果，这两种情况都不是，它就完成了CometWaitRequest的处理，返回所需的响应对象。然后从队列中将其移除。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314800033c3rt.gif" alt=""><br><br>QueueCometWaitRequest_Finished方法完成异步操作，通过调用CometAsyncResult 对象的SetCompleted方法。然后调用CometAsyncResult上的回调方法。它指向CometAsyncHandler对象的EndProcessRequest方法。接下来的代码会被执行。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314800289256a.gif" alt=""><br><br>该方法以序列化任意的我们设置到request’s HttpContext输出流的对象来响应客户端。<br><br>&nbsp;<br><br>有一个需要被提及的事情是，无论那些线程最终对请求做什么处理，当它到达BeginProcessRequest方法时，它是一个正在被执行的asp.net工作线程。并且当CometWaitThread完成时，要么是一个超时信息要么是一个返回信息，EndProcessRequest方法是被CometThreadPool线程池中的一个线程执行的。这意味着，asp.net只是使用了它线程池中的一个线程来初始化Comet请求。其余的5秒不是被asp.net线程处理。<br><br>&nbsp;<br><br>我们在执行时，屏幕的截图中可以看到：<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_131480036495PB.gif" alt=""><br><br>从这点上来看，&#20540;得一提的是来自网站的输出是非常棒的。考虑到这里有200个持续连接，可以看到任务管理器重的CPU/内存数据也是非常正常(并且还同时在这台机子上运行着客户端)。<br><br>&nbsp;<br><br>为了检查一切都工作地非常正常，我为每一个请求/响应对做了一个计数器，来确保每一个请求都有一个响应。下面的截图显示了运行着200个客户端五分钟的测试输出。<br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314800659L6bL.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201108/31/0_1314800715EG9m.gif" alt=""><br><br>它显示了所有的请求都完成地非常得成功<br><br>#### <strong><span style="font-size:24px">结论</span></strong><br><br>通过实现一个客户端的线程池，我们能构建一个Comet的解决方法在我们的asp.net服务端代码而不是实现一个自定义的服务器，或者甚至实现任何复杂的消息程序。只是一个简单的线程池来管理对个请求。例如我们用五个线程来管理了所有的200个Comet请求。<br><br>原文链接：<a href="http://www.codeproject.com/KB/aspnet/CometAsync.aspx" target="_blank" rel="external">http://www.codeproject.com/KB/aspnet/CometAsync.aspx</a><br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/09/01/Asp-net构建可扩展的的CometWeb应用-一/" data-id="cii1bfddi004jgaz298vw2dkp" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/09/03/Asp-net构建可扩展的的CometWeb应用-二/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Asp.net构建可扩展的的CometWeb应用(二)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/08/20/覆盖equals方法的权宜之计，组合优于继承/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">覆盖equals方法的权宜之计，组合优于继承</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-Asp-net构建可扩展的的CometWeb应用-一" data-title="Asp.net构建可扩展的的CometWeb应用(一)" data-url="http://vinoyang.com/2011/09/01/Asp-net构建可扩展的的CometWeb应用-一/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

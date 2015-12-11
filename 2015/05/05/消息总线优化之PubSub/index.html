@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>消息总线优化之PubSub | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="近段时间，暂缓了消息总线feature的开发，花了部分时间对原先的pubsub机制进行了针对性的优化与重构。这里记录一下优化的过程以及相比原来的设计有哪些改观。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="消息总线优化之PubSub">
+<meta property="og:url" content="http://vinoyang.com/2015/05/05/消息总线优化之PubSub/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="近段时间，暂缓了消息总线feature的开发，花了部分时间对原先的pubsub机制进行了针对性的优化与重构。这里记录一下优化的过程以及相比原来的设计有哪些改观。">
+<meta property="og:image" content="http://img.blog.csdn.net/20150504192003018?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150504192102858?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150504193822311?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="消息总线优化之PubSub">
+<meta name="twitter:description" content="近段时间，暂缓了消息总线feature的开发，花了部分时间对原先的pubsub机制进行了针对性的优化与重构。这里记录一下优化的过程以及相比原来的设计有哪些改观。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-消息总线优化之PubSub" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/05/05/消息总线优化之PubSub/" class="article-date">
+  <time datetime="2015-05-04T19:54:00.000Z" itemprop="datePublished">2015-05-05</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      消息总线优化之PubSub
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>近段时间，暂缓了<a href="https://github.com/yanghua/banyan" target="_blank" rel="external">消息总线</a>feature的开发，花了部分时间对原先的pubsub机制进行了针对性的优化与重构。这里记录一下优化的过程以及相比原来的设计有哪些改观。<br><br><a id="more"></a><br><br># PubSub在消息总线内部的作用<br><br>PubSub在消息总线内部主要用于对所有在线客户端进行实时管控的作用。每个客户端在使用消息总线时，都“被迫”注册到PubSub上，并“被迫”订阅了一些Channel，以便消息总线管控台实时下发一些管控指令及时生效。<br><br># 之前的设计回顾<br><br>这里有必要回顾一下之前的设计。消息总线内部的Pub/Sub的机制是通过第三方技术组件的实现（目前支持Zookeeper跟Redis），关于Pub/Sub这里首先普及几个概念，首先组件根据自身业务定义Channel，某个组件如果需要关注某Channel的变更就注册对某Channel的关注（subscribe），当有组件因为业务需要向Channel发送变更（publish），凡是subscribe该Channel的所有组件都会获取到变更。这里因为Zookeeper跟Redis都支持数据存储，所以这里的publish的内容其实既可以被Push给subscribe该Channel的所有组件，也可以使得其他组件根据Channel pull下来。<br><br>其实之前的做法的关注点在“自动化”以及“扩展性”。为了所谓的扩展性，我们利用Java注解扫描的方式来使得整个Channel的定义“自动化”，这样就无需硬编码了。并且当后续业务扩展，新增一个Channel的时候，之前Channel的定义无需作任何改变。另外为了客户端首次获取（目前的推送机制zookeeper以及redis都支持KV数据存储）以及后续更新推送数据的对客户端的一致性，我们让一个Channel对应数据库的一张表，同时每个Channel都对应自己的数据自动获取方式。<br>当然Pub/Sub从服务端角度来看是数据的上行（从数据库提取数据，push到subscribe的客户端），从客户端角度来看是数据的下行。因此这里我们定义了一个IDataExchange接口，用来与Pub/Sub组件进行数据交换：<br><br><img src="http://img.blog.csdn.net/20150504192003018?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>然后定义了一个@Exchanger注解，它包含两个属性：<br><br><em>   table：表示对应的表；
+
+</em>   path：也即channel，对应频道名称；<div>然后涉及到变更的表都会实现为一个独立的XXXExchanger。<br></div><div>为了让每个Channel的数据源是以一致的接口对外提供，这里统一定义了一个获取数据源的接口：IDataFetcher：<br></div><div><pre name="code" class="java">public interface IDataFetcher {<br><br>    public byte[] fetchData(IDataConverter converter);<br><br>}</pre><br>该接口接收一个数据序列化器，然后将获取到的数据进行序列化并以byte[]作为统一的返回值，因为需要将数据存储到Pub/Sub组件里去（它们大都支持字节数组的API接口）。<br></div><div>整体的设计如下所示：</div>
+
+<p><img src="http://img.blog.csdn.net/20150504192102858?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""></p>
+<p>这样的设计对最初的关注点（自动化、扩展性、客户端首次获取数据以及后续获取变更数据导致代码处理上的一致性）而言，确实够了。但就性能而言，却非常低效。因为是一张表对应一个Channel，所以其实是全表推送，既然是全表推送，那么就无法鉴别客户端，无法鉴别客户端，就可能代码无效推送（跟某个客户端无关的关系数据，也会被推送过来），从而产生频繁推送，无效解析等一系列恶性循环。另外全表数据，相对来说是原始数据，还需要各个客户端做相应的解析，计算出合适的视图，用于内部控制以及权限校验等，并且所有的客户端在这一步执行的逻辑几乎是一样的。需要解析生成的视图如下：</p>
+<pre code_snippet_id="658670" snippet_file_name="blog_20150504_2_6657912" name="code" class="java">    private Map&lt;String, Node&gt;   proconNodeMap;
+    private Map&lt;String, Node&gt;   reqrespNodeMap;
+    private Map&lt;String, Node&gt;   rpcReqRespNodeMap;
+    private Map&lt;String, Node&gt;   pubsubNodeMap;
+    private Map&lt;String, Node&gt;   idNodeMap;
+    private Map&lt;String, Node&gt;   secretNodeMap;
+    private Map&lt;String, Config&gt; clientConfigMap;
+    private ExchangerManager    exchangeManager;
+    private Map&lt;String, Sink&gt;   tokenSinkMap;
+    private Map&lt;String, String&gt; pubsubChannelMap;
+    private Node                notificationExchangeNode;</pre>
+
+<h1 id="优化之后的设计">优化之后的设计</h1><p>对于Pub/Sub重新设计之后采用——推拉结合的模式。不再推送数据，只推送变更通知以及变更的KEY（secret）。然后客户端按需拉取。</p>
+<p>优化后的设计，带来如下一些优点：</p>
+<h2 id="减少客户端内存占用">减少客户端内存占用</h2><p>之前Pub/Sub的设计是“首次拉取，变更全推”的做法。而且拉取的是全表数据，这对于客户端内存的占用是个极大的损耗。而优化之后，将只存储跟当前secret相关的数据视图。</p>
+<h2 id="服务端准备“数据视图”，减少客户端计算时间">服务端准备“数据视图”，减少客户端计算时间</h2><p>优化之后针对客户端使用的数据专门定制了数据结构，在服务端按照键值对的形式计算出某个secret对应的客户端需要使用的视图数据并缓存在pub/sub组件的内存中。这个数据视图的数据结构如下：</p>
+<p><img src="http://img.blog.csdn.net/20150504193822311?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""></p>
+<p>这样，客户端在验证通信权限的时候，将会非常快。</p>
+<h2 id="减少远程访问通信开销">减少远程访问通信开销</h2><h3 id="通信次数">通信次数</h3><p>减少通信次数的主要手段是本地缓存（local cache），客户端获取数据的方式是：如果本地有，则从本地取，如果本地没有，则从远端获取获取完之后缓存在本地内存里。部分代码如下所示：</p>
+<pre code_snippet_id="658670" snippet_file_name="blog_20150504_3_66312" name="code" class="java">    public synchronized NodeView getNodeView(String secret) {
+        if (Strings.isNullOrEmpty(secret)) {
+            throw new NullPointerException(&quot;the secret can not be null or empty&quot;);
+        }
+
+        if (this.secretNodeViewMap.containsKey(secret)) {   //local cache
+            return this.secretNodeViewMap.get(secret);
+        } else {                                            //remote data then local cache
+            NodeView nodeViewObj = this.pubsuberManager.get(secret, NodeView.class);
+            this.secretNodeViewMap.put(secret, nodeViewObj);
+            return nodeViewObj;
+        }
+    }
+
+</pre>
+
+<p>当然通信次数的减少，还得益于特地为客户端定制的“数据视图”，并且是按照每个队列的secret拆分成key/value的。管控台导致的数据变更将过渡为变更通知事件，然后再按序更新本地缓存。而不会像原来那样，推送数据变更，从而导致太多无效网络交互以及数据计算。</p>
+<h3 id="通信数据量">通信数据量</h3><p>减少通信数据量的主要手段是只获取有效数据，比如当调用消息总线API的时候，每个API都要求传入一个secret来指示当前对应的队列节点，因此我们只需要从远程获取客户端需要的跟当前secret相关的“数据视图”。当然这里我们作了一个假设：大部分场景下，一个客户端在某个JVM进程内通常只使用一个secret。因为API被设计为某个使用者只需要知道自己队列对应的secret即可使用，因此这样的假设是合理的。当然也不排除某个应用涉及到多个队列的操作，这种情况最多多获取几个secret的数据视图。但基本的原则是：不取多余数据，按需取用。并且，推送也从原来的数据变成了现在的变更通知，该通知虽然是广播式的，但却是“自认领”的机制：</p>
+<p><pre code_snippet_id="658670" snippet_file_name="blog_20150504_4_6605412" name="code" class="java">    public void onChannelDataChanged(String channel, Object obj) {<br>        logger.debug(&quot;=-=-=-=-=-=- received change from channel : &quot; + channel + &quot; =-=-=-=-=-=-&quot;);<br>        if (channel.equals(Constants.PUBSUB_NODEVIEW_CHANNEL)) {<br>            String secret = obj.toString();<br>            this.updateNodeView(secret);<br>        } else if (channel.equals(Constants.PUBSUB_SERVER_STATE_CHANNEL)) {<br>            String serverState = obj.toString();<br>            this.setServerState(serverState);<br>        } else if (channel.equals(Constants.PUBSUB_CONFIG_CHANNEL)) {<br>            this.updateConfig(obj.toString());<br>        } else if (channel.equals(Constants.PUBSUB_NOTIFICATION_EXCHANGE_CHANNEL)) {<br>            this.updateNotificationNode();<br>        }<br>    }</pre><br>拉取更新：</p>
+<p><pre code_snippet_id="658670" snippet_file_name="blog_20150504_5_5337123" name="code" class="java">    public synchronized void updateNodeView(String secret) {<br>        if (this.secretNodeViewMap.containsKey(secret)) {<br>            this.secretNodeViewMap.remove(secret);<br>            this.getNodeView(secret);<br>        }<br>    }</pre><br>可以看到，只有在推送的secret在本地有缓存时，才会去远端拉取更新。否则，将直接丢弃该变更通知。</p>
+<h1 id="取舍">取舍</h1><p>当然，这种完全定制化的机制，也彻底废弃了之前关注的自动化以及扩展性的特性。这是必要的，因为我们队消息总线的定位还是希望它具有更好的性能。</p>
+<pre><code>&lt;<span class="tag">div</span>  style=<span class="string">"padding-top:20px"</span>&gt;         
+</code></pre><p>版权声明：本文为博主原创文章，未经博主允许不得转载。</p>
+<pre><code><span class="tag">&lt;/div&gt;</span>
+</code></pre><p></p></div><p></p>
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/05/05/消息总线优化之PubSub/" data-id="cii1bfd6d000wgaz23yw8q2yn" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/05/15/消息总线扩展之主动转发/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          消息总线扩展之主动转发
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/04/25/消息总线扩展之集成Thrift-RPC/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">消息总线扩展之集成Thrift-RPC</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-消息总线优化之PubSub" data-title="消息总线优化之PubSub" data-url="http://vinoyang.com/2015/05/05/消息总线优化之PubSub/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>消息总线重构之简化客户端 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="这段时间对消息总线进行了再次重构。本次重构主要针对消息总线的pubsub组件以及对client的简化，同时谈谈对消息总线的一些想法。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="消息总线重构之简化客户端">
+<meta property="og:url" content="http://vinoyang.com/2015/10/30/messagebus-refactor-simplify-client/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="这段时间对消息总线进行了再次重构。本次重构主要针对消息总线的pubsub组件以及对client的简化，同时谈谈对消息总线的一些想法。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_inner-headers-exchange.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_zk-name-service.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_router-topology.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_thinking-router-topology.png">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="消息总线重构之简化客户端">
+<meta name="twitter:description" content="这段时间对消息总线进行了再次重构。本次重构主要针对消息总线的pubsub组件以及对client的简化，同时谈谈对消息总线的一些想法。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-messagebus-refactor-simplify-client" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/10/30/messagebus-refactor-simplify-client/" class="article-date">
+  <time datetime="2015-10-30T12:44:49.000Z" itemprop="datePublished">2015-10-30</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      消息总线重构之简化客户端
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>这段时间对消息总线进行了再次重构。本次重构主要针对消息总线的<code>pubsub</code>组件以及对client的简化，同时谈谈对消息总线的一些想法。</p>
+<a id="more"></a>
+<p>##简化client的复杂度<br>之前的client需要同时连接两个分布式组件。消息总线的访问需要用户提供<code>pubsuberHost</code>，<code>pubsuberPort</code>参数，因此它首先连接的就是pubsuber。而消息总线是基于RabbitMQ构建的，因此它必然还需要连接RabbitMQ。而之所以没有需要用户程序提供RabbitMQ Server的地址信息，是因为它是通过pubsuber间接获得的。</p>
+<p>当时的想法是出于安全的角度考虑，不让用户直面MQ Server，而MQ的选择理论上可以有多种，这些对用户都是透明的。但作为一个后端组件，安全问题本不是最重要的关注目标，而替换MQ这样的成本无异于重写消息总线，这样的可能性也不大。除此之外这还带来了额外的复杂度与高失败率（当pubsuber与RabbitMQ两者中有其一失败，消息总线就将陷入混乱），结合到消息总线较多的长连接场景（比如，push模式的consume），一旦一个组件失效就可能导致客户程序的重启（为了重新初始化连接）。</p>
+<p>让消息总线客户端只连接单一的RabbitMQ组件，可以大大降低失效的概率，而且RabbitMQ官方client提供的失效重试机制也能更好得发挥作用。</p>
+<p>###用RPC获取授权信息<br>因为之前的pubsuber部分承担了授权信息数据源的角色，移除之前的pubsuber组件，那么就需要重新设计获取远程授权信息的方案。因为RabbitMQ正好提供了基于JSON的轻量级RPC机制，我们就可以通过RPC从后端获取授权信息，而让后端去跟pubsuber交互。之前就曾有过这个想法，后来在使用HBase时，发现其java client内部也有通过RPC跟Master节点交互，于是这次就确定用这种方式来实现。其实采用RPC的形式可以大大简化客户端的逻辑实现，而且也大大降低了升级成本。</p>
+<p>##修改broadcast和pubsub的实现<br>之前pubsuber在客户端还起到了两个作用：<code>实现广播机制</code>和<code>实现实时控制</code>。所以，如果要将pubsuber从client里移除，就要重新实现这两个功能。也就是说，要找到另一种支持<strong>实时push</strong> 的机制，考虑到其实RabbitMQ本身就可以实现长连接的即时消费功能，这里选择直接基于RabbitMQ本身来实现。</p>
+<p>我们新建了一个内部使用的exchange来实现消息路由。跟其他topic类型的exchange不同，这里我们采用并不常见的<strong><em>headers</em></strong> 类型的exchange。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_inner-headers-exchange.png" alt="inner-headers-exchange"></p>
+<blockquote>
+<p>header类型：根据消息的消息头里包含特殊的key-value对来进行路由</p>
+</blockquote>
+<p>考虑到我们需要重新实现上面两个功能，所以，我们将消息分成两类：<code>event</code>和<code>notice</code>。</p>
+<ul>
+<li>event：内部控制消息</li>
+<li>notice：广播消息</li>
+</ul>
+<p>在发送这两个消息时，只需要在消息头中指定对应的header的key-value即可实现自动路由。这两种消息类型分别对应的是绑定在inner exchange后的队列的类型。</p>
+<p>###如何节省RabbitMQ Server的资源<br>考虑到几乎每个client都有接受这两种类型的消息的需求，而我们为每个客户端在该exchange下创建两个queue多少有些过于浪费，最好的做法当然是在客户端使用的会话周期内建立两个临时队列，等客户端使用结束就可立即销毁队列回收资源。</p>
+<p>得益于RabbitMQ丰富的特性，我们可以很容易做到这一点。当我们实例化客户端的时候，我们在内部创建两个<code>临时且排他</code>的队列。所谓<code>临时且排他</code>即一种特殊的队列，它只对创建它的连接可见，当创建它的连接断开或者消费者个数从大于零降到零时，该队列就会被删除，具备这种属性的队列几乎是为一次会话而创建的。</p>
+<blockquote>
+<p>临时且排他属性是通过在创建队列时，指定队列的<code>auto-delete</code>以及<code>exclusive</code>属性同时为true来实现的。</p>
+</blockquote>
+<p>这两个队列被创建后，当前客户端会作为消费者立即挂载在队列上等待<code>event</code>和<code>notice</code>。</p>
+<p>发送端无需知晓上述两个队列的具体名称，它只需知道代理exchange以及inner exchange的routing-key即可，然后在发送消息的消息头中指定需要发送的是<code>event</code>还是<code>notice</code>。</p>
+<p>代码片段：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">InnerEventEntity eventEntity = <span class="keyword">new</span> InnerEventEntity();</span><br><span class="line">eventEntity.setIdentifier(channel);</span><br><span class="line">eventEntity.setValue(<span class="keyword">new</span> String(data));</span><br><span class="line">eventEntity.setType(<span class="string">"event"</span>);</span><br><span class="line">String jsonObjStr = GSON.toJson(eventEntity);</span><br><span class="line"></span><br><span class="line">Message eventMsg = MessageFactory.createMessage(MessageType.QueueMessage);</span><br><span class="line">Map&lt;String, Object&gt; map = <span class="keyword">new</span> HashMap&lt;String, Object&gt;(<span class="number">1</span>);</span><br><span class="line">map.put(<span class="string">"type"</span>, <span class="string">"event"</span>);</span><br><span class="line">eventMsg.setHeaders(map);</span><br><span class="line">eventMsg.setContent(jsonObjStr.getBytes());</span><br><span class="line">AMQP.BasicProperties properties = MessageHeaderTransfer.box(eventMsg);</span><br><span class="line"></span><br><span class="line">ProxyProducer.produce(Constants.PROXY_EXCHANGE_NAME,</span><br><span class="line">                      mqChannel,</span><br><span class="line">                      EVENT_ROUTING_KEY_NAME,</span><br><span class="line">                      eventMsg.getContent(),</span><br><span class="line">                      properties);</span><br></pre></td></tr></table></figure>
+<p>##去除pubsuber的封装</p>
+<p>###为什么要封装<br>在去除之前，我想谈谈当初为什么要封装。在最初封装消息总线的时候，我对redis和zookeeper都有所了解，它们都有一些共同的特性，比如：</p>
+<ul>
+<li>都能够以key-value的形式存取少量数据</li>
+<li>都能提供Pub/Sub的实时push变更功能</li>
+</ul>
+<p>这是消息总线客户端的pubsuber需要的，但为了提供可选性，我在这两个特性上做了一层封装，可以使得这种配置变更组件无论选择哪一个，无需修改代码，两者都可适配。这是当初封装的目的。</p>
+<p>###为什么要去除封装<br>首先，去除封装是回到了zookeeper而排除了redis。这么除了发现太多的开源软件都在使用zookeeper来实现这个需求，除了发现这是zookeeper的专长，而redis只是能提供这些功能而已。除了这些，最关键的问题是我发现当涉及到<code>命名服务</code>的特性时，redis将变得不再适合。</p>
+<p>在分布式的服务中，很可能会存在多个组件，而这些组件跟应用之间会存在一些逻辑关系，而不都是简单的扁平关系。很多情况下，我们需要将一些关系构建成树状结构。比如，现在消息总线只变成了平台中的一个组件，我们需要在配置上体现这种关系，所以可能会由原先的扁平关系修改为如下图这样的形式：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_zk-name-service.png" alt="zk-name-service"></p>
+<p>在这种类似于文件系统的树状结构下，要实现诸如<code>获取子节点的变更事件</code>这样的联动行为redis将无能为力。这是因为redis的pubsub功能，只提供在key-value(String)类型上。也就是说，它的value只能是一级关系。当然，为了表示多层关系，你是可以在key里以“.”进行区分，比如”app1”，”app1.message”，虽然你能知道他们之间的关系，但它们在技术层面上是一样的，无法产生联动变更功能。所以在一些场景下，zookeeper是无法取代的。</p>
+<p>##一些思考</p>
+<p>###拓扑的权衡<br>消息总线最初的目标主要偏向消息传递。但在实现中的添加了一些额外的特性，比如之前的RPC功能。其实，如果单从技术层面上来看消息总线就是收发消息。但如果你将收发消息的主体包含进来（也就是<strong>发送者</strong> 和 <strong>消费者</strong>）会有一些新的定位。如果有一些消费者做的事情是很<code>通用的</code>，<code>基础的</code>，<code>很多人都需要的</code>或者<code>纯技术性的</code>。那么处理这类消息的消费者就是在提供<code>服务</code>。比如，下面这些：</p>
+<ul>
+<li>将数据存入ElasticSearch</li>
+<li>发送短信</li>
+<li>发送邮件</li>
+<li>往移动端推送消息</li>
+</ul>
+<p>消息总线可以直接提供这些服务以供第三方申请使用，当然如果带上语义来看，RPC的服务端也是一种服务（只不过是同步的服务而已），其他队列也可能在提供某种服务，只是它们的专有性更强，所以消息总线也具有提供服务的能力以及构建服务的基础。</p>
+<p>所以我一直在考虑，整个路由图应该是这样构建：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_router-topology.png" alt="now_router_topology"></p>
+<p>还是这样来构建：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/messagebus-refactor-simplify-client_thinking-router-topology.png" alt="thinking_router_topology"></p>
+<p>###消息租赁<br>因为消息的通信模型生来就具有异步性。那么消息的消费时机，对于消息总线本身而言是无法知晓的，这就产生了消息长期堆积压垮消息总线的可能。所以，可能会考虑将消息的永久驻留改为按序驻留。这取决于业务，有些业务消息是具有时效性的，这样的消息如果隔个几周还没有被消费掉，那么它存在的意义几乎没有了，而它却白白占据着总线服务器的内存或磁盘资源，甚至这些消息将永远得不到消费也有可能。</p>
+<p>所谓消息租赁，其实是将现在的永久留存的模式改为临时驻留队列的模式，具体消息能够存活多久，这取决于给消息设置的TTL（time to live）时间，而对于TTL的评估来自于队列申请方根据自身的业务特点而定。当然，TTL可以也可以设置为永久，这需要接收审核。</p>
+<p>###proxy的必要性<br>对于一个组件的扩展有很多种模式，比如<code>proxy</code>，<code>smart client</code>，<code>plugin</code>。消息总线封装自RabbitMQ，其实RabbitMQ官方是带<code>plugin</code>模式的扩展机制的，无奈语言所限，力所不及。</p>
+<p>而对于<code>proxy</code>跟<code>smart client</code>的两种模式对比来看，可算是各有所长，优势互补。比如在侵入性上<code>proxy</code>侵入性更小，在掌控性上<code>smart client</code>掌控力更强。这里就不再过多比较。</p>
+<p>现在对RabbitMQ的扩展采用的是<code>smart client</code>的形式。但这种方式总有它的受限之处，当你处于一个分布式的环境中，服务器上的资源在很多时候是被共享的（比如RabbitMQ里的队列，它可以同时被多个client消费），你可以将它看成是多个分支河流汇聚的场景，分支是没办法掌控全部的，你只有依靠Proxy Server。</p>
+<p>我曾看到携程开源的消息系统是在<code>kafka</code>和<code>mysql</code>前端做了一个proxy（它们称之为broker）。会不会构建一个proxy，看进度吧。但proxy的存在缺失能带来非常多的好处。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/10/30/messagebus-refactor-simplify-client/" data-id="cii1bfd5m000igaz2zs2zus0u" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Zookeeper/">Zookeeper</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/消息总线/">消息总线</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          日志系统之Flume采集加morphline解析
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">一个基于redis和disque实现的轻量级异步任务执行器</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-messagebus-refactor-simplify-client" data-title="消息总线重构之简化客户端" data-url="http://vinoyang.com/2015/10/30/messagebus-refactor-simplify-client/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

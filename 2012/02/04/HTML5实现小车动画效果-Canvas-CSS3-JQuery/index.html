@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>HTML5实现小车动画效果(Canvas/CSS3/JQuery) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="HTML5正在变得越来越流行。在这个移动设备日益增长的时代，对来自Adobe的Flash插件的改造需求也正在快速增长。因为就在最近，Adobe宣布Flash将不再支持移动设备。这意味着，Adobe自身也认为对移动设备来讲HTML5是一项重要的技术。而桌面系统的改变也是迟早的事。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HTML5实现小车动画效果(Canvas/CSS3/JQuery)">
+<meta property="og:url" content="http://vinoyang.com/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="HTML5正在变得越来越流行。在这个移动设备日益增长的时代，对来自Adobe的Flash插件的改造需求也正在快速增长。因为就在最近，Adobe宣布Flash将不再支持移动设备。这意味着，Adobe自身也认为对移动设备来讲HTML5是一项重要的技术。而桌面系统的改变也是迟早的事。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201202/1/0_1328105451Tr0X.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="HTML5实现小车动画效果(Canvas/CSS3/JQuery)">
+<meta name="twitter:description" content="HTML5正在变得越来越流行。在这个移动设备日益增长的时代，对来自Adobe的Flash插件的改造需求也正在快速增长。因为就在最近，Adobe宣布Flash将不再支持移动设备。这意味着，Adobe自身也认为对移动设备来讲HTML5是一项重要的技术。而桌面系统的改变也是迟早的事。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-HTML5实现小车动画效果-Canvas-CSS3-JQuery" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/" class="article-date">
+  <time datetime="2012-02-03T19:06:00.000Z" itemprop="datePublished">2012-02-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      HTML5实现小车动画效果(Canvas/CSS3/JQuery)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>HTML5正在变得越来越流行。在这个移动设备日益增长的时代，对来自Adobe的Flash插件的改造需求也正在快速增长。因为就在最近，Adobe宣布Flash将不再支持移动设备。这意味着，Adobe自身也认为对移动设备来讲HTML5是一项重要的技术。而桌面系统的改变也是迟早的事。<br><br><a id="more"></a><br><br>HTML的一大劣势就是对于多媒体技术支持的缺乏。在HTML中，你无法直接显示一个视频或在屏幕上绘画。在HTML5中，随着&lt;video&gt;与&lt;canvas&gt;元素的引进。这些元素给予开发者直接使用“纯粹的”HTML来实现多媒体技术的可能性——仅需要写一些Javascript代码来配合HTML。在多媒体技术中，有一个基本的技术应该被支持——动画。在HTML5中，有不少方式能够实现该功能。<br><br>在这篇文章中，我仅将最新的&lt;canvas&gt;元素与即将到来的CSS3动画技术进行比较。其他的可能性包括DOM元素或SVG元素的创建和动画。这些可能性将不在本文中进行讨论。从开始就应该注意到canvas技术在当前发布的大部分主流浏览器都给予了支持，而CSS3动画仅在最新的FireFox与Chrome浏览器中才有实现的可能，下一个版本的IE也将提供对CSS3动画的支持。（所以本文中所有演示代码的效果，在Win 7系统下当前最新版的Chrome浏览器中都可实现，但在其他操作系统与其他浏览器中，并不一定能看到所有演示代码的效果）。<br><br>这里我选择了一个比较简单的动画：<br><br><img src="http://hi.csdn.net/attachment/201202/1/0_1328105451Tr0X.gif" alt=""><br><br>PS：<span style="color:rgb(255,0,0)">由于显卡、录制的帧间隔，以及可能你电脑处理器的原因，播放过程可能有些不太流畅或者失真！</span><br><br>分三种方式实现：<br><br>(1)&nbsp;&nbsp;&nbsp;canvas元素结合JS<br><br>(2)&nbsp;&nbsp;&nbsp;纯粹的CSS3动画（暂不被所有主流浏览器支持，比如IE）<br><br>(3)&nbsp;&nbsp;&nbsp;CSS3结合Jquery实现<br><br>知道如何使用CSS3动画比知道如何使用&lt;canvas&gt;元素更重要：因为浏览器能够优化那些元素的性能(通常是他们的样式，比如CSS)，而我们使用canvas自定义画出来的效果却不能被优化。原因又在于，浏览器使用的硬件主要取决于显卡的能力。目前，浏览器没有给予我们直接访问显卡的权力，比如，每一个绘画操作都不得不在浏览器中先调用某些函数。<br><br>&nbsp;<br><br><span style="font-size:18px"><strong>让我们从Canvas开始</strong></span><br><br>HTML代码：<br><br><pre name="code" class="html">&lt;html&gt;<br>   &lt;head&gt;<br>      &lt;meta charset=&quot;UTF-8&quot; /&gt;<br>         &lt;title&gt;Animation in HTML5 using the canvas element&lt;/title&gt;<br>    &lt;/head&gt;<br>   &lt;body onload=&quot;init();&quot;&gt;<br>      &lt;canvas id=&quot;canvas&quot; width=&quot;1000&quot; height=&quot;600&quot;&gt;Your browser does not support the &lt;code&gt;&lt;canvas&gt;&lt;/code&gt;-element.Please think about updating your brower!&lt;/canvas&gt;<br>      &lt;div id=&quot;controls&quot;&gt;<br>         &lt;button type=&quot;button&quot; onclick=&quot;speed(-0.1);&quot;&gt;Slower&lt;/button&gt;<br>         &lt;button type=&quot;button&quot; onclick=&quot;play(this);&quot;&gt;Play&lt;/button&gt;<br> &lt;button type=&quot;button&quot; onclick=&quot;speed(+0.1)&quot;&gt;Faster&lt;/button&gt;<br>      &lt;/div&gt;<br>   &lt;/body&gt;<br>&lt;/html&gt;</pre><br><br>JS代码：<br><br>定义一些变量：<br><br><pre name="code" class="javascript">var dx=5,//当前速率<br>    rate=1,//当前播放速度<br>    ani,//当前动画循环<br>    c,//画图(Canvas Context)<br>    w,//汽车<a href="Canvas Context">隐藏的</a><br>    grassHeight=130,//背景高度<br>    carAlpha=0,//轮胎的旋转角度<br>    carX=-400,//x轴方向上汽车的位置(将被改变)<br>    carY=300,//y轴方向上汽车的位置(将保持为常量)<br>    carWidth=400,//汽车的宽度<br>    carHeight=130,//汽车的高度<br>    tiresDelta=15,//从一个轮胎到最接近的汽车底盘的距离<br>    axisDelta=20,//汽车底部底盘的轴与轮胎的距离<br>    radius=60;//轮胎的半径</pre><br><br>为了实例化汽车canvas(初始时被隐藏)，我们使用下面的自执行的匿名函数<br><br><pre name="code" class="javascript">(function(){<br>   var car=document.createElement(‘canvas’);//创建元素<br>   car.height=carHeight+axisDelta+radius;//设置高度<br>   car.width=carWidth;//设置宽度<br>   w=car.getContext(‘2d’);<br>})();</pre><br><br>点击“Play”按钮，通过定时重复执行“画汽车”操作，来模拟“帧播放”功能：<br><br><pre name="code" class="javascript">function play(s){//参数s是一个button<br>   if(ani){//如果ani不为null，则代表我们当前已经有了一个动画<br>      clearInterval(ani);//所以我们需要清除它(停止动画)<br>      ani=null;<br>      s.innerHTML=’Play’;//重命名该按钮为“播放”<br>   }else{<br>      ani=setInterval(drawCanvas,40);//我们将设置动画为25fps[帧每秒]，40/1000，即为二十五分之一<br>      s.innerHTML=’Pause’;//重命名该按钮为“暂停”<br>   }<br>}</pre><br><br>加速，减速，通过以下方法，改变移动距离的大小来实现：<br><br><pre name="code" class="javascript">function speed(delta){<br>   var newRate=Math.max(rate+delta,0.1);<br>   dx=newRate/rate<em>dx;<br>   rate=newRate;<br>}</em></pre><br><br>页面加载的初始化方法：<br><br><pre name="code" class="javascript">//init<br>    function init(){<br>   c=document.getElementById(‘canvas’).getContext(‘2d’);<br>   drawCanvas();<br>}</pre><br><br>主调方法：<br><br><pre name="code" class="javascript">function drawCanvas(){<br>   c.clearRect(0,0,c.canvas.width, c.canvas.height);//清除Canvas(已显示的)，避免产生错误<br>   c.save();//保存当前坐标值以及状态，对应的类似“push”操作<br><br>   drawGrass();//画背景<br>   c.translate(carX,0);//移动起点坐标<br>   drawCar();//画汽车(隐藏的canvas)<br>   c.drawImage(w.canvas,0,carY);//画最终显示的汽车<br>   c.restore();//恢复Canvas的状态，对应的是类似“pop”操作<br>   carX+=dx;//重置汽车在X轴方向的位置，以模拟向前走<br>   carAlpha+=dx/radius;//按比例增加轮胎角度<br><br>   if(carX&gt;c.canvas.width){//设置某些定期的边界条件<br>      carX=-carWidth-10;//也可以将速度反向为dx=-1;<br>   }<br>}</pre><br><br>画背景：<br><br><pre name="code" class="javascript">function drawGrass(){<br>   //创建线性渐变，前两个参数为渐变开始点坐标，后两个为渐变结束点坐标<br>   var grad=c.createLinearGradient(0,c.canvas.height-grassHeight,0,c.canvas.height);<br>   //为线性渐变指定渐变色，0表示渐变起始色，1表示渐变终止色<br>   grad.addColorStop(0,’#33CC00’);<br>   grad.addColorStop(1,’#66FF22’);<br>   c.fillStyle=grad;<br>      c.lineWidth=0;<br>   c.fillRect(0,c.canvas.height-grassHeight,c.canvas.width,grassHeight);<br><br>}</pre><br><br>画车身：<br><br><pre name="code" class="javascript">function drawCar(){<br>   w.clearRect(0,0,w.canvas.width,w.canvas.height);//清空隐藏的画板<br>   w.strokeStyle=’#FF6600’;//设置边框色<br>     w.lineWidth=2;//设置边框的宽度，单位为像素<br>   w.fillStyle=’#FF9900’;//设置填充色<br>   w.beginPath();//开始绘制新路径<br>   w.rect(0,0,carWidth,carHeight);//绘制一个矩形<br>   w.stroke();//画边框<br>   w.fill();//填充背景<br>   w.closePath();//关闭绘制的新路径<br>   drawTire(tiresDelta+radius,carHeight+axisDelta);//我们开始画第一个轮子<br>   drawTire(carWidth-tiresDelta-radius,carHeight+axisDelta);//同样的，第二个<br><br>}</pre><br><br>画轮胎：<br><br><pre name="code" class="javascript">function drawTire(x,y){<br>   w.save();<br>   w.translate(x,y);<br>   w.rotate(carAlpha);<br>   w.strokeStyle=’#3300FF’;<br>   w.lineWidth=1;<br>   w.fillStyle=’#0099FF’;<br>   w.beginPath();<br>   w.arc(0,0,radius,0,2<em>Math.PI,false);<br>   w.fill();<br>   w.closePath();<br>   w.beginPath();<br>   w.moveTo(radius,0);<br>   w.lineTo(-radius,0);<br>   w.stroke();<br>   w.closePath();<br>   w.beginPath();<br>   w.moveTo(0,radius);<br>   w.lineTo(0,-radius);<br>   w.stroke();<br>   w.closePath();<br>   w.restore();<br><br>}</em></pre>由于原理简单，并且代码中作了详细注释，这里就不一一讲解！<br><br><span style="font-size:18px; font-weight:bold">该是CSS3出场了</span><br><br><span style="font-size:10px">你将看到我们未通过一句JS代码就完全实现了和上面一样的动画效果：</span><br><br><span style="font-size:10px">HTML代码：</span><br><br><span style="font-size:10px"></span><br><br><pre name="code" class="html">&lt;html&gt;<br>   &lt;head&gt;<br>      &lt;meta charset=&quot;UTF-8&quot; /&gt;<br>      &lt;title&gt;Animations in HTML5 using CSS3 animations&lt;/title&gt;<br>       &lt;/head&gt;<br>   &lt;body&gt;<br>      &lt;div id=&quot;container&quot;&gt;<br>  &lt;div id=&quot;car&quot;&gt;<br>     &lt;div id=&quot;chassis&quot;&gt;&lt;/div&gt;<br>     &lt;div id=&quot;backtire&quot; class=&quot;tire&quot;&gt;<br> &lt;div class=&quot;hr&quot;&gt;&lt;/div&gt;<br> &lt;div class=&quot;vr&quot;&gt;&lt;/div&gt;<br>     &lt;/div&gt;<br>     &lt;div id=&quot;fronttire&quot; class=&quot;tire&quot;&gt;<br> &lt;div class=&quot;hr&quot;&gt;&lt;/div&gt;<br> &lt;div class=&quot;vr&quot;&gt;&lt;/div&gt;<br>     &lt;/div&gt;<br>  &lt;/div&gt;<br>  &lt;div id=&quot;grass&quot;&gt;&lt;/div&gt;<br>      &lt;/div&gt;<br>      &lt;footer&gt;&lt;/footer&gt;<br>   &lt;/body&gt;<br>&lt;/html&gt;</pre><br><br>CSS代码：<br><br><span style="font-size:10px"></span><br><br><pre name="code" class="css"> body<br> {<br>    padding:0;<br>    margin:0;<br> }</pre><br><br>定义车身与轮胎转到的动画（你会看到基本每一个动画都有四个版本的定义：原生版本/webkit【Chrome|Safari】/ms【为了向后兼容IE10】/moz【FireFox】）<br><br><pre name="code" class="css" style="font-size:10px; "> /定义动画：从-400px的位置移动到1600px的位置 <em>/<br> @keyframes carAnimation<br> {<br>    0% { left:-400px; }/</em> 指定初始位置，0%等同于from<em>/<br>    100% { left:1600px; }/</em> 指定最终位置,100%等同于to<em>/<br> }<br><br> /</em> Safari and Chrome <em>/<br> @-webkit-keyframes carAnimation<br> {<br>    0% {left:-400px; }<br>    100% {left:1600px; }<br> }<br><br> /</em> Firefox <em>/<br> @-moz-keyframes carAnimation<br> {<br>    0% {left:-400; }<br>    100% {left:1600px; }<br> }<br><br> /</em>IE暂不支持,此处定义是为了向后兼容IE10<em>/<br> @-ms-keyframes carAnimation<br> {<br>    0% {left:-400px; }<br>    100%{left:1600px; }<br> }</em></pre><br><br><span style="font-size:10px"><br><br></span><br><br><pre name="code" class="css" style="font-size:10px; "> @keyframes tyreAnimation<br> {<br>    0% {transform: rotate(0); }<br>    100% {transform: rotate(1800deg); }<br> }<br><br> @-webkit-keyframes tyreAnimation<br> {<br>    0% { -webkit-transform: rotate(0); }<br>    100% { -webkit-transform: rotate(1800deg); }<br> }<br><br> @-moz-keyframes tyreAnimation<br> {<br>    0% { -moz-transform: rotate(0); }<br>    100% { -moz-transform: rotate(1800deg); }<br> }<br><br> @-ms-keyframes tyreAnimation<br> {<br>    0% { -ms-transform: rotate(0); }<br>    100% { -ms-transform: rotate(1800deg); }<br> }</pre><br><br><pre name="code" class="css" style="font-size:10px; "> #container<br> {<br>    position:relative;<br>    width:100%;<br>    height:600px;<br>    overflow:hidden;/这个很重要<em>/<br> }<br><br> #car<br> {<br>    position:absolute; /</em>汽车在容器中采用绝对定位<em>/<br>    width:400px;<br>    height:210px;/</em>汽车的总高度，包括轮胎和底盘<em>/<br>    z-index:1;/</em>让汽车在背景的上方<em>/<br>    top:300px;/</em>距顶端的距离(y轴)<em>/<br>    left:50px;/</em>距左侧的距离(x轴)<em>/<br><br>    /</em>以下内容赋予该元素预先定义的动画及相关属性<em>/<br>    -webkit-animation-name:carAnimation;/</em>名称<em>/<br>    -webkit-animation-duration:10s;/</em>持续时间<em>/<br>    -webkit-animation-iteration-count:infinite;/</em>迭代次数-无限次<em>/<br>    -webkit-animation-timing-function:linear;/</em>播放动画时从头到尾都以相同的速度<em>/<br><br>    -moz-animation-name:carAnimation;/</em>名称<em>/<br>    -moz-animation-duration:10s;/</em>持续时间<em>/<br>    -moz-animation-iteration-count:infinite;/</em>迭代次数-无限次<em>/<br>    -moz-animation-timing-function:linear;/</em>播放动画时从头到尾都以相同的速度<em>/<br><br>    -ms-animation-name:carAnimation;/</em>名称<em>/<br>    -ms-animation-duration:10s;/</em>持续时间<em>/<br>    -ms-animation-iteration-count:infinite;/</em>迭代次数-无限次<em>/<br>    -ms-animation-timing-function:linear;/</em>播放动画时从头到尾都以相同的速度<em>/<br><br>    animation-name:carAnimation;/</em>名称<em>/<br>    animation-duration:10s;/</em>持续时间<em>/<br>    animation-iteration-count:infinite;/</em>迭代次数-无限次<em>/<br>    animation-timing-function:linear;/</em>播放动画时从头到尾都以相同的速度<em>/<br> }<br><br> /</em>车身<em>/<br> #chassis<br> {<br>    position:absolute;<br>    width:400px;<br>    height:130px;<br>    background:#FF9900;<br>    border: 2px solid #FF6600;<br> }<br><br> /</em>轮胎<em>/<br> .tire<br> {<br>    z-index:1;/</em>同上，轮胎也应置于背景的上方<em>/<br>    position:absolute;<br>    bottom:0;<br>    border-radius:60px;/</em>圆半径<em>/<br>    height:120px;/</em> 2<em>radius=height </em>/<br>    width:120px;/<em> 2</em>radius=width <em>/<br>    background:#0099FF;/</em>填充色<em>/<br>    border:1px solid #3300FF;<br><br>    -webkit-animation-name:tyreAnimation;<br>    -webkit-animation-duration:10s;<br>    -webkit-animation-iteration-count:infinite;<br>    -webkit-animation-timing-function:linear;<br><br>    -moz-animation-name:tyreAnimation;<br>    -moz-animation-duration:10s;<br>    -moz-animation-iteration-count:infinite;<br>    -moz-animation-timing-function:linear;<br><br>    -ms-animation-name:tyreAnimation;<br>    -ms-animation-duration:10s;<br>    -ms-animation-iteration-count:infinite;<br>    -ms-animation-timing-function:linear;<br><br>    animation-name:tyreAnimation;<br>    animation-duration:10s;<br>    animation-iteration-count:infinite;<br>    animation-timing-function:linear;<br> }<br><br> #fronttire<br> {<br>    right:20px;/</em>设置右边的轮胎距离边缘的距离为20<em>/<br> }<br><br> #backtire<br> {<br>    left:20px;/</em>设置左边的轮胎距离边缘的距离为20<em>/<br> }<br><br> #grass<br> {<br>    position:absolute;/</em>背景绝对定位在容器中<em>/<br>    width:100%;<br>    height:130px;<br>    bottom:0;<br>    /</em>让背景色线性渐变,bottom,表示渐变的起始处，第一个颜色值是渐变的起始值，第二个颜色值是终止值 <em>/<br>    background:linear-grdaient(bottom,#33CC00,#66FF22);<br>    background:-webkit-linear-gradient(bottom,#33CC00,#66FF22);<br>    background:-moz-linear-gradient(bottom,#33CC00,#66FF22);<br>    background:-ms-linear-gradient(bottom,#33CC00,#66FF22);<br> }<br><br> .hr,.vr<br> {<br>    position:absolute;<br>    background:#3300FF;<br> }<br><br> .hr<br> {<br>    height:1px;<br>    width:100%;/</em>轮胎的水平线<em>/<br>    left:0;<br>    top:60px;<br> }<br><br> .vr<br> {<br>    width:1px;<br>    height:100%;/</em>轮胎的垂直线<em>/<br>    left:60px;<br>    top:0;<br> }</em></pre><br><br><span style="font-size:18px"><strong>JQuery与CSS3合体</strong></span><br><br><span style="font-size:10px">这是一个效果与兼容性俱佳的方式（特别对于IE9暂不支持CSS3而言）</span><br><br><span style="font-size:10px">HTML代码（可以看到与CSS3中的HTML代码并无不同）：</span><br><br><span style="font-size:10px"></span><br><br><pre name="code" class="html">&lt;html&gt;<br>   &lt;head&gt;<br>      &lt;meta charset=&quot;UTF-8&quot; /&gt;<br>      &lt;title&gt;Animations in HTML5 using CSS3 animations&lt;/title&gt;<br>       &lt;/head&gt;<br>   &lt;body&gt;<br>      &lt;div id=&quot;container&quot;&gt;<br>  &lt;div id=&quot;car&quot;&gt;<br>     &lt;div id=&quot;chassis&quot;&gt;&lt;/div&gt;<br>     &lt;div id=&quot;backtire&quot; class=&quot;tire&quot;&gt;<br> &lt;div class=&quot;hr&quot;&gt;&lt;/div&gt;<br> &lt;div class=&quot;vr&quot;&gt;&lt;/div&gt;<br>     &lt;/div&gt;<br>     &lt;div id=&quot;fronttire&quot; class=&quot;tire&quot;&gt;<br> &lt;div class=&quot;hr&quot;&gt;&lt;/div&gt;<br> &lt;div class=&quot;vr&quot;&gt;&lt;/div&gt;<br>     &lt;/div&gt;<br>  &lt;/div&gt;<br>  &lt;div id=&quot;grass&quot;&gt;&lt;/div&gt;<br>      &lt;/div&gt;<br>      &lt;footer&gt;&lt;/footer&gt;<br>   &lt;/body&gt;<br>&lt;/html&gt;<br></pre><br><br>CSS:<br><br><span style="font-size:10px"></span><br><br><pre name="code" class="css">&lt;style&gt;<br>         body<br> {<br>    padding:0;<br>    margin:0;<br>         }<br><br>  #container<br> {<br>    position:relative;<br>    width:100%;<br>    height:600px;<br>    overflow:hidden;/这个很重要<em>/<br> }<br><br> #car<br> {<br>    position:absolute; /</em>汽车在容器中采用绝对定位<em>/<br>    width:400px;<br>    height:210px;/</em>汽车的总高度，包括轮胎和底盘<em>/<br>    z-index:1;/</em>让汽车在背景的上方<em>/<br>    top:300px;/</em>距顶端的距离(y轴)<em>/<br>    left:50px;/</em>距左侧的距离(x轴)<em>/<br> }<br><br>  /</em>车身<em>/<br> #chassis<br> {<br>    position:absolute;<br>    width:400px;<br>    height:130px;<br>    background:#FF9900;<br>    border: 2px solid #FF6600;<br> }<br><br> /</em>轮胎<em>/<br> .tire<br> {<br>    z-index:1;/</em>同上，轮胎也应置于背景的上方<em>/<br>    position:absolute;<br>    bottom:0;<br>    border-radius:60px;/</em>圆半径<em>/<br>    height:120px;/</em> 2<em>radius=height </em>/<br>    width:120px;/<em> 2</em>radius=width <em>/<br>    background:#0099FF;/</em>填充色<em>/<br>    border:1px solid #3300FF;<br>    -o-transform:rotate(0deg);/</em>旋转(单位：度)<em>/<br>    -ms-transform:rotate(0deg);<br>    -webkit-transform:rotate(0deg);<br>    -moz-transform:rotate(0deg);<br> }<br><br> #fronttire<br> {<br>    right:20px;/</em>设置右边的轮胎距离边缘的距离为20<em>/<br> }<br><br> #backtire<br> {<br>    left:20px;/</em>设置左边的轮胎距离边缘的距离为20<em>/<br> }<br><br> #grass<br> {<br>    position:absolute;/</em>背景绝对定位在容器中<em>/<br>    width:100%;<br>    height:130px;<br>    bottom:0;<br>    /</em>让背景色线性渐变,bottom,表示渐变的起始处，第一个颜色值是渐变的起始值，第二个颜色值是终止值 <em>/<br>    background:linear-grdaient(bottom,#33CC00,#66FF22);<br>    background:-webkit-linear-gradient(bottom,#33CC00,#66FF22);<br>    background:-moz-linear-gradient(bottom,#33CC00,#66FF22);<br>    background:-ms-linear-gradient(bottom,#33CC00,#66FF22);<br> }<br><br> .hr,.vr<br> {<br>    position:absolute;<br>    background:#3300FF;<br> }<br><br> .hr<br> {<br>    height:1px;<br>    width:100%;/</em>水平线<em>/<br>    left:0;<br>    top:60px;<br> }<br><br> .vr<br> {<br>    width:1px;<br>    height:100%;/</em>垂直线<em>/<br>    left:60px;<br>    top:0;<br> }<br><br>      &lt;/style&gt;</em></pre><br><br>JS代码：<br><br><span style="font-size:10px">首先引入在线API：</span><br><br><span style="font-size:10px"></span><br><br><pre name="code" class="javascript">&lt;script src=&quot;<a href="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js&quot;&gt;&lt;/script&amp;gt" target="_blank" rel="external">https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js&quot;&gt;&lt;/script&amp;gt</a>;</pre><br><br>实现动画代码（相当简洁）：<br><br><pre name="code" class="javascript">&lt;script&gt;<br>         $(function(){<br>     var rot=0;<br>     var prefix=$(‘.tire’).css(‘-o-transform’)?’-o-transform’:($(‘.tire’).css(‘-ms-transform’)?’-ms-transform’:($(‘.tire’).css(‘-moz-transform’)?’-moz-transform’:($(‘.tire’).css(‘-webkit-transform’)?’-webkit-transform’:’transform’)));<br><br>     var origin={/设置我们的起始点<em>/<br> left:-400<br>     };<br><br>     var animation={/</em>该动画由jQuery执行<em>/<br> left:1600/</em>设置我们将移动到的最终位置<em>/<br> };<br><br>     var rotate=function(){/</em>该方法将被旋转的轮子调用<em>/<br> rot+=2;<br> $(‘.tire’).css(prefix,’rotate(‘+rot+’deg)’);<br> };<br><br>     var options={/</em>将要被jQuery使用的参数<em>/<br> easing:’linear’,/</em>指定速度，此处只是线性，即为匀速<em>/<br> duration:10000,/</em>指定动画持续时间<em>/<br> complete:function(){<br>    $(‘#car’).css(origin).animate(animation,options);<br> },<br> step:rotate<br> };<br><br>     options.complete();<br>  });<br>      &lt;/script&gt;</em></pre><br><br>简单讲解：prefix首先识别出当前是哪个定义被采用了（-o?-moz?-webkit?-ms?），然后定义了动画的起点位置和终点位置。接着，定义了设置旋转角度的函数（该函数将在在动画的每一步(step)中执行）。然后，定义了一个动画，该定义方式导致了无限自循环调用！<br><br>本文，通过一个简单的动画实例，演示了HTML5下，实现动画的几种常见方式。<br><br>[<span style="font-size:18px"><em>*源码下载</em></span>](<a href="http://download.csdn.net/detail/yanghua_kobe/4041823" target="_blank" rel="external">http://download.csdn.net/detail/yanghua_kobe/4041823</a>)<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/" data-id="cii1bfdcj0045gaz2in3057sc" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/02/10/给你的站点全面提速——来自YahooUI的各种BsetPractices/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          给你的站点全面提速——来自YahooUI的各种BsetPractices
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">辞旧迎新——年度web开发合辑，新年大放送</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-HTML5实现小车动画效果-Canvas-CSS3-JQuery" data-title="HTML5实现小车动画效果(Canvas/CSS3/JQuery)" data-url="http://vinoyang.com/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

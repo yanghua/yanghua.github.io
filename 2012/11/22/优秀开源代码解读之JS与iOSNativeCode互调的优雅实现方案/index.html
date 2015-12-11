@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="# 简介本篇为大家介绍一个优秀的开源小项目：WebViewJavascriptBridge。它优雅地实现了在使用UIWebView时JS与ios 的ObjC nativecode之间的互调，支持消息发送、接收、消息处理器的注册与调用以及设置消息处理的回调。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案">
+<meta property="og:url" content="http://vinoyang.com/2012/11/22/优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="# 简介本篇为大家介绍一个优秀的开源小项目：WebViewJavascriptBridge。它优雅地实现了在使用UIWebView时JS与ios 的ObjC nativecode之间的互调，支持消息发送、接收、消息处理器的注册与调用以及设置消息处理的回调。">
+<meta property="og:image" content="http://img.my.csdn.net/uploads/201211/21/1353503436_3530.png">
+<meta property="og:image" content="http://img.my.csdn.net/uploads/201211/21/1353504456_6588.png">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案">
+<meta name="twitter:description" content="# 简介本篇为大家介绍一个优秀的开源小项目：WebViewJavascriptBridge。它优雅地实现了在使用UIWebView时JS与ios 的ObjC nativecode之间的互调，支持消息发送、接收、消息处理器的注册与调用以及设置消息处理的回调。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/11/22/优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案/" class="article-date">
+  <time datetime="2012-11-21T21:15:00.000Z" itemprop="datePublished">2012-11-22</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br># 简介<br><br>本篇为大家介绍一个优秀的开源小项目：<a href="https://github.com/marcuswestin/WebViewJavascriptBridge" target="_blank" rel="external">WebViewJavascriptBridge</a>。<br><br>它优雅地实现了在使用UIWebView时JS与ios 的ObjC nativecode之间的互调，支持消息发送、接收、消息处理器的注册与调用以及设置消息处理的回调。<br><br><a id="more"></a><br><br>就像项目的名称一样，它是连接UIWebView和Javascript的bridge。在加入这个项目之后，他们之间的交互处理方式变得很友好。<br><br>在native code中跟UIWebView中的js交互的时候，像下面这样：<br><pre name="code" class="cpp">//发送一条消息给UI端并定义回调处理逻辑<br> [_bridge send:@&quot;A string sent from ObjC before Webview has loaded.&quot; responseCallback:^(id error, id responseData) {<br>        if (error) { NSLog(@&quot;Uh oh - I got an error: %@&quot;, error); }<br>        NSLog(@&quot;objc got response! %@ %@&quot;, error, responseData);<br> }];</pre><br><br>而在UIWebView中的js跟native code交互的时候也变得很简洁，比如在调用处理器的时候，就可以定义回调处理逻辑：<br><pre name="code" class="javascript">//调用名为testObjcCallback的native端处理器，并传递参数，同时设置回调处理逻辑<br>bridge.callHandler(‘testObjcCallback’, {‘foo’: ‘bar’}, function(response) {<br><span style="white-space:pre"></span>log(‘Got response from testObjcCallback’, response)<br>})</pre><br><br>一起来看看它的实现吧，它总共就包含了三个文件：<br><pre name="code" class="plain">WebViewJavascriptBridge.h<br>WebViewJavascriptBridge.m<br>WebViewJavascriptBridge.js.txt</pre><br><br>它们是以如下的模式进行交互的：<br><br><img src="http://img.my.csdn.net/uploads/201211/21/1353503436_3530.png" alt=""><br><br>很明显：WebViewJavascriptBridge.js.txt主要用于衔接UIWebView中的web page，而WebViewJavascriptBridge.h/m则主要用于与ObjC的native code打交道。他们作为一个整体，其实起到了一个“桥梁”的作用，这三个文件封装了他们具体的交互处理方式，只开放出一些对外的涉及到业务处理的API，因此你在需要UIWebView与Native code交互的时候，引入该库，则无需考虑太多的交互上的问题。整个的Bridge对你来说都是透明的，你感觉编程的时候，就像是web编程的前端和后端一样清晰。<br><br>简单地罗列一下它可以实现哪些功能吧：<br><br>出于表达上的需要，对于UIWebView相关的我就称之为UI端，而objc那端的处理代码称之为Native端。<br><br>【1】UI端<br><br>(1)&nbsp;&nbsp;&nbsp;UI端在初始化时支持设置消息的默认处理器(这里的消息指的是从Native端接收到的消息)<br><br>(2)&nbsp;&nbsp;&nbsp;从UI端向Native端发送消息，并支持对于Native端响应后的回调处理的定义<br><br>(3)&nbsp;&nbsp;&nbsp;UI端调用Native定义的处理器，并支持Native端响应后的回调处理定义<br><br>(4)&nbsp;&nbsp;&nbsp;UI端注册处理器(供Native端调用)，并支持给Native端响应处理逻辑的定义<br><br>【2】 Native端<br><br>(1)&nbsp;&nbsp;&nbsp;Native端在初始化时支持设置消息的默认处理器(这里的消息指的是从UI端发送过来的消息)<br><br>(2)&nbsp;&nbsp;&nbsp;从Native端向UI端发送消息，并支持对于UI端响应后的回调处理逻辑的定义<br><br>(3)&nbsp;&nbsp;&nbsp;Native端调用UI端定义的处理器，并支持UI端给出响应后在Native端的回调处理逻辑的定义<br><br>(4)&nbsp;&nbsp;&nbsp;Native端注册处理器(供UI端调用)，并支持给UI端响应处理逻辑的定义<br><br>UI端以及Native端完全是对等的两端，实现也是对等的。一段是消息的发送端，另一段就是接收端。这里为引起混淆，需要解释一下我这里使用的“响应”、“回调”在这个上下文中的定义：<br><br>(1)&nbsp;&nbsp;&nbsp;响应：接收端给予发送端的应答<br><br>(2)&nbsp;&nbsp;&nbsp;回调：发送端收到接收端的应答之后在接收端调用的处理逻辑<br><br>下面来分析一下源码：<br><br>WebViewJavascriptBridge.js.txt：<br><br>主要完成了如下工作:<br><br>(1) 创建了一个用于发送消息的iFrame(通过创建一个隐藏的ifrmae，并设置它的URL 来发出一个请求，从而触发UIWebView的shouldStartLoadWithRequest回调协议)<br><br>(2) 创建了一个核心对象WebViewJavascriptBridge，并给它定义了几个方法，这些方法大部分是公开的API方法<br><br>(3) 创建了一个事件：WebViewJavascriptBridgeReady，并dispatch(触发)了它。<br><br># 代码解读<br><br>## UI端实现<br><br>对于(1)，相应的代码如下：<br><pre name="code" class="javascript">/<em>
+ </em>创建一个iFrame，设置隐藏并加入到DOM中<br> <em>/<br>function _createQueueReadyIframe(doc) {<br>messagingIframe = doc.createElement(‘iframe’)<br>messagingIframe.style.display = ‘none’<br>doc.documentElement.appendChild(messagingIframe)<br>}<br></em></pre><br><br>对于(2)中的WebViewJavascriptBridge，其对象拥有如下方法：<br><pre name="code" class="plain">window.WebViewJavascriptBridge = {<br>init: init,<br>send: send,<br>registerHandler: registerHandler,<br>callHandler: callHandler,<br>_fetchQueue: _fetchQueue,<br>_handleMessageFromObjC: _handleMessageFromObjC<br>}</pre><br><br>方法的实现：<br><pre name="code" class="javascript"><span style="white-space:pre"></span>/<br> <em>初始化方法，注入默认的消息处理器
+ </em>默认的消息处理器用于在处理来自objc的消息时，如果该消息没有设置处理器，则采用默认处理器处理<br> <em>/<br>function init(messageHandler) {<br>if (WebViewJavascriptBridge._messageHandler) { throw new Error(‘WebViewJavascriptBridge.init called twice’) }<br>WebViewJavascriptBridge._messageHandler = messageHandler<br>var receivedMessages = receiveMessageQueue<br>receiveMessageQueue = null<br>//如果接收队列有消息，则处理<br>for (var i=0; i&lt;receivedMessages.length; i++) {<br>_dispatchMessageFromObjC(receivedMessages[i])<br>}<br>}<br><br><span style="white-space:pre"></span>/</em><br> <em>发送消息并设置回调
+ </em>/<br>function send(data, responseCallback) {<br>_doSend({ data:data }, responseCallback)<br>}<br><br>/<em>
+ </em>注册消息处理器<br> <em>/<br>function registerHandler(handlerName, handler) {<br>messageHandlers[handlerName] = handler<br>}<br><br>/</em><br> <em>调用处理器并设置回调
+ </em>/<br>function callHandler(handlerName, data, responseCallback) {<br>_doSend({ data:data, handlerName:handlerName }, responseCallback)<br>}<br></pre><br><br>涉及到的两个内部方法：<br><pre name="code" class="javascript"><span style="white-space:pre"></span>/<em>
+ </em>内部方法:消息的发送<br> <em>/<br>function _doSend(message, responseCallback) {<br>//如果定义了回调<br>if (responseCallback) {<br>//为回调对象产生唯一标识<br>var callbackId = ‘js<em>cb</em>‘+(uniqueId++)<br>//并存储到一个集合对象里<br>responseCallbacks[callbackId] = responseCallback<br>//新增一个key-value对- ‘callbackId’:callbackId<br>message[‘callbackId’] = callbackId<br>}<br>sendMessageQueue.push(JSON.stringify(message))<br>messagingIframe.src = CUSTOM_PROTOCOL_SCHEME + ‘://‘ + QUEUE_HAS_MESSAGE<br>}<br><br><span style="white-space:pre"></span>/</em><br> <em>内部方法:处理来自objc的消息
+ </em>/<br>function _dispatchMessageFromObjC(messageJSON) {<br>setTimeout(function _timeoutDispatchMessageFromObjC() {<br>var message = JSON.parse(messageJSON)<br>var messageHandler<br><br>if (message.responseId) {<br>//取出回调函数对象并执行<br>var responseCallback = responseCallbacks[message.responseId]<br>responseCallback(message.error, message.responseData)<br>delete responseCallbacks[message.responseId]<br>} else {<br>var response<br>if (message.callbackId) {<br>var callbackResponseId = message.callbackId<br>response = {<br>respondWith: function(responseData) {<br>_doSend({ responseId:callbackResponseId, responseData:responseData })<br>},<br>respondWithError: function(error) {<br>_doSend({ responseId:callbackResponseId, error:error })<br>}<br>}<br>}<br><br>var handler = WebViewJavascriptBridge._messageHandler<br>//如果消息中已包含消息处理器，则使用该处理器；否则使用默认处理器<br>if (message.handlerName) {<br>handler = messageHandlers[message.handlerName]<br>}<br><br>try {<br>handler(message.data, response)<br>} catch(exception) {<br>console.log(&quot;WebViewJavascriptBridge: WARNING: javascript handler threw.&quot;, message, exception)<br>}<br>}<br>})<br>}<br></pre><br><br>还有两个js方法是供native端直接调用的方法(它们本身也是为native端服务的)：<br><pre name="code" class="javascript"><span style="white-space:pre"></span>/<em>
+ </em>获得队列，将队列中的每个元素用分隔符分隔之后连成一个字符串【native端调用】<br> <em>/<br>function _fetchQueue() {<br>var messageQueueString = sendMessageQueue.join(MESSAGE_SEPARATOR)<br>sendMessageQueue = []<br>return messageQueueString<br>}<br><br><span style="white-space:pre"></span>/</em><br> <em>处理来自ObjC的消息【native端调用】
+ </em>/<br>function _handleMessageFromObjC(messageJSON) {<br>//如果接收队列对象存在则入队该消息，否则直接处理<br>if (receiveMessageQueue) {<br>receiveMessageQueue.push(messageJSON)<br>} else {<br>_dispatchMessageFromObjC(messageJSON)<br>}<br>}<br></pre><br>最后还有一段代码就是，定义一个事件并触发，同时设置设置上面定义的WebViewJavascriptBridge对象为事件的一个属性：<pre name="code" class="javascript"><span style="white-space:pre"></span>var doc = document<br>_createQueueReadyIframe(doc)<br>//创建并实例化一个事件对象<br>var readyEvent = doc.createEvent(‘Events’)<br>readyEvent.initEvent(‘WebViewJavascriptBridgeReady’)<br>readyEvent.bridge = WebViewJavascriptBridge<br>//触发事件<br>doc.dispatchEvent(readyEvent)<br></pre><br><br>## Native端实现<br><br>其实大致跟上面的类似，只是因为语法不同(所以我上面才说两端是对等的)：<br><br>WebViewJavascriptBridge.h/.m<br><br>它其实可以看作UIWebView的Controller，实现了UIWebViewDelegate协议：<br><pre name="code" class="cpp">@interface WebViewJavascriptBridge : NSObject &lt;UIWebViewDelegate&gt;<br>+ (id)bridgeForWebView:(UIWebView<em>)webView handler:(WVJBHandler)handler;<br>+ (id)bridgeForWebView:(UIWebView</em>)webView webViewDelegate:(id &lt;UIWebViewDelegate&gt;)webViewDelegate handler:(WVJBHandler)handler;<br>+ (void)enableLogging;<br>- (void)send:(id)message;<br>- (void)send:(id)message responseCallback:(WVJBResponseCallback)responseCallback;<br>- (void)registerHandler:(NSString<em>)handlerName handler:(WVJBHandler)handler;<br>- (void)callHandler:(NSString</em>)handlerName;<br>- (void)callHandler:(NSString<em>)handlerName data:(id)data;<br>- (void)callHandler:(NSString</em>)handlerName data:(id)data responseCallback:(WVJBResponseCallback)responseCallback;<br>@end<br></pre><br><br>方法的实现其实是跟前面类似的，这里我们只看一下UIWebView的一个协议方法<br>shouldStartLoadWithRequest：<pre name="code" class="cpp">- (BOOL)webView:(UIWebView <em>)webView shouldStartLoadWithRequest:(NSURLRequest </em>)request navigationType:(UIWebViewNavigationType)navigationType {<br>    if (webView != _webView) { return YES; }<br>    NSURL <em>url = [request URL];<br>    if ([[url scheme] isEqualToString:CUSTOM_PROTOCOL_SCHEME]) {<br>//队列中有数据<br>        if ([[url host] isEqualToString:QUEUE_HAS_MESSAGE]) {<br>//刷出队列中数据<br>            [self _flushMessageQueue];<br>        } else {<br>            NSLog(@&quot;WebViewJavascriptBridge: WARNING: Received unknown WebViewJavascriptBridge command %@://%@&quot;, CUSTOM_PROTOCOL_SCHEME, [url path]);<br>        }<br>        return NO;<br>    } else if (self.webViewDelegate) {<br>        return [self.webViewDelegate webView:webView shouldStartLoadWithRequest:request navigationType:navigationType];<br>    } else {<br>        return YES;<br>    }<br>}<br></em></pre><br><br># 使用示例<br><br>## UI端<br><pre name="code" class="javascript"><span style="white-space:pre"></span>//给WebViewJavascriptBridgeReady事件注册一个Listener<br>document.addEventListener(‘WebViewJavascriptBridgeReady’, onBridgeReady, false)<br>    <span style="white-space:pre"></span>//事件的响应处理<br>function onBridgeReady(event) {<br>var bridge = event.bridge<br>var uniqueId = 1<br>        <span style="white-space:pre"></span>//日志记录<br>function log(message, data) {<br>var log = document.getElementById(‘log’)<br>var el = document.createElement(‘div’)<br>el.className = ‘logLine’<br>el.innerHTML = uniqueId++ + ‘. ‘ + message + (data ? ‘: ‘ + JSON.stringify(data) : ‘’)<br>if (log.children.length) { log.insertBefore(el, log.children[0]) }<br>else { log.appendChild(el) }<br>}<br>        <span style="white-space:pre"></span>//初始化操作，并定义默认的消息处理逻辑<br>bridge.init(function(message) {<br>log(‘JS got a message’, message)<br>})<br>        <span style="white-space:pre"></span>//注册一个名为testJavascriptHandler的处理器，并定义用于响应的处理逻辑<br>bridge.registerHandler(‘testJavascriptHandler’, function(data, response) {<br>log(‘JS handler testJavascriptHandler was called’, data)<br>response.respondWith({ ‘Javascript Says’:’Right back atcha!’ })<br>})<br><br>        <span style="white-space:pre"></span>//创建一个发送消息给native端的按钮<br>var button = document.getElementById(‘buttons’).appendChild(document.createElement(‘button’))<br>button.innerHTML = ‘Send message to ObjC’<br>button.ontouchstart = function(e) {<br>e.preventDefault()<br>            <span style="white-space:pre"></span>//发送消息<br>bridge.send(‘Hello from JS button’)<br>}<br><br>document.body.appendChild(document.createElement(‘br’))<br><br>        <span style="white-space:pre"></span>//创建一个用于调用native端处理器的按钮<br>var callbackButton = document.getElementById(‘buttons’).appendChild(document.createElement(‘button’))<br>callbackButton.innerHTML = ‘Fire testObjcCallback’<br>callbackButton.ontouchstart = function(e) {<br>e.preventDefault()<br>log(&quot;Calling handler testObjcCallback&quot;)<br>            //调用名为testObjcCallback的native端处理器，并传递参数，同时设置回调处理逻辑<br>bridge.callHandler(‘testObjcCallback’, {‘foo’: ‘bar’}, function(response) {<br>log(‘Got response from testObjcCallback’, response)<br>})<br>}<br>}<br></pre><br><br>## Native端<br><pre name="code" class="cpp">//实例化一个webview并加入到window中去<br>    UIWebView webView = [[UIWebView alloc] initWithFrame:self.window.bounds];<br>    [self.window addSubview:webView];<br><br>    //启用日志记录<br>    [WebViewJavascriptBridge enableLogging];<br><br>    //实例化WebViewJavascriptBridge并定义native端的默认消息处理器<br>    _bridge = [WebViewJavascriptBridge bridgeForWebView:webView handler:^(id data, WVJBResponse <em>response) {<br>        NSLog(@&quot;ObjC received message from JS: %@&quot;, data);<br>        UIAlertView </em>alert = [[UIAlertView alloc] initWithTitle:@&quot;ObjC got message from Javascript:&quot; message:data delegate:nil cancelButtonTitle:@&quot;OK&quot; otherButtonTitles:nil];<br>        [alert show];<br>    }];<br><br>    //注册一个供UI端调用的名为testObjcCallback的处理器，并定义用于响应的处理逻辑<br>    [_bridge registerHandler:@&quot;testObjcCallback&quot; handler:^(id data, WVJBResponse *response) {<br>        NSLog(@&quot;testObjcCallback called: %@&quot;, data);<br>        [response respondWith:@&quot;Response from testObjcCallback&quot;];<br>    }];<br><br>    //发送一条消息给UI端并定义回调处理逻辑<br>    [_bridge send:@&quot;A string sent from ObjC before Webview has loaded.&quot; responseCallback:^(id error, id responseData) {<br>        if (error) { NSLog(@&quot;Uh oh - I got an error: %@&quot;, error); }<br>        NSLog(@&quot;objc got response! %@ %@&quot;, error, responseData);<br>    }];<br><br>    //调用一个在UI端定义的名为testJavascriptHandler的处理器，没有定义回调<br>    [_bridge callHandler:@&quot;testJavascriptHandler&quot; data:[NSDictionary dictionaryWithObject:@&quot;before ready&quot; forKey:@&quot;foo&quot;]];<br><br>    [self renderButtons:webView];<br>    [self loadExamplePage:webView];<br><br>    //单纯发送一条消息给UI端<br>    [_bridge send:@&quot;A string sent from ObjC after Webview has loaded.&quot;];<br></pre><br><br>项目运行截图：<br><br><img src="http://img.my.csdn.net/uploads/201211/21/1353504456_6588.png" alt=""><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/11/22/优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案/" data-id="cii1bfd9u002fgaz2vanc28bi" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/12/03/iosUITableView封装之下拉-上提-图片异步加载/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          iosUITableView封装之下拉-上提-图片异步加载
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/11/18/iOS多线程编程之多社交平台同步推送的设计与实现/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">iOS多线程编程之多社交平台同步推送的设计与实现</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案" data-title="优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案" data-url="http://vinoyang.com/2012/11/22/优秀开源代码解读之JS与iOSNativeCode互调的优雅实现方案/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

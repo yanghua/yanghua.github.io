@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>一个基于redis和disque实现的轻量级异步任务执行器 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="##简介horae是一个基于redis和disque实现的轻量级、高性能的异步任务执行器，它的核心是disque提供的任务队列，而队列有先进先出的时序关系，顾得名：horae。
+
+horae : 时序女神，希腊神话中司掌季节时间和人间秩序的三女神，又译“荷莱”。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="一个基于redis和disque实现的轻量级异步任务执行器">
+<meta property="og:url" content="http://vinoyang.com/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="##简介horae是一个基于redis和disque实现的轻量级、高性能的异步任务执行器，它的核心是disque提供的任务队列，而队列有先进先出的时序关系，顾得名：horae。
+
+horae : 时序女神，希腊神话中司掌季节时间和人间秩序的三女神，又译“荷莱”。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/async-invoke-engine-based-on-redis-and-disque_horae.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/async-invoke-engine-based-on-redis-and-disque_partition.png">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="一个基于redis和disque实现的轻量级异步任务执行器">
+<meta name="twitter:description" content="##简介horae是一个基于redis和disque实现的轻量级、高性能的异步任务执行器，它的核心是disque提供的任务队列，而队列有先进先出的时序关系，顾得名：horae。
+
+horae : 时序女神，希腊神话中司掌季节时间和人间秩序的三女神，又译“荷莱”。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-a-lightweight-async-task-invoker-based-on-redis-and-disque" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/" class="article-date">
+  <time datetime="2015-08-29T04:20:55.000Z" itemprop="datePublished">2015-08-29</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      一个基于redis和disque实现的轻量级异步任务执行器
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>##简介<br><a href="https://github.com/yanghua" target="_blank" rel="external">horae</a>是一个基于<code>redis</code>和<a href="https://github.com/antirez/disque" target="_blank" rel="external"><code>disque</code></a>实现的<code>轻量级</code>、<code>高性能</code>的异步任务执行器，它的核心是<code>disque</code>提供的任务队列，而队列有<code>先进先出</code>的时序关系，顾得名：<code>horae</code>。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/async-invoke-engine-based-on-redis-and-disque_horae.jpg" alt="horae"></p>
+<p><strong><em>horae</em></strong> : 时序女神，希腊神话中司掌季节时间和人间秩序的三女神，又译“荷莱”。</p>
+<a id="more"></a>
+<p>horae的关注点不是队列服务的实现本身（已经有不少队列服务的实现了），而是希望借助于<code>redis</code>与<code>disque</code>提供的纯内存的高性能的队列机制，实现一个异步任务执行器。它可以自由配置任务来自哪种队列服务，它不关注任务执行的最终状态(它写向哪里)或与哪个系统交互，它给你提供一个执行器以及简单地编写任务执行逻辑的方式。</p>
+<p>取决于需求，这个执行器在要求不高的时候，只需要一个单节点的redis服务器，即可运转。</p>
+<p>如果你愿意牺牲一点性能，来换取更高的队列可靠性保障（这种情况我强烈推荐你使用AMQP协议以及它的开源队列实现：<code>RabbitMQ</code>）。如果你想这样，那么这个执行器也是可用的，只是你需要自己去实现跟RabbitMQ交互的细节。你可以用它连接各种其他队列来消费消息并执行任务，它具有充分的扩展性与自由度。但我仍然推荐你使用<code>disque</code>。</p>
+<p>##适用场景</p>
+<p>###抢购/秒杀<br>抢购业务是典型的短时高并发场景，传统行业里的类似于<code>学生选课</code>也可以归结这类场景。</p>
+<p>###社交关系处理<br>纯内存计算/计数器的场景，比如把社交系统里的好友、关系搬到内存中处理。</p>
+<p>###耗时的web请求<br>常见的耗时web请求，比如<code>生成PDF</code>、<code>网页抓取</code>、<code>数据备份</code>、<code>邮件/短信发送</code>等。</p>
+<p>###分布式系统前端缓冲队列<br>将它置于应用服务器之后，核心服务之前，作为请求的缓冲队列使用。</p>
+<blockquote>
+<p>概括起来就是<code>服务器峰值扛压</code>、<code>异步处理</code>、<code>纯内存计算</code>，当然你把它用成普通队列也是可以的。</p>
+</blockquote>
+<p>##高性能<br>目前支持<code>disque</code>跟<code>redis</code>这两种队列服务（主推<code>disque</code>，<code>redis</code>的队列暂时以<code>list</code>数据接口的<code>lpush</code>&amp;<code>brpop</code>实现，但它不是高可靠的，并且没有ack机制）。这两种纯内存的队列首先保证了消费任务的性能。具体任务的执行性能，取决于使用场景，这里分析两种场景：</p>
+<p>###纯内存&amp;单线程&amp;无锁<br>如果任务处理器消费的消息是完全存储于内存中的，那么需要尽量将同构的各任务访问的数据进行隔离（隔离的手段是对key划分命名空间），如果实在没办法隔离，可以使用单队列单线程无锁的处理方式。</p>
+<p>###通用&amp;多线程&amp;多队列<br>如果是通用的应用场景，比如访问数据库，因为数据库有成熟的数据一致性保证。所以，你可以将任务划分到多个不同的队列，并利用多个线程来并发执行以加快任务的处理效率。</p>
+<p>当然最推荐的使用方式是：用<code>redis</code>作为配置、协调、管控中心，用<code>disque</code>做队列服务，任务需要访问的数据尽可能存储于<code>redis</code>中。</p>
+<p>##高可用</p>
+<p>###一主多从<br>执行器在运行时实行的是：Master单节点运行，多个Slave做Standby的机制来保证服务的可用性。事实上，从Master下线到其中一个Slave成功竞选为Master需要数个心跳周期的时间。因为执行器作为队列的消费者跟队列是完全解耦的，所以短暂的暂停消费对整个系统的可用性不会产生太大影响。</p>
+<p>###心跳机制<br>Master跟Slave之间通过<code>redis-Pubsub</code>来维持心跳。目前的设计是Master单向<code>publish</code>心跳，Slave<code>subscribe</code>Master的心跳。这么设计的原因是简单，并且考虑到每个Slave都是无状态的执行器，并不会涉及到状态的维护与同步问题，所以Master不需要关心Slave的存活。</p>
+<p>###竞争Master<br>一旦Master下线（比如因为故障宕机），需要快速得从多个Slave中选举出一个新的Master，选举的算法非常多，并且非常复杂。</p>
+<p>通常选举Master的方式会由一个独立的承担<code>Manager</code>角色的节点来完成，如果不存在这样一个节点那么通常会基于分布式选举算法来实现（<code>Zookeeper</code>比较擅长这个）。这里简单得采用类似于竞争分布式锁的实现方式来抢占Master。</p>
+<p>如何判断Master是否下线？这是一个非常关键的问题，因为如果产生误判，将会给整体系统服务造成一段空档期，这是一个不小的时间开销。采用的判断方式是<strong>双重检测</strong>：</p>
+<ul>
+<li>Slave订阅Master的heartbeat channel，判断心跳是否超时</li>
+<li>Slave去Master的数据结构中去获取Master自己刷新的心跳时间戳，并跟当前时间对比，判断是否超时</li>
+</ul>
+<p>具体的实现方式：每个服务都会有一个heartbeat线程，Master的heartbeat线程做两件事情：</p>
+<ul>
+<li>refresh自己的心跳时间戳</li>
+<li>publish自己的心跳到<code>heartbeat</code> channel</li>
+</ul>
+<p>Slave的heartbeat线程做上面的<strong>双重检测</strong>，Slave会等待几个心跳周期，如果在这段时间内，两种检测都认为Master失去心跳，则判断Master下线。</p>
+<p>Master下线后，就涉及到多个Slave竞争Master的问题，这里我们在竞争锁的时候没有采用阻塞等待的方式，而是采用了一种危险性相对小的方式：<code>tryLock</code>:</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">boolean</span> tryLockMaster() &#123;</span><br><span class="line">    <span class="keyword">long</span> currentTime = RedisConfigUtil.redisTime(configContext);</span><br><span class="line">    <span class="keyword">String</span> val = <span class="keyword">String</span>.valueOf(currentTime + Constants.DEFAULT_MASTER_LOCK_TIMEOUT + <span class="number">1</span>);</span><br><span class="line">    Jedis jedis = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        jedis = RedisConfigUtil.getJedis(configContext).<span class="built_in">get</span>();</span><br><span class="line">        <span class="built_in">boolean</span> locked = jedis.setnx(Constants.KEY_LOCK_FOR_MASTER, val) == <span class="number">1</span>;</span><br><span class="line">        <span class="keyword">if</span> (locked) &#123;</span><br><span class="line">            jedis.expire(Constants.KEY_LOCK_FOR_MASTER,</span><br><span class="line">                         Constants.DEFAULT_MASTER_LOCK_TIMEOUT);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (jedis != <span class="keyword">null</span>) RedisConfigUtil.returnResource(jedis);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>只有判断Master下线之后，才会调用<code>tryLockMaster</code>，它仅仅是尝试获得锁，如果获取成功，将给锁设置一个很短的过期时间，这里跟跟心跳过期时间相同。如果获取失败将继续检测心跳。获取锁的Slave会立即变为Master并迅速刷新自己的心跳，这样，其他Slave检测Master下线就会失败，将不会再去调用<code>tryLockMaster</code>。避免了通常情况下，一直阻塞、竞争锁这一条路。</p>
+<p>##扩展性</p>
+<p>###扩展功能<br>得益于Redis的<code>PubSub</code>，我们可以实现很多类似于<code>指令下发-&gt;执行</code>的feature，比如实时获取任务的执行进度、让各服务器汇报自己的状态等。因为时间关系，目前这块只是留了一个扩展口：</p>
+<ul>
+<li>上行频道：执行器有一个<code>upstream</code> channel，用于上传各节点的本机信息。</li>
+<li>下行频道：系统有一个<code>downstream</code> channel，用于被动接受来自上游的信息/指令。</li>
+</ul>
+<p>这里上下游的语义是：所有服务节点均为下游，<code>redis</code>配置中心应该算是中心节点，在上游你可以定制一个管控台，用于管理<code>redis</code>配置中心并向下游的服务节点下发指令。</p>
+<p>###扩展队列服务<br>如果你想扩展它，希望它支持另一种队列服务（为了方便表述，这里假设你想支持RabbitMQ）。那么你需要做以下几步：</p>
+<ul>
+<li>在package：<code>com.github.horae.exchanger</code>包下新建类：<code>RabbitConnManager</code>用于管理client 到 RabbitMQ的连接</li>
+<li>同样在package：<code>com.github.horae.exchanger</code>包下新建类：<code>RabbitExchanger</code>用于实现消息的出队与入队逻辑，该类需实现<code>TaskExchanger</code></li>
+<li>在<code>TaskExchangerManager</code>的<code>createTaskExchanger</code>方法内加入新的分支判断。</li>
+<li>在<code>partition.properties</code>下可以配置新的partition，在matrix中指定RabbitMQ</li>
+</ul>
+<p>需要<strong>注意</strong>的是：<code>TaskExchanger</code>的<code>dequeue</code>接口方法，默认的行为是<code>block</code>形式的。如果你扩展的队列不支持block形式的消费，那可能需要你自己实现，实现的方式可以借助于<code>java.util.concurrent.BlockingQueue</code>。</p>
+<p>##多种可靠性级别<br>队列的可靠性牵扯到整个分布式系统的可靠性，这是一个无法回避的问题。如果你说用<code>redis</code>实现的队列，是否能做到既保持<code>高性能</code>又能兼具<code>高可靠</code>，答案是<code>不能</code>。或者说它不是一个专业的队列服务（不然redis的作者也没有必要再另起<code>disque</code>项目了）。如果从可靠性的角度而言，我给几个主流的队列服务器（或者可以提供队列服务）的排名是：<code>RabbitMQ</code> &gt; <code>Kafka</code> &gt; <code>Disque</code> &gt; <code>Redis</code>。虽然这个执行器内置支持了<code>disque</code>和<code>redis</code>作为队列的实现，但它跟你选择的队列服务没有非常紧的耦合关系，你可以选择其他队列服务，通常你只需要实现这么几个功能<code>入队消息</code>、<code>出队消息</code>、<code>ack消息</code>、<code>管理连接</code>。</p>
+<p>##分区<br>对我而言<code>分区</code>的概念来自于Kafka，但这里的分区跟Kafka性质不太一样。首先我们来看为什么有这样的需求？</p>
+<p>作为一个无状态的服务，它可以长时间运行（某种程度上，这有点像Storm）而不必下线。为了充分榨取CPU的价值。我们可能希望在一次服务的生命周期内让它运行多个异构服务（所谓异构任务，就是不同性质的任务）。因此我们有必要将多个异构任务区分开来，而这个手段就是<code>分区</code>。说它不同于kafka的原因是：它更多是一种逻辑上的划分，而不是kafka物理上按分区存储消息。我们来看一个分区隔离了哪些东西：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">partition.root=p0,p1</span><br><span class="line">p0.matrix=redis</span><br><span class="line">p0.host=<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></span><br><span class="line">p0.port=<span class="number">6379</span></span><br><span class="line">p0.<span class="keyword">class</span>=com.github.horae.task.RedisTask</span><br><span class="line">p1.matrix=disque</span><br><span class="line">p1.host=<span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></span><br><span class="line">p1.port=<span class="number">7711</span></span><br><span class="line">p1.<span class="keyword">class</span>=com.github.horae.task.DisqueTask</span><br></pre></td></tr></table></figure>
+<ul>
+<li>matrix : 哪种队列实现服务，目前支持<code>disque</code>/<code>redis</code></li>
+<li>host : 队列服务器的host</li>
+<li>port : 队列服务器的port</li>
+<li>class : 处理队列任务的实现类的完全限定名</li>
+</ul>
+<p>从上面的隔离方式来看，这里的分区也能做到对任务队列的物理隔离。上面配置了两个分区，两个分区分别对应了两种队列服务。分区跟队列服务的对应关系没有限制，甚至多个分区对应一个队列服务器也可行，因为还有一个分区到队列名称的映射关系：</p>
+<p>如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/async-invoke-engine-based-on-redis-and-disque_partition.png" alt="partition"></p>
+<p>综述：分区隔离了异构任务的队列，而队列存储于何种队列服务、存储于何处、以及任务的处理逻辑完全取决于配置。</p>
+<p>上面的解析明确了分区跟任务处理类的对应关系。为了便于管理，一个分区也有其独立的线程池来将异构任务的线程隔离开来。</p>
+<p>##编写任务处理器<br>在你编写一个任务处理器之前，你应该意识到你编写的任务处理器充当的是<code>队列的消费者</code>。接下来你需要了解的是，你编写的任务处理器将在一个线程池中运行，而线程池的管理，需要你关心，但你需要知道：<code>一个任务队列将会对应一个线程</code>。你需要知道的就是这么多，下面来编写一个任务处理器：</p>
+<ul>
+<li>首先你需要创建一个新的maven工程</li>
+<li>在horae发布包的库目录下(<code>./horae/libs</code>)找到以<code>horae</code>开头的jar文件，加入到你的maven依赖中，只是一个本地依赖：</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="title">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">groupId</span>&gt;</span>com.github.horae<span class="tag">&lt;/<span class="title">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">artifactId</span>&gt;</span>horae<span class="tag">&lt;/<span class="title">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">version</span>&gt;</span>0.1.0<span class="tag">&lt;/<span class="title">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">scope</span>&gt;</span>system<span class="tag">&lt;/<span class="title">scope</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="title">systemPath</span>&gt;</span>/usr/local/horae/libs/horae-0.1.0.jar<span class="tag">&lt;/<span class="title">systemPath</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="title">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>你需要新建一个类，继承<code>TaskTemplate</code>，并实现<code>run</code>方法，下面是一个模板：</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        signal.await();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">//implement task process business logic</span></span><br><span class="line">    &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>编写构造方法：</li>
+</ul>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">public RedisTestTask(CountDownLatch signal, <span class="built_in">String</span> queueName, <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="built_in">Object</span>&gt; configContext,</span><br><span class="line">                     Partition partition, TaskExchanger taskExchanger) &#123;</span><br><span class="line">    <span class="keyword">super</span>(signal, queueName, configContext, partition, taskExchanger);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在run方法的第一句，你需要调用一个<code>CountDownLatch</code>实例的<code>await</code>方法来将其阻塞住。解释一下，为什么需要这么做？</p>
+<p>其实，每个服务在启动的时候，都会立即读取redis内配置的队列，并初始化线程池，进入执行就绪状态。这一步，所有的服务，无论是Master，Slave都是一样的。但区别就区别在这句：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">signal</span><span class="class">.await</span>();</span><br></pre></td></tr></table></figure>
+<p>当启动的是master节点，那么该signal会立即释放信号(通过<code>signal.countDown()</code>)，所有任务处理器都立即开始执行。</p>
+<p>而启动的是slave节点，则将会一直在上面这句代码这里阻塞，直到master下线，而该节点竞争到master之后，会立即释放解除阻塞信号，后续代码会立即执行。</p>
+<p>因此这么做可以使得在master下线之后，所有Slave都以最快的速度进入任务执行状态，虽然对一些Slave节点而言，这有些浪费系统资源。</p>
+<ul>
+<li><p>编译工程并打包jar，注意不用包含上面的maven依赖，它已经存在于<code>horae</code>可执行文件类库中。</p>
+</li>
+<li><p>将生成的jar放置于<code>./horae/libs/</code>下，它将会被自动添加到<code>classpath</code>中</p>
+</li>
+<li><p>编辑配置文件<code>./horae/conf/partition.properties</code>，新建/修改一个分区的<code>p{x}.class</code>，值为你刚刚编写的任务实现类的<strong>完全限定名</strong>。</p>
+</li>
+</ul>
+<p>##安装部署</p>
+<blockquote>
+<p>以下安装步骤在Mac OS X系统验证通过（Linux系类似，但存在一些不同）。Mac用户需要预装<code>Homebrew</code></p>
+</blockquote>
+<ul>
+<li>安装jsvc</li>
+</ul>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">brew </span>install jsvc</span><br></pre></td></tr></table></figure>
+<ul>
+<li>安装redis</li>
+</ul>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">brew </span>install redis</span><br></pre></td></tr></table></figure>
+<ul>
+<li>安装disque</li>
+</ul>
+<blockquote>
+<p>因为disque目前还没有一个稳定的版本，所以暂时被homebrew暂存在<a href="https://github.com/Homebrew/homebrew-head-only" target="_blank" rel="external">head-only</a> 仓库中，安装命令略有不同：</p>
+</blockquote>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew <span class="operator"><span class="keyword">install</span> <span class="comment">--HEAD homebrew/head-only/disque</span></span></span><br></pre></td></tr></table></figure>
+<ul>
+<li><code>horae</code>源码编译、打包</li>
+</ul>
+<figure class="highlight ceylon"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mvn <span class="keyword">assembly</span>:<span class="keyword">assembly</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>拷贝打包文件到目标文件夹，并解压缩</li>
+</ul>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">cd</span> <span class="label">$&#123;project_baseDir&#125;</span>/target/horae.<span class="keyword">zip</span> /usr/<span class="keyword">local</span></span><br><span class="line">unzip /usr/<span class="keyword">local</span>/horae.<span class="keyword">zip</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>配置可执行文件，主要是命令与路径</li>
+</ul>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vi <span class="regexp">/usr/</span>local<span class="regexp">/horae/</span>bin<span class="regexp">/horae.sh</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>配置conf下的配置文件</li>
+</ul>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo vi <span class="regexp">/usr/</span>local<span class="regexp">/horae/</span>conf<span class="regexp">/$&#123;service/</span>redisConf<span class="regexp">/partition&#125;.properties</span></span><br></pre></td></tr></table></figure>
+<ul>
+<li>执行命令</li>
+</ul>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sudo <span class="keyword">sh</span> /usr/<span class="keyword">local</span>/horae/bin/horae.<span class="keyword">sh</span> <span class="label">$&#123;start</span>/stop/restart&#125;</span><br></pre></td></tr></table></figure>
+<p>###注意事项</p>
+<ul>
+<li>conf下的service.properties中的配置项<code>master</code>在所有节点中只能有一个被设置为true。如果它下线，将不能以master的身份再次启动。</li>
+<li>因为jsvc需要写进程号(pid)，所以尽量以系统管理员身份执行，将horae.sh里的<code>user</code>配置为<code>root</code>，并以<code>sudo</code>执行</li>
+</ul>
+<p>##关于disque</p>
+<p>目前disque仍处于alpha版本，命令也还在调整中。虽然已被支持，但无论是disque的server以及其java client:<code>jedisque</code>都存在bug，因此暂时<strong>不推荐</strong>使用，请至少等到发布stable版本再使用。</p>
+<p>自实现的<code>jedisque</code>连接池。目前jedisque的客户端还没有提供连接池机制，它跟redis的主流java client：<code>jedis</code>出自同一个开发者手笔。考虑到<code>jedis</code>内部使用的是<code>apache commons-pool</code>实现连接池机制，在实现<code>jedisque</code>的时候也使用的是同样的方案，等<code>jedisque</code>官方提供连接池之后，会采用官方连接池。</p>
+<p><code>disque</code>的开发过程中，对命令和命令参数可能会进行调整，<code>horae</code>也会对此进行跟进。虽然，<code>disque</code>的stable版本还未发布，但redis作者的水准和口碑有目共睹，所以你有理由相信它能给你带来惊喜。</p>
+<blockquote>
+<p>本项目的开源地址：<a href="https://github.com/yanghua/horae" target="_blank" rel="external">https://github.com/yanghua/horae</a></p>
+</blockquote>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/" data-id="cii1bfda5002mgaz2fgzu1g8b" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/async/">async</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/disque/">disque</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/redis/">redis</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/10/30/messagebus-refactor-simplify-client/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          消息总线重构之简化客户端
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/08/23/redis-incr-implement-rate-limit/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">redis实现访问频次限制的几种方式</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-a-lightweight-async-task-invoker-based-on-redis-and-disque" data-title="一个基于redis和disque实现的轻量级异步任务执行器" data-url="http://vinoyang.com/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

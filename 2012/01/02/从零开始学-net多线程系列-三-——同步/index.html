@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>从零开始学.net多线程系列(三)——同步 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开始学.net多线程系列(三)——同步">
+<meta property="og:url" content="http://vinoyang.com/2012/01/02/从零开始学-net多线程系列-三-——同步/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325421166ZUeu.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_132542157776bb.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325422436ICZK.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325422963g69F.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_13254231028aHK.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325423982n6NM.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325425054jBFq.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325425095WTlm.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325426743y5Yq.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/1/0_1325427115Ww4G.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从零开始学.net多线程系列(三)——同步">
+<meta name="twitter:description">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-从零开始学-net多线程系列-三-——同步" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/01/02/从零开始学-net多线程系列-三-——同步/" class="article-date">
+  <time datetime="2012-01-01T22:07:00.000Z" itemprop="datePublished">2012-01-02</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      从零开始学.net多线程系列(三)——同步
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><a id="more"></a><br><br>本文将涉及如下内容<br><br><span style="font-size:13px"><strong>&nbsp;Wait Handles</strong></span><br><br><span style="white-space:pre"></span><em><span style="white-space:pre"></span>EventWaitHandle</em><br><br><span style="white-space:pre"></span><em><span style="white-space:pre"></span>Seamphores</em><br><br><span style="white-space:pre"></span><em><span style="white-space:pre"></span>Mutex</em><br><br><span style="font-size:13px">&nbsp;<strong> Critical Sections</strong></span><br><br>&nbsp;<strong> <span style="font-size:13px">Miscellaneous Objects</span></strong><br><br>这篇文章重点说明多个不同的线程之间的同步问题。<br><br><strong><span style="font-size:16px">WaitHandles</span></strong><br><br>首先，我们必须认识到，当你尝试着理解怎么才能使多个线程在一起协调地很好，最关键的问题是怎样排序这些操作。例如，我们有如下的这些问题：<br><br>1、&nbsp; 我们需要创建一个订单<br><br>2、&nbsp; 我们需要保存订单，但是除非我们获得了订单号，否则我们无法进行保存操作<br><br>3、&nbsp; 我们需要打印订单，但也仅在其被保存到数据库时打印一次<br><br>看起来，这些都是非常简单的任务，甚至根本不需要使用到线程。但是为了演示这个例子，让我们假设其中的每一步都是一个很费时的操作，包含了对一个虚拟数据库的许多调用。<br><br>从上面我们的问题列表中我们可以看到，除非步骤一完成了，否则我们无法完成步骤二，除非步骤二完成了我们无法完成步骤三。这就像一个相互依赖，进退两难的困境。我们当然可以，把这几个操作放在同一个代码段中，但这违背了并发的思想，我们需要尽量保持我们应用程序的高可相应性。（记住，这里面的每一个步骤都是非常的耗时）。<br><br>所以，我们能做些什么呢？我们知道，应该把这三个步骤分配给不同的线程，但似乎有不少的问题，因为我们无法保证哪个线程将率先完成，就像我们在<a href="http://blog.csdn.net/yanghua_kobe/article/details/7013210" target="_blank" rel="external">Parttwo</a>中看到的那样。幸运的是，我们能够得到一些帮助。。。。<br><br>在.net中有一个WaitHandle，它允许线程等待一个特殊的WaitHandle，仅在当WaitHandle告诉正在等待的线程，它已经可以继续进行的时候才会继续进行。这种方案被称之为<strong>信号与等待</strong>。当一个线程正在等待一个WaitHandle的时候，它将被阻塞直到在某个时候WaitHandle获得信号，它允许等待线程解除阻塞，继续执行它的工作。<br><br>我喜欢将包含在WaitHandle背后的思想想象成在一个交通拥挤地带的一系列的交通灯。当栅栏(WaitHandle)没有获得信号的时候，我们(处于等待的线程)必须等待栅栏升起(获得信号)。<br><br><img src="http://hi.csdn.net/attachment/201201/1/0_1325421166ZUeu.gif" alt=""><br><br>这就是我类比它的一种方式，而.net又是如何提供这种WaitHandles的方式给我们使用的呢？<br><br>接下来的类，是为我们使用它提供的：<br><br>l&nbsp;System.Threading.WaitHandle<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; System.Threading.EventWaitHandle<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; System.Threading.Mutex<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp; System.Threading.Semaphore<br><br>就像我们在这个层次结构中看到的一样，System.Threading.WaitHandle是一些其他System.Threading.WaitHandle派生类的基类。这里有一些特别的东西需要在我们涉及到这些派生类之前被预先解释。<br><br>一些重要的公共方法(并非所有的)如下：<br><br><strong>SignalAndWait</strong><br><br>该方法有几个重载，但基本的思想是——一个System.Threading.WaitHandle获得信号，而另一个System.Threading.WaitHandle将被置为等待状态直到接受一个信号。<br><br><strong>WaitAll(WaitHandle类的静态方法)</strong><br><br>该方法同样有几个重载，但基本的思想是——一组System.Threading.WaitHandle被压入WaitAll方法，所有的这些System.Threading.WaitHandles将被置为等到状态直到接受到一个信号。<br><br><strong>WaitAny(WaitHandle类的静态方法)</strong><br><br>该方法同样有几个重载，但基本的思想是——一组System.Threading.WaitHandle被压入WaitAny方法，并且任何System.Threading.WaitHandle将被置于等待直到接受到一个信号。<br><br><strong>WaitOne</strong><br><br>该方法同样有几个重载，但基本的思想是——当前的System.Threading.WaitHandle将被置于等待，直到接受到一个信号。<br><br>让我们集中来讲解一下System.Threading.EventWaitHandle<br><br><strong>EventWaitHandle</strong><br><br>EventWaitHandle是一个WaitHandle并且又有两个特别的派生类：ManualResetEvent以及AutoResetEvent，它们更加通用。这两个子类我将花些时间来讨论。所有你需要注意的是——一个EventWaitHandle对象能够充当它的两个子类的其中任何一个，通过使用EventResetMode的其中一个枚举值。在创建一个新的EventWaitHandle对象的时候，可能用得上。<br><br>现在，我们更深入地讲解一下ManualResetEvent和AutoResetEvent对象，因为他们更通用。<br><br><strong><span style="font-size:16px">AutoResetEvent</span></strong><br><br>来自MSDN：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;“<em>通过在AutoReseEventt上调用WaitOne，让一个线程等待一个信号。如果AutoResetEvent处于未获得信号的状态，那么线程将被阻塞，当前线程的的等待是通过调用Set<span style="white-space:pre"></span>方法来设置控制的资源已经可用</em><br><br><em><span style="white-space:pre"></span>调用Set信号AutoReseEventt来释放一个正处于等待的线程。AutoResetEvent会保持着一个信号的状态直到一个等待线程被释放，然后自动地返回到一个非信号状态。如<span style="white-space:pre"></span>果没有线程当前正在等待，信号状态将会被无限期地保持</em>。”<br><br>在外行人的术语中，当使用一个AutoResetEvent，当AutoResetEvent被设置为信号状态，第一个停止阻塞(停止等待)的线程将导致AutoResetEvent被置为一个复位状态，因此任何其他正在在AutoResetEvent上等待的线程必须等待它再次被置为信号状态。<br><br>让我们看一个小例子。启动两个线程，第一个线程将运行一段时间，然后将一个AutoResetEvent从非信号状态设置为信号状态(通过调用Set方法)。然后第二个线程将等待AutoResetEvent被再次置为信号状态。第二个线程也将等待另一个AutoResetEvent。唯一的不同是，第二个AutoResetEvent以一个信号状态为默认启动状态，所以它将无需等待。<br><br>这里是关于这个例子的代码：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        public static Thread T1;<br>        public static Thread T2;<br>        //this AutoResetEvent starts out non-signalled<br>        public static AutoResetEvent ar1 = new AutoResetEvent(false);<br>        //this AutoResetEvent starts out signalled<br>        public static AutoResetEvent ar2 = new AutoResetEvent(true);<br><br>        static void Main(string[] args)<br>        {<br>            #region AutoResetEvent<br>            T1 = new Thread((ThreadStart)delegate<br>            {<br>                Console.WriteLine(&quot;T1 is simulating some work by sleeping for 5s&quot;);<br>                Thread.Sleep(5000);<br>                Console.WriteLine(&quot;T1 is just about to set AutoResetEvent ar1&quot;);<br>                //alert waiting thread(s)<br>                ar1.Set();<br>            });<br><br>            T2 = new Thread((ThreadStart)delegate<br>            {<br><br>                Console.WriteLine(&quot;T2 starting to wait for AutoResetEvent ar1, at time {0}&quot;, DateTime.Now.ToLongTimeString());<br>                ar1.WaitOne();<br>                Console.WriteLine(&quot;T2 finished waiting for AutoResetEvent ar1, at time {0}&quot;, DateTime.Now.ToLongTimeString());<br><br>                Console.WriteLine(&quot;T2 starting to wait for AutoReset Event ar2, at time {0}&quot;, DateTime.Now.ToLongTimeString());<br>                ar2.WaitOne();<br>                Console.WriteLine(&quot;T2 finished waiting for AutoResetEvent ar2, at time {0}&quot;, DateTime.Now.ToLongTimeString());<br>            });<br><br>            T1.Name = &quot;T1&quot;;<br>            T2.Name = &quot;T2&quot;;<br>            T1.Start();<br>            T2.Start();<br>            Console.ReadLine();<br>        }<br>            #endregion<br>    }<br>}<br></pre><br><br>它将产生下面的输出，从这里可以看出T1等待5秒（模拟操作），然后T2等待名为ar1的AutoResetEvent被置为信号状态，但不需要等待名为ar2的AutoResetEvent，因为在它被构造的时候，它已经是信号状态了。<br><img src="http://hi.csdn.net/attachment/201201/1/0_132542157776bb.gif" alt=""><br><br><strong><span style="font-size:16px">ManualResetEvent</span></strong><br><br>来自MSDN：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; “<em>当一个线程在其他线程继续之前开启一个必须完成的活动（相当于该活动具有原子性），它就可以调用Reset将ManualResetEvent置为非信号状态。该线程可以被认为是<span style="white-space:pre"></span>控制ManualResetEvent的线程。在ManualResetEvent上调用WaitOne的线程将被阻塞，等待信号。当控制线程完成活动，它调用Set向等待线程发出信号，让它们可以继<span style="white-space:pre"></span>续进行。所有的等待线程会被释放。</em><br><br><em><span style="white-space:pre"></span>一旦它变成信号状态，ManualResetEvent会保持信号状态直到它被人为地重置。那便是调用WaitOne，即可直接返回</em>”<br><br>不用术语来解释就是，在使用ManualResetEvent的时候，当ManualResetEvent被置为信号状态，所有的正处于阻塞(等待)的线程都将被允许继续进行，直到ManualReset被重置。<br><br>看下面的代码片段：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        public static Thread T1;<br>        public static Thread T2;<br>        public static Thread T3;<br><br>        public static ManualResetEvent mr1 = new ManualResetEvent(false);<br><br>        static void Main(string[] args)<br>        {<br>            T1=new Thread((ThreadStart)delegate{<br>                Console.WriteLine(&quot;T1 is simulating some work by sleep for 5 secs&quot;);<br>                Thread.Sleep(500);<br>                Console.WriteLine(&quot;T1 is just about to set ManualResetEvent ar1&quot;);<br>                mr1.Set();<br>            });<br><br>            T2 = new Thread((ThreadStart)delegate<br>            {<br>                Console.WriteLine(&quot;T2 starting to wait for ManualResetEvent mr1, at time {0}&quot;, DateTime.Now.ToLongTimeString());<br>                mr1.WaitOne();<br>                Console.WriteLine(&quot;T2 finished waiting for ManualResetEvent mr1 , at time (0)&quot;,DateTime.Now.ToLongTimeString());<br>            });<br><br>            T3 = new Thread((ThreadStart)delegate<br>            {<br>                Console.WriteLine(&quot;T3 starting to wait for ManualResetEvent mr1, at time {0}&quot;,DateTime.Now.ToLongTimeString());<br>                mr1.WaitOne();<br>                Console.WriteLine(&quot;T3 finished waiting for ManualResetEvent mr1 , at time (0)&quot;, DateTime.Now.ToLongTimeString());<br><br>            });<br><br>            T1.Name = &quot;T1&quot;;<br>            T2.Name = &quot;T2&quot;;<br>            T3.Name = &quot;T3&quot;;<br><br>            T1.Start();<br>            T2.Start();<br>            T3.Start();<br><br>            Console.Read();<br>        }<br>    }<br>}<br></pre><br><br>它将有可能产生下面截图中的输出:<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325422436ICZK.gif" alt=""><br><br>可以看到这里启动了三个线程(T1-T3)，T2与T3都在等待名为“mr1”的ManualResetEvent，它在线程T1的阻塞代码块中被标识为信号状态。当T1将mr1置为信号状态(通过调用Set()方法)时，就允许等待中的线程继续运行。当T2与T3在mr1上都被阻塞而处于等待的时候，它被置为信号状态，这样T2与T3都得以继续向下执行。而名为“mr1”的ManualResetEvent将从不会被重置(即被置为非信号状态)，所以无论是线程T2还是T3都可以自由地继续运行它们的代码块。<br><br><strong>返回到原来的问题</strong><br><br>再次返回到开始的问题：<br><br>1、&nbsp; 我们需要创建一个订单<br><br>2、&nbsp; 我们需要保存该订单，但除非我们得到该订单的编号，否则我们不能进行保存操作。<br><br>3、&nbsp; 我们需要打印该订单，但它仅在被保存到数据库中的时候才会被打印一次。<br><br>现在该问题可以被很容易地解决了。一切我们需要的只是一些WaitHandles，我们需要它来控制那些执行的命令，在步骤二中需要等待步骤一中的WaitHandle信号，同时步骤三也需要等待步骤二的一个WaitHandle信号。简单吗？我们来看某些示例代码如何？下面是的。我简单得选择AutoResetEvent：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        public static Thread CreateOrderThread;<br>        public static Thread SaveOrderThread;<br>        public static Thread PrintOrderThread;<br><br>        public static AutoResetEvent ar1 = new AutoResetEvent(false);<br>        public static AutoResetEvent ar2 = new AutoResetEvent(false);<br><br>        static void Main(string[] args)<br>        {<br>            CreateOrderThread=new Thread((ThreadStart)delegate{<br>                Console.WriteLine(&quot;CreateOrderThread is creating the order.&quot;);<br>                Thread.Sleep(5000);<br>                ar1.Set();<br>            });<br><br>            SaveOrderThread = new Thread((ThreadStart)delegate<br>            {<br>                ar1.WaitOne();<br>                Console.WriteLine(&quot;SaveOderThread is saving the order&quot;);<br>                Thread.Sleep(5000);<br>                ar2.Set();<br>            });<br><br>            PrintOrderThread = new Thread((ThreadStart)delegate<br>            {<br>                ar2.WaitOne();<br>                Console.WriteLine(&quot;PrintOrderThread is printing the order&quot;);<br>                Thread.Sleep(5000);<br>            });<br><br>            CreateOrderThread.Name = &quot;CreateOrderThread&quot;;<br>            SaveOrderThread.Name = &quot;SaveOrderThread&quot;;<br>            PrintOrderThread.Name = &quot;PrintOrderThread&quot;;<br><br>            CreateOrderThread.Start();<br>            SaveOrderThread.Start();<br>            PrintOrderThread.Start();<br><br>            Console.Read();<br>        }<br>    }<br>}<br></pre><br><br>运行的结果如下图所示：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325422963g69F.gif" alt=""><br><br><span style="font-size:16px"><strong>Semaphores</strong></span><br><br>Semaphore继承自System,Threading.WaitHandle;因此，它有一个WaitOne()方法。你也可以使用静态的System.Threading.WaitHandle,WaitAny(),WaitAll(),SignalAndWait()方法来进行更为复杂的任务。<br><img src="http://hi.csdn.net/attachment/201201/1/0_13254231028aHK.gif" alt=""><br><br>我读过一些文章中将Semaphore比作一个夜总会。它有一个相当大的地方能容纳很多人，当满了的时候，就不允许更多的人进入，除非有某个人离开了俱乐部，在这个时候更多的人才能够进入。<br><br>让我们来看一个简单的例子，这里Semaphore被建立来处理两个并发的请求，并且有一个总的容量为5.<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        static Semaphore sem = new Semaphore(2, 5);<br><br>        static void Main(string[] args)<br>        {<br>            for (int i = 0; i &lt; 10; i++)<br>            {<br>                new Thread(RunThread).Start(&quot;T&quot; + i);<br>            }<br><br>            Console.Read();<br>        }<br><br>        static void RunThread(object threadID)<br>        {<br>            while (true)<br>            {<br>                Console.WriteLine(string.Format(&quot;thread {0} is waiting on Semaphore&quot;,threadID));<br>                sem.WaitOne();<br><br>                try<br>                {<br>                    Console.WriteLine(string.Format(&quot;thread {0} is in the Semaphore , and is now sleeping&quot;, threadID));<br>                    Thread.Sleep(100);<br>                    Console.WriteLine(string.Format(&quot;thread {0} is releasing Semaphore&quot;, threadID));<br>                }<br>                finally<br>                {<br>                    sem.Release();<br>                }<br>            }<br>        }<br>    }<br>}<br></pre><br><br>它将产生下面截图所示的输出：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325423982n6NM.gif" alt=""><br><br>该实例展示了一个怎样限制并发线程数的示例，它并非一个非常有用的示例。我将提供一个完整的代码，用它来展示如何使用一个Semaphore来限制尝试访问数据库的线程数（通过限制可访问的连接数）。数据库仅提供最多三个并发连接。就像我说的，这段代码是不完整的，并且它当前不是可以执行的状态。它仅仅是作为一个示例的目的来展示的，它也不是下载代码的一部分。<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br>using System.Data;<br>using System.Data.SqlClient;<br><br>namespace SemaphoreTest<br>{<br>    /// &lt;summary&gt;<br>    /// This example shows partially completed skeleton<br>    /// code for consuming a limited resource, such as a<br>    /// DB connection using a Semaphore<br>    ///<br>    /// NOTE : THIS CODE WILL NOT RUN, ITS INCOMPLETE<br>    ///        DEMO ONLY CODE<br>    /// &lt;/summary&gt;<br>    class RestrictedDBConnectionStringAccessUsingSemaphores<br>    {<br><br>        //initial count to be satified concurrently = 1<br>        //maximum capacity = 3<br>        static Semaphore sem = new Semaphore(1, 3);<br><br>        static void Main(string[] args)<br>        {<br>            //start 5 new threads that all require a Database connection<br>            //but as a DB connection is limited to 3, we use a Semaphore<br>            //to ensure that the number of active connections will never<br>            //exceed the total allowable DB connections<br>            new Thread(RunCustomersThread).Start(&quot;ReadCustomersFromDB&quot;);<br>            new Thread(RunOrdersThread).Start(&quot;ReadOrdersFromDB&quot;);<br>            new Thread(RunProductsThread).Start(&quot;ReadProductsFromDB&quot;);<br>            new Thread(RunSuppliersThread).Start(&quot;ReadSuppliersFromDB&quot;);<br>            Console.ReadLine();<br>        }<br><br>        static void RunCustomersThread(object threadID)<br>        {<br>            //wait for the Semaphore<br>            sem.WaitOne();<br>            //the MAX DB connections must be within its limited<br>            //so proceed to use the DB<br>            using (new SqlConnection(&quot;&lt;SOME_DB_CONNECT_STRING&gt;&quot;))<br>            {<br>                //do our business with the database<br>            }<br>            //Done with DB, so release Semaphore which will<br>            //allow another into the Semaphore<br>            sem.Release();<br>        }<br><br>        static void RunOrdersThread(object threadID)<br>        {<br>            //wait for the Semaphore<br>            sem.WaitOne();<br>            //the MAX DB connections must be within its limited<br>            //so proceed to use the DB<br>            using (new SqlConnection(&quot;&lt;SOME_DB_CONNECT_STRING&gt;&quot;))<br>            {<br>                //do our business with the database<br>            }<br>            //Done with DB, so release Semaphore which will<br>            //allow another into the Semaphore<br>            sem.Release();<br>        }<br><br>        static void RunProductsThread(object threadID)<br>        {<br>            //wait for the Semaphore<br>            sem.WaitOne();<br>            //the MAX DB connections must be within its limited<br>            //so proceed to use the DB<br>            using (new SqlConnection(&quot;&lt;SOME_DB_CONNECT_STRING&gt;&quot;))<br>            {<br>                //do our business with the database<br>            }<br>            //Done with DB, so release Semaphore which will<br>            //allow another into the Semaphore<br>            sem.Release();<br>        }<br><br>        static void RunSuppliersThread(object threadID)<br>        {<br>            //wait for the Semaphore<br>            sem.WaitOne();<br>            //the MAX DB connections must be within its limited<br>            //so proceed to use the DB<br>            using (new SqlConnection(&quot;&lt;SOME_DB_CONNECT_STRING&gt;&quot;))<br>            {<br>                //do our business with the database<br>            }<br>            //Done with DB, so release Semaphore which will<br>            //allow another into the Semaphore<br>            sem.Release();<br>        }<br>    }<br>}</pre><br><br>从这个简单的例子中可以很清楚地看到，Semaphore仅允许最多三个线程（这是在Semaphore中的构造器中设置的），所以我们可以确信的是，数据库的连接也将会被限制。<br><br><strong><span style="font-size:16px">Mutex</span></strong><br><br>Mutex很大程度上像以lock状态(我们将在接下来的后面的章节进行讲解)的方式工作着，所以暂时我不想涉及太多。但Mutex比起lock以及Monitor最主要的优势是它能够跨多进程运行，它提供一种计算机级别的lock而不是应用程序级别。<br><br><strong><span style="font-size:10px">应用程序的单个实例</span></strong><br><br>Mutex最通用的一个用途就是确保一个应用程序在运行的时候仅有一个实例。<br>让我们看看一些代码。该代码可以确保一个应用程序的单个实例。任何一个新的实例将等待5秒钟（除非当前正在运行的实例处于关闭中），假设在这之前已经有一个正在运行的应用程序。<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        static Mutex mutex = new Mutex(false, &quot;MutexText&quot;);<br><br>        static void Main(string[] args)<br>        {<br>            if (!mutex.WaitOne(TimeSpan.FromSeconds(5)))<br>            {<br>                Console.WriteLine(&quot;MutexText already running! Exiting&quot;);<br>                return;<br>            }<br>            try<br>            {<br>                Console.WriteLine(&quot;MutexTest started&quot;);<br>                Console.ReadLine();<br>            }<br>            finally<br>            {<br>                mutex.ReleaseMutex();<br>            }<br>        }<br>    }<br>}<br></pre><br><br>所以，如果我们启动一个应用程序的实例，我们能够看到如下的截图：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325425054jBFq.gif" alt=""><br><br>当我们尝试运行另一份拷贝的话，我们将得到下面的结果（在五分钟的延迟之后）：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325425095WTlm.gif" alt=""><br><br><strong><span style="font-size:16px">临界区域</span></strong><br><br>锁是一种能够确保某一时刻仅有一个线程能够访问一个特殊的代码区域的解决方案。这就是锁的作用。总是被锁住的代码段被称之为“临界区域”。有很多不同的方式可以锁住一段临界区域，下面将有所说明。<br><br>但在这之前，让我们来看看为什么我们需要这些所谓的“临界区域”中的代码。考虑一下下面的代码：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        static int item1 = 54, item2 = 21;<br>        public static Thread T1;<br>        public static Thread T2;<br><br>        static void Main(string[] args)<br>        {<br>            T1 = new Thread((ThreadStart)delegate<br>            {<br>                DoCalc();<br>            });<br><br>            T2 = new Thread((ThreadStart)delegate<br>            {<br>                DoCalc();<br>            });<br>            T1.Name = &quot;T1&quot;;<br>            T2.Name = &quot;T2&quot;;<br><br>            T1.Start();<br>            T2.Start();<br>        }<br><br>        private static void DoCalc()<br>        {<br>            item2 = 10;<br>            if (item1!=0)<br>            {<br>                Console.WriteLine(item1 / item2);<br>            }<br>            item2 = 0;<br>        }<br>    }<br>}<br></pre><br><br>这段代码并非是线程安全的，因为它能够被两个不同的模拟线程访问。一个线程能将item2设置为0，此刻当另一个线程正尝试做除法的时候，将导致一个DivideByZeroException异常。<br><br>现在，当你运行这段代码，这个问题可能会每500ms出现一次，但这是一种很自然的线程问题。它们仅重现很短的时间，所以很难找到原因。你真的需要想到方方面面的情况，在你写代码之前，并且确保你在正确的地方进行安全防卫。<br><br>很幸运的是，我们可以使用锁机制来解决该问题。下面是一个简易的Demo：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        static object syncLock = new object();<br>        static int item1 = 54, item2 = 21;<br>        public static Thread T1;<br>        public static Thread T2;<br><br>        static void Main(string[] args)<br>        {<br>            T1 = new Thread((ThreadStart)delegate<br>            {<br>                DoCalc();<br>            });<br><br>            T2 = new Thread((ThreadStart)delegate<br>            {<br>                DoCalc();<br>            });<br>            T1.Name = &quot;T1&quot;;<br>            T2.Name = &quot;T2&quot;;<br><br>            T1.Start();<br>            T2.Start();<br><br>            Console.ReadLine();<br>        }<br><br>        private static void DoCalc()<br>        {<br>            lock (syncLock)<br>            {<br>                item2 = 10;<br>                if (item1 != 0)<br>                {<br>                    Console.WriteLine(item1 / item2);<br>                }<br>                item2 = 0;<br>            }<br><br>        }<br>    }<br>}<br></pre><br><br>在这个例子中，我们引进了第一种可行的技术来创建一个临界区，通过使用lock关键字。一次仅一个线程能够锁住同步对象（syncLock,在这个示例中）。任何其他的竞争线程都会被阻塞直到锁被释放。任何其他的竞争线程都被加入到一个“就绪队列中”，其给予访问的机制基于FCFS（First come first serviced,先来先服务）。<br><br>某些人对同步对象使用lock(this)或者lock(typeof(MyClass))。这是一个糟糕的想法，因为它们都是公有成员对象，所以，一个外部实体可以用它们来同步以及作为你线程的一个“接口”，从而导致一些很奇怪的问题。所以，最好的实践是使用一个私有的同步对象。<br><br>现在，我们来很认真地讨论一下你可以使用锁的几种不同的方式。<br><br><strong><span style="font-size:13px">Lock关键字</span></strong><br><br>我们已经看了一个简单的例子，在例子中我们使用了lock关键字，我们可以使用lock来“锁住”一个特殊对象。这是一种很通用的方案。<br><br>值得一提的是，lock关键字确实只是一种使用Monitor类的“快捷方式”。<br><br><strong><span style="font-size:13px">Monitor类</span></strong><br><br>System.Threading命名空间包含有一个叫做Monitor的类，它能够完全做到lock关键字一样的事情。如果我们考虑我们上面使用lock关键字锁住的相同的代码段，你可以看到Monitor能够做到同样的工作。<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace LockTest<br>{<br>    /// &lt;summary&gt;<br>    /// This shows how to create a critical section<br>    /// using the Monitor class<br>    /// &lt;/summary&gt;<br>    class Program<br>    {<br>        static object syncLock = new object();<br>        static int item1 = 54, item2 = 21;<br><br>        static void Main(string[] args)<br>        {<br>            Monitor.Enter(syncLock);<br>            try<br>            {<br>                if (item1 != 0)<br>                    Console.WriteLine(item1 / item2);<br>                item2 = 0;<br>            }<br>            finally<br>            {<br>                Monitor.Exit(syncLock);<br>            }<br>            Console.ReadLine();<br>        }<br>    }<br>}</pre><br><br>这里，lock关键字仅仅是下面这段Monitor代码的“语法糖”<br><pre name="code" class="csharp">Monitor.Enter(syncLock);<br>try<br>{<br><br>}<br>finally<br>{<br>    Monitor.Exit(syncLock);<br>}</pre><br><br>Lock关键字确实等效于这段代码。<br><br><strong><span style="font-size:10px">MethodImpl.Synchronized特性</span></strong><br><br>最后一种方式是依赖一个特性的使用，该特性能够告诉编译器将其当做一个同步方法。<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br><br>namespace MethodImplSynchronizedTest<br>{<br>    /// &lt;summary&gt;<br>    /// This shows how to create a critical section<br>    /// using the System.Runtime.CompilerServices.MethodImplAttribute<br>    /// &lt;/summary&gt;<br>    class Program<br>    {<br>        static int item1=54, item2=21;<br><br>        static void Main(string[] args)<br>        {<br>            //make a call to different method<br>            //as cant Synchronize Main method<br>            DoWork();<br>        }<br><br>        [System.Runtime.CompilerServices.MethodImpl<br>        (System.Runtime.CompilerServices.MethodImplOptions.Synchronized)]<br>        private static void DoWork()<br>        {<br>            if (item1 != 0)<br>                Console.WriteLine(item1 / item2);<br>            item2 = 0;<br>            Console.ReadLine();<br>        }<br>    }<br>}</pre><br><br>这个简单的例子展示了你可以使用System.Runtime.CompilerService.MethodImplAttribute来将一个方法标识为同步（临界区域）。<br><br>有件事情需要注意的是，如果你锁住整个方法，你可能会失去更多的并发编程的机会，因为它比起单线程模型运行方法的方式没有太多的性能优势。出于这个原因，你应该尽可能尝试将临界区域“圈定”为那些在多线程访问时需要实现线程安全的字段上。所以在你读写公共字段的时候，尝试使用锁机制。<br><br>当然，还是存在某些场景，你可能需要将整个方法标注为临界区域，但这是你的决定。只是，你需要意识到，锁住的区域应该越小越好。<br><br><strong><span style="font-size:10px">Miscellaneous Objects</span></strong><br><br>这里有两个外部的类，我觉得值得一提：<br><br><strong>Interlocked</strong><br><br>“一个声明操作是原子的，如果把它作为一个单一不可分割的指令的话。严格的原子性将排除任何抢占的可能性。在C#中，对一个32位或者更少的bits的字段简单的读取或者分配是原子的(假设在一个32位CPU上)。而对一个更大的字段的操作则是非原子的，因为它们可能包含了不止一个读/写操作。”<br><br>考虑下面的代码：<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace AtomicTest<br>{<br>    class AtomicTest<br>    {<br>        static int x, y;<br>        static long z;<br><br>        static coid Test()<br>        {<br>            long myVar;<br><br>            x = 3;          //Atomic<br>            z = 3;          //Non atomic as Z is 64 bits<br>            myVar = z;      //Non atomic as Z is 64 bits<br>            y += x;         //Non atomic read and write<br>            x++;            //Non atomic read and write<br>        }<br>    }<br>}</pre><br><br>解决这种问题的方法可以是，将非原子性的操作包裹到一个lock定义中。然而，有一个.net的类提供一个更简单也更快速的方案。那就是Interlocked类。使用Interlocked类比使用lock声明更安全，因为Interlocked永远都不会阻塞。<br><br>MSDN声明：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; “<em>当调度器在一个线程正在更新一个可被另一个线程访问的变量时切换上下文，或者当两个线程在隔离的处理器上并发执行时，该类的方法能够防止错误的发生。该类的成<span style="white-space:pre"></span>员不会抛出任何异常</em>。”<br><br>这里有一个使用Interlocked演示的小例子：<br><pre name="code" class="csharp">using System;<br>using System.Collections.Generic;<br>using System.Linq;<br>using System.Text;<br>using System.Threading;<br><br>namespace ConsoleApplication1<br>{<br>    class Program<br>    {<br>        static long currentValue;<br><br>        static void Main(string[] args)<br>        {<br>            Interlocked.Increment(ref currentValue);<br>            Console.WriteLine(string.Format(&quot;The value of currentValue is {0}&quot;, Interlocked.Read(ref currentValue)));<br><br>            Interlocked.Decrement(ref currentValue);<br>            Console.WriteLine(string.Format(&quot;The value of currentValue is {0}&quot;, Interlocked.Read(ref currentValue)));<br><br>            Interlocked.Add(ref currentValue, 5);<br>            Console.WriteLine(string.Format(&quot;The value of currentValue is {0}&quot;, Interlocked.Read(ref currentValue)));<br><br>            //read a 64 bit value<br>            Console.WriteLine(String.Format(&quot;The value of currentValue is {0}&quot;,Interlocked.Read(ref currentValue)));<br><br>            Console.ReadLine();<br>        }<br><br>    }<br>}<br></pre><br><br>这将会产生如下的输出：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325426743y5Yq.gif" alt=""><br><br>Interlocked类也提供各种其他的方法，例如：<br><br>l&nbsp; CompareExchange(location1,value,comparand):如果comparand与location1里的值相等，value将会被存入location1。否则，没有操作执行。比较和交换操作被作为一个原子操作执行。CompareExchange的返回值是location1里面的值，无论是否有任何的交换发生。<br><br>l&nbsp; Exchange(location1,value)：作为一个原子操作，将一个特殊值设置到某个位置，并返回原始的值。<br><br>这两个Interlocked中的方法能够实现无锁(无等待)的算法以及数据结构，否则你就得实现完整的锁机制来处理。<br><br><strong><span style="font-size:10px">Volatile</span></strong><br><br>Volatile关键字可以用来共享一个字段。Volatile关键字指示一个字段在程序中可以被操作系统、硬件或者一个并发执行的线程修改。<br><br>MSDN的说法：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; “<em>系统总是在它需要的时候读取一个volatile对象的当前值，甚至在之前的指令刚刚请求了相同的对象。给对象分配的值也会被实时地写入。</em><br><br><em><span style="white-space:pre"></span>Volatile修改器通常用来对一个可以被多线程访问而没有使用lock生命的字段的顺序访问。使用volatile修改器能够确保一个线程检索到被另一个线程最近更新的值</em>。”<br><br><strong><span style="font-size:10px">ReaderWriterLockSlim</span></strong><br><br>经常存在这样一种情况——一个类型的实例对于读操作是类型安全的，但对于更新操作却不是。尽管这个问题可以使用lock声明来解决，但当有很多读取操作而没有太多写操作的情况下，这种解决方案可能相当有限制性。而ReaderWriterLockSlim类就是被设计用来处理该问题的。<br><br>ReaderWriterLockSlim类（该类为.net3.5新增）提供了两种锁的方式：一个读锁和一个写锁。写锁是独占的，而一个读锁是兼容其他读锁的。<br><br>说白点，一个线程占用一个写锁，它将阻塞所有其他线程设置尝试读或写锁。如果当前没有一个线程把持一个写锁，那么任何数量的线程都可以把持一个读锁。<br><br>该类主要的方法给使用这些锁提供了方便，这些方法如下：<br><br>1、&nbsp; EnterReadLock(<em>)<br><br>2、&nbsp; ExitReadLock<br><br>3、&nbsp; EnterWriteLock(</em>)<br><br>4、&nbsp; ExitWriteLock(<em>)<br><br>这里</em>表示也存在一个更安全点的“尝试版本”可以使用，它支持设置一个超时时间。<br>让我们来看一个简单的例子：<br><pre name="code" class="csharp">using System;<br>using System;<br>using System.Threading;<br>using System.Collections.Generic;<br><br>namespace ReaderWriterLockSlimTest<br>{<br>    /// &lt;summary&gt;<br>    /// This simple class demonstrates the usage a Reader/Writer<br>    /// situation, using the ReaderWriterLockSlim class<br>    /// &lt;/summary&gt;<br>    class Program<br>    {<br>        static ReaderWriterLockSlim rw = new ReaderWriterLockSlim();<br>        static List&lt;int&gt; items = new List&lt;int&gt;();<br>        static Random rand = new Random();<br><br>        static void Main(string[] args)<br>        {<br>            //start some readers<br>            new Thread(Read).Start(&quot;R1&quot;);<br>            new Thread(Read).Start(&quot;R2&quot;);<br>            new Thread(Read).Start(&quot;R3&quot;);<br><br>            //start some writers<br>            new Thread(Write).Start(&quot;W1&quot;);<br>            new Thread(Write).Start(&quot;W2&quot;);<br>        }<br><br>        static void Read(object threadID)<br>        {<br>            //do read<br>            while (true)<br>            {<br>                try<br>                {<br>                    rw.EnterReadLock();<br>                    Console.WriteLine(&quot;Thread &quot; + threadID +<br>                        &quot; reading common source&quot;);<br>                    foreach (int i in items)<br>                        Thread.Sleep(10);<br>                }<br>                finally<br>                {<br>                    rw.ExitReadLock();<br>                }<br>            }<br>        }<br><br>        static void Write(object threadID)<br>        {<br>            //do write<br>            while (true)<br>            {<br>                int newNumber = GetRandom(100);<br>                try<br>                {<br>                    rw.EnterWriteLock();<br>                    items.Add(newNumber);<br>                }<br>                finally<br>                {<br>                    rw.ExitWriteLock();<br>                    Console.WriteLine(&quot;Thread &quot; + threadID +<br>                        &quot; added &quot; + newNumber);<br>                    Thread.Sleep(100);<br>                }<br>            }<br>        }<br><br>        static int GetRandom(int max)<br>        {<br>            //lock on the Random object<br>            lock (rand)<br>                return rand.Next(max);<br>        }<br>    }<br>}</pre><br><br>有可能会产生如下的输出：<br><img src="http://hi.csdn.net/attachment/201201/1/0_1325427115Ww4G.gif" alt=""><br><br>需要注意的是，在System.Threading命名空间下，也存在一个ReaderWriterLock类。这就是为什么MSDN不得不说明ReaderWriterLockSlim(.net 3.5)与ReaderWriterLock(.net2.0)不同之处的原因：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; “ReaderWriterLockSlim与ReaderWriterLock类似，但它简化了对递归与锁状态升级与降级的规则。ReaderWriterLockSlim避免了许多死锁的情况。另外其性能也明显好过ReaderWriterLock。在所有新的开发中，推荐使用ReaderWriterLockSlim类”<br><br><strong><span style="font-size:16px">关于下一讲</span></strong><br><br>下一讲，我们将探讨线程池，敬请期待。<br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/01/02/从零开始学-net多线程系列-三-——同步/" data-id="cii1bfda0002igaz2ng59r0fi" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          浅谈简单工作流设计——责任链模式配合策略与命令模式的实现
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/12/25/记住密码-quot-功能的正确设计/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">记住密码&amp;quot;功能的正确设计</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-从零开始学-net多线程系列-三-——同步" data-title="从零开始学.net多线程系列(三)——同步" data-url="http://vinoyang.com/2012/01/02/从零开始学-net多线程系列-三-——同步/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>异步调用Web服务方法 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="基于Ajax技术构建的门户是web 2.0这一代中最为成功的Web应用程序。而这块市场上iGoogle和Pageflakes这两大站点已经走在了时代的前列。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="异步调用Web服务方法">
+<meta property="og:url" content="http://vinoyang.com/2011/11/20/异步调用Web服务方法/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="基于Ajax技术构建的门户是web 2.0这一代中最为成功的Web应用程序。而这块市场上iGoogle和Pageflakes这两大站点已经走在了时代的前列。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/19/0_13217043438ttU.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/19/0_13217043728u1N.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="异步调用Web服务方法">
+<meta name="twitter:description" content="基于Ajax技术构建的门户是web 2.0这一代中最为成功的Web应用程序。而这块市场上iGoogle和Pageflakes这两大站点已经走在了时代的前列。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-异步调用Web服务方法" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/11/20/异步调用Web服务方法/" class="article-date">
+  <time datetime="2011-11-19T20:06:00.000Z" itemprop="datePublished">2011-11-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      异步调用Web服务方法
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>基于Ajax技术构建的门户是web 2.0这一代中最为成功的Web应用程序。而这块市场上<a href="http://www.google.com.hk/ig?hl=zh-CN&amp;sourceid=cnhp&amp;source=iglk" target="_blank" rel="external">iGoogle</a>和<a href="http://www.pageflakes.com/" target="_blank" rel="external">Pageflakes</a>这两大站点已经走在了时代的前列。<br><br><a id="more"></a><br><br>当你打开Pageflakes，将会看到如下的界面：<br><br><img src="http://hi.csdn.net/attachment/201111/19/0_13217043438ttU.gif" alt=""><br><br>接下来就是界面上的各个“部件”去向服务器请求各种web服务，而服务器作为代理，则代为向外部web服务发出请求。(这是因为ajax调用无法跨越，所以常通过代理来请求数据)<br><br><img src="http://hi.csdn.net/attachment/201111/19/0_13217043728u1N.gif" alt=""><br><br><strong><span style="font-size:16px">问题场景</span></strong>：某个很受用户欢迎的“部件”很长时间不能执行，导致很对请求无法及时执行，引起请求失败(超时)，甚至超大的访问量会引起服务器死机，用户无法访问web站点。<br><br><strong><span style="font-size:16px">解决方案</span></strong>：用户一进入他们访问的页面，各个“部件”会通过代理web服务发出一个调用请求，它从外部服务获取数据。外部服务要么执行地很快，要么会超时。因此，我们必须设置较长的超时时间，因为一般来说外部的很多大数据量的服务执行都很缓慢。从长期来看，因为asp.net ajax不支持异步web方法调用，为了解决这个问题，我们必须改变代理web服务到某个异步的HTTP处理器来实现。这就是下面将要介绍的——<strong>异步**</strong>调用Web服务方法<strong>。
+
+</strong><span style="font-size:24px"></span><strong>
+
+</strong><span style="font-size:24px">异步</span><strong>**<span style="font-size:24px">调用Web服务方法</span></strong><br><br>默认情况下，在服务端Web服务上申明的所有Web方法都是同步执行的。然而，通过XML HTTP对象从浏览器端发出的调用是异步的，但是实际在服务器端执行Web方法的时候还是同步的。这意味着，从请求到来那一刻起要产生对Web方法调用的响应，它会从asp.net工作线程池中占用一个线程。如果从请求到调用完成占用相对较长的时间，那么请求的线程会一直进行处理直到调用的方法结束。不幸的是，大多数需要长时间来调用的是一些如长时间的数据库查询操作或者是对另一个Web服务的调用。例如，如果你需要对数据库进行调用，那么当前线程会一直等待直到调用完成。线程完全会什么事也不做一直处于等待状态直到探测到返回的查询结果。当某个线程在等待对TCP<br> socket或后台某个web 服务调用完成的时候，会出现类&#20284;的问题。<br><br>当你通过使用Web方法来构造一个典型的asp.net Web服务应用的时候，编译器把代码编译为程序集以便当该请求的web方法被接收的时候进行调用。当你的应用程序首次启动的时候，ASMX处理器会通过反射程序集的方式来决定暴露哪个web方法。<br><br>对正常的同步请求，很简单的方式就是找出哪些方法和[WebMethod]特性有联系。<br><br>要使得Web方法是异步的，你需要确保满足如下规则：<br><br>&nbsp;有一个BeginXXX和EndXXX的Web方法，其中XXX是某个任意的字符串，它代表你想暴露的方法名称。<br><br>&nbsp;1、BeginXXX方法返回一个IasyncResult类型的接口并分别以AsyncCallback和某个对象作为最后的两个输入参数。<br><br>&nbsp;2、EndXXX方法带有一个IasyncResult接口作为其唯一的参数。<br><br>&nbsp;3、BeginXXX和EndXXX方法必须被标记为WebMethod特性。<br><br>如果ASMX处理器找到了满足上面所有条件的方法，然后它将像正常的Web方法一样暴露在WSDL文档上。<br><br>下面展示了一个同步方法的定义：<br><br><pre name="code" class="csharp"> [WebMethod]<br>public string Sleep(int miilliseconds)<br>{<br>Thread.Sleep(miilliseconds);<br>}<br></pre><br><br>而下面是异步Web方法的定义：<br><br><pre name="code" class="csharp">[WebMethod]<br>public IAsyncResult  Sleep(int miilliseconds,AsyncCallback cb,object s){……}<br><br>[WebMethod]<br>public string EndSleep(IasyncResult call ){……}<br></pre><br><br>ASMX处理器将从这对Web方法中暴露一个以Sleep命名的Web方法。该方法将接受之前在BeginXXX方法的签名中以AsyncCallback类型作为输入参数并在EndXXX方法中最后返回类型的参数类型。<br><br>ASMX处理器对经过编译的程序集进行反射处理并探测到某个异步的Web方法后，与处理同步请求相比，它必须处理这些不同方法的请求（BeginXXX、EndXXX）。不是同步调用Sleep方法并从返回&#20540;中产生响应，而是调用BeginSleep方法。它将发送来的请求反序列化成传递到函数中的参数，这个处理通常是针对同步请求，但它也像传递额外异步回调参数到BeginSleep方法那样向内部回调函数传递指针。【<span style="color:#ff6666">这有点像实例方法的调用，假如一个类有两个对象a,b，并且该类有一个实例方法run(),你也许会问，编译器是如何区分a.run()和b.run()?事实上编译器会把当前方法的调用者作为参数传递给调用方法</span>】。<br><br>当ASMX处理器调用了BeginSleep方法后，它会返回线程到asp.net进程的线程池中去，因此它可以处理其他请求。然而，针对该请求的HttpContext则不会被释放。HttpContext将等待直到传递给完成处理请求的BeginSleep回调函数调用完成。<br><br>一旦回调函数被调用，就会从线程池中取出一个线程来执行剩余的工作。为了完成需要执行的多个处理请求并呈现数据作为响应返回，ASMX处理器将调用EndSleep方法，一旦该响应发送，HttpContext将获得释放。<br><br>当然还是有一些基本原理和局限性需要考虑：<br><br>(1) &nbsp; <em><span style="font-size:16px">当你使用业务逻辑层来对本身没有进行异步处理的数据执行读写操作，你不能使用异步Web方法。</span></em><br><br>(2) &nbsp; <em><span style="font-size:16px">当你同步调用外部web服务的时候，你不能使用异步方法。外部调用必须也是异步的才行。</span></em><br><br>(3) &nbsp; <em><span style="font-size:16px">当你使用常规的同步方法执行数据库操作的时候，你不能使用异步方法。只有所有数据库操作必须是异步的才行。</span></em><br><br>(4) &nbsp; <em><span style="font-size:16px">当执行一些不需要等待的I/O操作，如Http请求，Web服务调用，remoting，异步数据库调用或异步文件操作等，这对于采用异步Web方法调用没有什么好处。你不会从一个异步运行的方法执行简单的Delegate.BeginInvoke调用中获益，因为异步方法从相同的线程池如asp.net中的线程池指派线程。</span></em><br><br>以上“警告”可以总结为两点：<br><br>(1)&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ff6666"><strong>如果某个异步操作过程需要多次异步调用，那么每个步骤都要求是异步的，也就是要【一路异步到底】。</strong></span>——引用自博客园<br><br>(2)&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#ff6666"><strong>I/O密集型操作考虑异步，运算密集型操作考虑多线程(无等待的I/O操作不&#20540;得异步)。</strong></span><br><br>因此，在上面示例代码中，简单的sleep方法和用于代理web服务的任何方法都不能成为真正的异步方法，我们需要重写它们来支持异步调用。在我们开始之前，请记住一个原则，当BeginXXX Web方法调用其他一些组件的BeginYYY方法结束并且你的EndXXX方法调用了该组件的EndYYY方法的时候，你仅仅只能从异步方法中获益。否则，异步使用Web方法没有任何好处。<br><br>下面展示了一个简单的股票报价代理Web服务实现代码。代理Web服务的BeginGetStock方法调用另外一个组件中的BeginGetStock方法，该方法从外部源抓取数据。当取得数据后，组件通过AsyncCallback cb对象执行回调。ASMX处理器程序将该回调向下传递给Web方法。因此，当它被调用的时候，asp.net的ASMX处理程序会收到该回调，并且会恢复HttpContext对象，调用EndGetStock方法和呈现该响应。<br><br><pre name="code" class="csharp"> [WebService]<br>Public class StockQuoteProxy:System.Web.Services.WebService<br>{<br>[WebMethod]<br>Public IAsyncResult  BeginGetStock(IasyncCallback cb , object state)<br>{<br>net.stockquote.StockQuoteService porxy=new net.stockquote.StockQuoteService();<br>return porxy. BeginGetStock(“MSFT”,cb,proxy);<br>}<br><br>[WebMethod]<br>Public string EndStock(IasyncResult res)<br>{<br> <span style="white-space:pre"></span>net.stockquote.StockQuoteService porxy=( net.stockquote.StockQuoteService)res.AsyncStates;<br><span style="white-space:pre"></span>string quotes=proxy.EndGetStock(res);<br><span style="white-space:pre"></span>return quotes;<br>}<br>}<br></pre><br><br><strong>总结</strong><br><br>上面，我已经展示了asp.net的ASMX处理程序提供了调用异步Web方法并返回线程到asp.net线程池的能力，而asp.netajax框架的asmx处理程序并没有这样的能力。它仅支持同步调用。因此，我们需要重写asp.net ajax框架的ASMX处理程序来支持异步Web方法的执行，并且当Web方法通过XML HTTP调用的时候绕开 asp.netajax的ASMX处理程序。接下来，我准备讲解asp.net ajax框架的ASMX是如何工作的，以及如何重写一个你自己的并且引入了很多新特性的处理程序。<br><br><span style="color:#ff6666"><strong>
+
+</strong></span><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/11/20/异步调用Web服务方法/" data-id="cii1bfd7v001ogaz292pb6lb6" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/11/26/从零开始学-net多线程系列-二/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          从零开始学.net多线程系列(二)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/11/12/从零开始学-net多线程系列-一/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">从零开始学.net多线程系列(一)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-异步调用Web服务方法" data-title="异步调用Web服务方法" data-url="http://vinoyang.com/2011/11/20/异步调用Web服务方法/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

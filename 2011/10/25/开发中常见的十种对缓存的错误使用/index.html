@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>开发中常见的十种对缓存的错误使用 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="简介缓存那些频繁使用的很耗费资源的对象，就可以通过更加快速地加载使应用程序获得更快的响应。在并发请求时，缓存能够更好地扩展应用程序。但一些难以觉察的错误，可能让应用程序处于高负荷下，更不用说想让缓存有更好的表现了，特别是当你正在使用分布式缓存并且将缓存项存储在不同的缓存服务器或缓存应用程序中时。另外，当缓存在进程外被构建时使用进程内缓存工作地很好的代码可能会失败。这里我将向你展示一些通常的分布式缓">
+<meta property="og:type" content="article">
+<meta property="og:title" content="开发中常见的十种对缓存的错误使用">
+<meta property="og:url" content="http://vinoyang.com/2011/10/25/开发中常见的十种对缓存的错误使用/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="简介缓存那些频繁使用的很耗费资源的对象，就可以通过更加快速地加载使应用程序获得更快的响应。在并发请求时，缓存能够更好地扩展应用程序。但一些难以觉察的错误，可能让应用程序处于高负荷下，更不用说想让缓存有更好的表现了，特别是当你正在使用分布式缓存并且将缓存项存储在不同的缓存服务器或缓存应用程序中时。另外，当缓存在进程外被构建时使用进程内缓存工作地很好的代码可能会失败。这里我将向你展示一些通常的分布式缓">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_13194633271q7S.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463357O2Mq.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463381Fnnt.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463462yHpV.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463484bT0G.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463509URV7.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463530l2bp.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463553tRPs.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463571JmvA.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463588B9Vb.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463608r5L2.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_13194636313KpC.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463653yrEt.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_13194636698OvZ.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_13194636946GEj.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_131946371584kf.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201110/24/0_1319463736RW27.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="开发中常见的十种对缓存的错误使用">
+<meta name="twitter:description" content="简介缓存那些频繁使用的很耗费资源的对象，就可以通过更加快速地加载使应用程序获得更快的响应。在并发请求时，缓存能够更好地扩展应用程序。但一些难以觉察的错误，可能让应用程序处于高负荷下，更不用说想让缓存有更好的表现了，特别是当你正在使用分布式缓存并且将缓存项存储在不同的缓存服务器或缓存应用程序中时。另外，当缓存在进程外被构建时使用进程内缓存工作地很好的代码可能会失败。这里我将向你展示一些通常的分布式缓">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-开发中常见的十种对缓存的错误使用" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/10/25/开发中常见的十种对缓存的错误使用/" class="article-date">
+  <time datetime="2011-10-24T21:39:00.000Z" itemprop="datePublished">2011-10-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      开发中常见的十种对缓存的错误使用
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">简介</span></span></strong><br><br><span style="font-size:16px">缓存那些频繁使用的很耗费资源的对象，就可以通过更加快速地加载使应用程序获得更快的响应。在并发请求时，缓存能够更好地扩展应用程序。但一些难以觉察的错误，可能让应用程序处于高负荷下，更不用说想让缓存有更好的表现了，特别是当你正在使用分布式缓存并且将缓存项存储在不同的缓存服务器或缓存应用程序中时。另外，当缓存在进程外被构建时使用进程内缓存工作地很好的代码可能会失败。这里我将向你展示一些通常的分布式缓存错误，它将帮助你做更好的决定——是否使用缓存。</span><br><br><a id="more"></a><br><br><span style="font-size:16px">这里列出了我见过的前十种错误：</span><br><br><span style="font-size:16px">1、&nbsp; <em>依赖.net默认的序列化器</em></span><br><br><span style="font-size:16px">2、&nbsp; <em>在一个单独的缓存项中存储大对象</em></span><br><br><span style="font-size:16px">3、&nbsp; <em>在线程间使用缓存共享对象</em></span><br><br><span style="font-size:16px">4、&nbsp; <em>假设存储那些项之后，它们就会立即被缓存</em></span><br><br><span style="font-size:16px">5、&nbsp; <em>使用嵌套对象存储整个集合</em></span><br><br><span style="font-size:16px">6、&nbsp;<em> 将父-子对象存储在一起或者分开</em></span><br><br><span style="font-size:16px">7、&nbsp; <em>缓存配置项</em></span><br><br><span style="font-size:16px">8、&nbsp; <em>缓存已打开的流、文件、注册表或者网络句柄的活动对象</em></span><br><br><span style="font-size:16px">9、&nbsp; <em>使用多个键存储相同的&#20540;</em></span><br><br><span style="font-size:16px">10、<em>在更新或者删除缓存项到持久存储介质之后，没有同步更新或删除缓存</em></span><br><br><span style="font-size:16px">让我们看看这些错误是怎么回事，并且看看如何避免它们。</span><br><br><span style="font-size:16px">我假设你已经使用asp.net缓存或者企业库的缓存模块一段时间了，你很满意，现在你需要更好的可扩展性并且想将缓存移动到进程外的实现或者像Velocity、Memcache这样的分布式缓存上去。在这以后，一切都开始土崩瓦解，因此下面列出的错误可能很适合你。</span><br><br><span style="font-size:16px"><br><br></span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">依赖.net默认的序列化器</span></span></strong><br><br><span style="font-size:16px">当你使用一个像Velocity、Memcached这样的进程外缓存的解决方案时，那些缓存项被存储的地方在一个单独的进程上，而不是在你正在运行的应用程序上。每次你向缓存中增加一项，该项都会被序列化到一个字节数组然后将该字节数组发送到缓存服务器并存储它。简单地说，当你从缓存中获得一项时，缓存服务器将这些字节数组发送回你的应用程序，然后客户端库反序列化该字节数组得到目标对象。现在，.net的默认序列化不是最佳的选择，因为它依赖于反射，而反射是一种CPU密集型操作。结果是，在缓存中存储项以及从缓存中获取项，增加了序列化和反序列化的开销，进而导致了CPU的开销，特别是当你缓存复杂类型时。这种高CPU的消耗发生在你的应用程序中，而不是在缓存服务器上。所以你总是应该使用一个更好的解决方案来让CPU在序列化以及反序列化时的开销最小。我个人比较喜欢的方式是自己去序列化和反序列化所有的属性，通过实现Iserializable接口，并实现反序列化构造器。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_13194633271q7S.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这可以防止反射&#26684;式化器。当你在存储大对象时，使用这种方案，你获得的性能提升可能是默认序列化的100倍。所以，我强烈建议你至少为了那些被缓存的对象，你应该总是实现你自己的序列化和反序列化代码，而不是让.net使用反射去决定应该序列化什么。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">在一个单独的缓存项中存储大对象</span></span></strong><br><br><span style="font-size:16px">有时我们觉得大对象应该被缓存起来，因为得到它们要花费很大的代价。例如，也许你觉得缓存一个1MB的图像对象，可以比从文件系统或者数据库加载图片对象给你带来更好的性能。你可能会奇怪为什么这不具有可扩展性。当你一次只有一个请求时这确实会比从数据库加载相同的东西更快。但在并发加载的时候，频繁地访问大的图片对象将降低服务器的CPU效率。这是因为总得来说，缓存时的序列化和反序列化开销很大。每次你将尝试从一个外部进程缓存中获取一个1MB的图片对象，在内存中构建这样一个图片对象对CPU来说是一个很明显的耗时操作。<br><br></span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463357O2Mq.gif" alt=""><br><br></span><br><br><span style="font-size:16px">解决方案是不在缓存中使用一个单独的键来缓存大的图片对象为一个单独的项。取而代之的是，你应该将这个大的图片对象拆分为一些更小的项，然后个别地缓存那些更小的项。你应该只从缓存中检索那些你需要的最小的项。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463381Fnnt.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这种想法是，看看从大对象中拆出来的那些项中，哪些是你最需要频繁访问的(比如说从配置中获取的图片对象的连接字符串)，并且在缓存中单独存储那些项。总是记住那些你从缓存中检索的项应该尽可能地小，比如最大为8KB。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">在线程间使用缓存共享对象</span></span></strong><br><br><span style="font-size:16px">既然你能够从多个线程中访问缓存对象，那么有时你就可能在多个线程之间共享数据。但是缓存，就像静态变量一样，可能导致竞争条件。当缓存是分布式，并且一旦存储和读取一项需要线程外的通信，这种情况就更为常见，并且你的线程彼此之间将获得更多的机会重叠。接下来的示例展示了进程内缓存很少产生竞争条件但进程外缓存总是出现这种情况：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463462yHpV.gif" alt=""><br><br></span><br><br><span style="font-size:16px">上面的代码大部分时间都在演示绝大部分会出现的正确的行为，当你正在使用一个进程内缓存。但，当你走到进程外或者分布式时，它将一直不会成功地演示大部分情况下的正确行为。你需要在这里实现某种形式的锁，某些缓存提供程序允许你锁住一项。例如，Velocity就具有锁这一特性，但是memcache就没有。在Velocity，你可以锁住一项：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463484bT0G.gif" alt=""><br><br></span><br><br><span style="font-size:16px">你可以使用锁来可靠地将那些被多线程改变的项从缓存中读取和写入。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">假设存储那些项之后，它们就会立即被缓存</span></span></strong><br><br><span style="font-size:16px">有时你在点击一个提交按钮并且假设页面被提交之后，你认为缓存中就存储了一项，并且该项能够被从缓存中读取，因为它刚刚被存储了。你错了！</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463509URV7.gif" alt=""><br><br></span><br><br><span style="font-size:16px">你永远都不能假设你确信一项被存储在缓存中。甚至你在第一行存储了一项，并且在第三行读取了该项。当你的应用程序处在很大的压力之下并且缺乏物理内存，那些不是很频繁被访问的缓存项将被清除。所以，代码到达第三行的时候，缓存有可能被清除了。永远都不要假设你总是能够从缓存中获得某一项。你总是应该使用一个“非空”检测，并且从持久存储器检索。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463530l2bp.gif" alt=""><br><br></span><br><br><span style="font-size:16px">当从缓存中读取一项时，你应该总是使用这种&#26684;式。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">使用嵌套对象存储整个集合</span></span></strong><br><br><span style="font-size:16px">有时你会在一个单独的缓存项中存储一个完整的集合，因为你需要频繁地访问集合中的项。因此每一次你尝试读取集合中的某一项，你不得不首先加载整个集合，然后像通常地那样读取。有点像这样的做法：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463553tRPs.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这种做法是低效的。你没有必要加载整个集合而仅仅是读取其中的一项。当缓存早进程内的时候，这绝对没任何问题，因为在缓存中仅仅存储着该集合的一个引用。但是，在一个分布式的缓存中，任何时候你访问它，整个集合都是分离存储的，这将导致很差的性能。代替缓存整个集合，你应该缓存分离开来的单个的项。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463571JmvA.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这种想法很简单，你使用一个键来独立地存储集合中的每一项。可以想象这种做法很简单，例如使用索引来区分。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">将父-子对象存储在一起或者分开</span></span></strong><br><br><span style="font-size:16px">有时，你在缓存中存储的一项有一个子对象，而该子对象也被你单独地存储在另一个缓存项中。例如，你有一个customer对象，它有一个order集合。所以，当你缓存customer，order集合也被缓存了。但是，然后你又单独地存储了order集合。所以，当一个单独的order在缓存中被更新时，在customer内部包含相同order项的order集合没有被更新，并且因此给你造成了不一致的结果。又一次，当你使用进程内缓存的方式，它工作地很好；但是当你的缓存被构建在进程外或分布式架构上时，它将会失败。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463588B9Vb.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这是一个很难解决的问题。它要求清晰的设计，以至于你永远都不会在缓存中存储一个对象两次。一个通常的解决方案是不在缓存中存储子对象，而是存储子对象的Key，来让它们可以被独立地检索。所以在上面的场景中，你将不在缓存中存储customer的order集合。取而代之的是，你将随着Customer存储OrderID集合，然后当你需要读取customer的订单集合时，你可以使用OrderID来加载单独的oder对象。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463608r5L2.gif" alt=""><br><br></span><br><br><span style="font-size:16px">这种方案能够确保一个实体的实例在缓存中只会被存储一次，无论它多少次出现在集合或者父对象中。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">缓存配置项</span></span></strong><br><br><span style="font-size:16px">有时你缓存配置项。你使用某些缓存过期策略来确保配置被及时刷新，或者当配置文件、数据库表改变的时候被刷新。你认为既然配置项会被频繁地访问，从缓存中读取可以很明显地减小CPU的压力。但其实，取而代之的是，你应该使用静态变量来存储配置。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_13194636313KpC.gif" alt=""><br><br></span><br><br><span style="font-size:16px">你不应该采用这样的方案。从缓存中获得一项并不“廉价”。它可能没有比从文件或者直接读取开销大。但是，它也有一定的消耗，特别是如果该项是一个自定义的类，并且加入了某些序列化的操作。所以，应该用存储静态变量来存储它。但你也许会为问，当我们将配置项存储在静态变量中，我们如何刷新它而不重启应用程序？你可以使用某些失效逻辑，当配置文件改变时，例如采用文件监听器来重新加载配置。或者使用某些数据库轮询来检查数据库的更新。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">缓存已打开的流、文件、注册表或者网络句柄的活动对象</span></span></strong><br><br><span style="font-size:16px">我看到过一些开发者缓存某些类的实例，这些实例持有打开的文件，注册表或者外部网络连接。这种做法很危险。当这些项从缓存中移除的时候，它们无法自动销毁。除非你手动销毁这些对象，否则你就会泄露系统资源。</span><br><br><span style="font-size:16px">你永远都不应该仅仅为了在你需要打开的流、文件句柄、注册表句柄或者网络连接的时候，保存那些打开的资源，而缓存持它们。取而代之的是，你应该使用某些静态变量或者某些基于内存的缓存，这些缓存保证给你一个在失效时的回调，能够让你正确地释放它们。进程外的缓存或者用Session存储，不能给你失效时的回调。所以永远都不要用它们存储活动对象。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">使用多个键存储相同的&#20540;</span></span></strong><br><br><span style="font-size:16px">有时你使用Key并且也使用index来在缓存中存储对象，因为你不仅需要基于key的检索，同时也需要通过索引来枚举它们。例如，</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463653yrEt.gif" alt=""><br><br></span><br><br><span style="font-size:16px">如果你正在使用线程内缓存，接下来的代码将工作地很好</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_13194636698OvZ.gif" alt=""><br><br></span><br><br><span style="font-size:16px">上面的这段代码在进程内缓存时，缓存中的两项都指向了相同的对象实例。所以，不管你如何从缓存中获得某项，它总是返回相同的对象实例。但是在一个进程外缓存中，特别是在一个分布式缓存中，那些对象都是被序列化后存储的。而且存储并不是基于对象引用的，你存储的是缓存项的一份拷贝，你永远都无法存储对象本身。所以，如果你是基于一个Key来检索一项，当一项被反序列化后或者刚刚被创建后，你从缓存中获取它，也只是获取了那一项的最新副本。结果，该对象的任何改变将无法反映给缓存，除非你在对象状态发生改变之后，覆写这些缓存中的项。所以，在一个分布式的缓存中，你将不得不像下面这么做：<br><br></span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_13194636946GEj.gif" alt=""><br><br></span><br><br><span style="font-size:16px">一旦你使用更改过的项来更新缓存实体，它看起来就像缓存中的项接受了一个该项的新拷贝一样。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">在更新或者删除缓存项到持久存储介质之后，没有同步更新或删除缓存</span></span></strong><br><br><span style="font-size:16px">它仍然能在进程内缓存中工作地很好，但是当你采用进程外缓存或者分布式缓存时同样将会失败。下面是一个例子：</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_131946371584kf.gif" alt=""><br><br></span><br><br><span style="font-size:16px">其原因就是你改变了对象，但是却没有将最新的对象更新到缓存内。缓存中的项被作为一份拷贝而存储，不是原本的对象。</span><br><br><span style="font-size:16px">另一个错误是当该项已经从数据库中删除了，却没有在缓存中被删除。</span><br><br><span style="font-size:16px"><img src="http://hi.csdn.net/attachment/201110/24/0_1319463736RW27.gif" alt=""><br><br></span><br><br><span style="font-size:16px">当你从数据库、文件或者一些持久化存储中删除一项时，不要忘记从缓存中删除该项，删除所有访问它的可能性。</span><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px"><br><br></span></span></strong><br><br><strong><span style="color:rgb(255,0,0)"><span style="font-size:24px">总结</span></span></strong><br><br><span style="font-size:16px">缓存要求谨慎的计划和对缓存数据的清晰理解。否则，当你的缓存构建在分布式上时，它不仅会表现糟糕，甚至能够产生异常。将这些常见的错误记住吧！</span><br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/10/25/开发中常见的十种对缓存的错误使用/" data-id="cii1bfd81001qgaz2yw5sndcv" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/10/28/Dnode-基于Node-js给浏览器提供异步远程方法调用/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Dnode:基于Node.js给浏览器提供异步远程方法调用
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">快速可扩展的Ajax流代理——提供持续下载跨域数据</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-开发中常见的十种对缓存的错误使用" data-title="开发中常见的十种对缓存的错误使用" data-url="http://vinoyang.com/2011/10/25/开发中常见的十种对缓存的错误使用/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

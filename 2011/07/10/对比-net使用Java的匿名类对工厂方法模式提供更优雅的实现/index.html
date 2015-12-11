@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>对比.net使用Java的匿名类对工厂方法模式提供更优雅的实现 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="工厂模式的意图：定义一个用户创建对象的接口，让子类决定实例化哪一个类。Factory Method使一个类的实例化延迟到其子类。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="对比.net使用Java的匿名类对工厂方法模式提供更优雅的实现">
+<meta property="og:url" content="http://vinoyang.com/2011/07/10/对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="工厂模式的意图：定义一个用户创建对象的接口，让子类决定实例化哪一个类。Factory Method使一个类的实例化延迟到其子类。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201107/9/0_1310216419de7t.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201107/9/0_1310217915672j.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="对比.net使用Java的匿名类对工厂方法模式提供更优雅的实现">
+<meta name="twitter:description" content="工厂模式的意图：定义一个用户创建对象的接口，让子类决定实例化哪一个类。Factory Method使一个类的实例化延迟到其子类。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/07/10/对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现/" class="article-date">
+  <time datetime="2011-07-09T21:54:00.000Z" itemprop="datePublished">2011-07-10</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      对比.net使用Java的匿名类对工厂方法模式提供更优雅的实现
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>工厂模式的意图：<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">定义一个用户创建对象的接口，让子类决定实例化哪一个类。<span lang="EN-US" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; ">Factory Method</span>使一个类的实例化延迟到其子类。</span><br><br><a id="more"></a><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">结构图：</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><img src="http://hi.csdn.net/attachment/201107/9/0_1310216419de7t.gif" alt=""><br></span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">场景：</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">这里制造两个手机product:Nokia、Motorola，为了<span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">制造</span>这两个Product需要使用两个Creator（Factory）来制造它们。这两个Creator都有各自的Concreator(类似生产线)。这两个手机都实现必须实现两个最基本的功能：call(打电话)、photo(拍照)。</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">product:</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// Product<br>    /// &lt;/summary&gt;<br>    public abstract class Mobilephone<br>    {<br>        public abstract void Call();<br><br>        public abstract void Photo();<br>    }</pre><br>Creator：定义<span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">生产线</span>必须遵守的契约(创建产品)：<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// Creator<br>    /// &lt;/summary&gt;<br>    public interface IMobilephoneFactory<br>    {<br>        Mobilephone CreateMobilephone();<br>    }</pre><br>ConcreateCreator：各自的生产线（用于生产不同的产品）<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// ConcreateCreator:NokiaFactory<br>    /// &lt;/summary&gt;<br>    public class NokiaFactory:IMobilephoneFactory<br>    {<br>        public Mobilephone CreateMobilephone()<br>        {<br>            return new Nokia();<br>        }<br>    }</pre><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// ConcreateCreator:MotorolaFactory<br>    /// &lt;/summary&gt;<br>    public class MotorolaFactory:IMobilephoneFactory<br>    {<br>        public Mobilephone CreateMobilephone()<br>        {<br>            return new Motorola();<br>        }<br>    }</pre><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">ConcreateProduct:生产产品(制造工艺)</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span></span><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// Product:Nokia<br>    /// &lt;/summary&gt;<br>    public class Nokia : Mobilephone<br>    {<br>        public override void Call()<br>        {<br>            Console.WriteLine(&quot;The Nokia’s call function&quot;);<br>        }<br><br>        public override void Photo()<br>        {<br>            Console.WriteLine(&quot;The Nokia’s Photo function&quot;);<br>        }<br>    }</pre><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// Product:Motorola<br>    /// &lt;/summary&gt;<br>    public class Motorola:Mobilephone<br>    {<br>        public override void Call()<br>        {<br>            Console.WriteLine(&quot;The motorola’s call function&quot;);<br>        }<br><br>        public override void Photo()<br>        {<br>            Console.WriteLine(&quot;The motorola’s Photo function&quot;);<br>        }<br>    }</pre><br>下面，我们看看，如何来“制造”出product：<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span></span><pre name="code" class="csharp">static void Main(string[] args)<br>        {<br>            IMobilephoneFactory factory = new MotorolaFactory();<br>            //create Motorola<br>            Mobilephone mobilePhone = factory.CreateMobilephone();<br>            mobilePhone.Call();<br>            mobilePhone.Photo();<br><br>            factory = new NokiaFactory();<br>            mobilePhone = factory.CreateMobilephone();<br>            mobilePhone.Call();<br>            mobilePhone.Photo();<br><br>            Console.Read();<br>        }</pre><br>首先，我们“指明”制造产品的工厂，然后我们使用工厂来生产出我们的产品，对于具体的制造工艺，我们没有知道的必要。<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">然后，我们使用了产品的功能：</span></span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><img src="http://hi.csdn.net/attachment/201107/9/0_1310217915672j.gif" alt=""><br></span></span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">可以看到，我们实现了我们的意图：<span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">定义一个用户创建对象的接口（</span></span></span><span style="font-family: monospace; font-size: 13px; line-height: 19px; white-space: pre; background-color: rgb(240, 240, 240); ">IMobilephoneFactory </span><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">），</span></span></span><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">让子类决定实例化哪一个类。<span lang="EN-US" style="margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; ">Factory Method</span>使一个类的实例化延迟到其子类。</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "><br></span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">好了，以上就是Factory Method partten的一个简要实现(这个不是重点)。我们看到了要实现这样一个模式，需要大概做哪些事情。</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">那么，有没有稍微优雅点的实现方式呢。其实，在Java中，使用匿名类，可以有更简便的做法：</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">product:</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">/<em>
+ </em> product:Mobilephone<br> <em>/<br>public abstract class Mobilephone {<br><br>public abstract void call();<br><br>public abstract void photo();<br>}</em></pre><br>Creator:<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">/<br> <em> Creator
+ </em>/<br>public interface IMobilephoneFactory {<br>Mobilephone CreateMobilephone();<br>}</pre><br>ConcreatCreator and <span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">ConcreatProduct</span>:下面我们能利用java里的匿名类将各自的工厂和制造流程合二为一。<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">public class Nokia extends Mobilephone {<br><br>@Override<br>public void call() {<br>System.out.println(&quot;The Nokia’s call function&quot;);<br><br>}<br><br>@Override<br>public void photo() {<br>System.out.println(&quot;The Nokia’s Photo function&quot;);<br>}<br><br>private Nokia(){}<br><br>public static IMobilephoneFactory factory=<br>new IMobilephoneFactory() {<br><br>@Override<br>public Mobilephone CreateMobilephone() {<br>return new Nokia();<br>}<br>};<br><br>}</pre><br><pre name="code" class="java">public class Motorola extends Mobilephone {<br><br>@Override<br>public void call() {<br>System.out.println(&quot;The Motorola’s call function&quot;);<br><br>}<br><br>@Override<br>public void photo() {<br>System.out.println(&quot;The Motorola’s Photo function&quot;);<br>}<br><br>private Motorola(){}<br><br>public static IMobilephoneFactory factory =<br>new IMobilephoneFactory() {<br><br>@Override<br>public Mobilephone CreateMobilephone() {<br>return new Motorola();<br>}<br>};<br><br>}<br></pre><br>我们看到，在提供具体的构造过程之后，使用了匿名类，提供了该制作流程的工厂。该工厂返回了这个制作流程。并且保证该制造流程只提供给工厂访问，因为构造器被设置为私有的了。这在语法上提供了更便捷和更优雅的实现，并且也体现了职责单一的面向对象原则。一个类包含了一个职责：制造出应该制造的产品，并能够以一个指定的接口(factory)对外提供服务。<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; ">下面看一下，我们怎么对外提供服务呢？</span><br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">public static void mobileMaker(IMobilephoneFactory factory) {<br>Mobilephone mobilephone=factory.CreateMobilephone();<br>mobilephone.call();<br>mobilephone.photo();<br>}</pre><br>我们做了一个服务器，来提供无依赖的服务：<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">public static void mobileServiceWith(IMobilephoneFactory factory) {<br>Mobilephone mobilephone=factory.CreateMobilephone();<br>mobilephone.call();<br>mobilephone.photo();<br>}</pre><br>你只需要提供创建服务的具体工厂(ConcreateCreator),就可以为了创建该产品，并让它提供服务了：<br><br><span style="font-family: 宋体; font-size: 13px; line-height: 19px; "></span><pre name="code" class="java">/<em>*
+ </em> @param args<br> */<br>public static void main(String[] args) {<br>System.out.println(&quot;nokia factory to make nokia and service:&quot;);<br>//make nokia<br>mobileServiceWith(Nokia.factory);<br>System.out.println();<br>System.out.println(&quot;motorola factory to make motorola and service:&quot;);<br>//make motorola<br>mobileMaker(Motorola.factory);<br>}</pre><br><br>调用结果：<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/07/10/对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现/" data-id="cii1bfd85001sgaz2wt72ukkj" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/07/17/android中关于activity的一些理解/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          android中关于activity的一些理解
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/07/07/浅谈-net中的静态类和java中的内部静态类/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">浅谈.net中的静态类和java中的内部静态类</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现" data-title="对比.net使用Java的匿名类对工厂方法模式提供更优雅的实现" data-url="http://vinoyang.com/2011/07/10/对比-net使用Java的匿名类对工厂方法模式提供更优雅的实现/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

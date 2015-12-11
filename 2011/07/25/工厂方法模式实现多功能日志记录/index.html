@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>工厂方法模式实现多功能日志记录 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="有时，我们在开发的时候，会遇到一些关于日志记录的功能。并且，它们可能是独立于系统业务逻辑的，那么我们就可以将日志做成组件的形式，以方便复用。以下采用工厂方法模式，来实现日志组件的设计，并保证对功能的扩展不会改变已有的实现。我们实现三种日志记录类型：错误日志记录、按钮点击日志记录、操作日志记录。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="工厂方法模式实现多功能日志记录">
+<meta property="og:url" content="http://vinoyang.com/2011/07/25/工厂方法模式实现多功能日志记录/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="有时，我们在开发的时候，会遇到一些关于日志记录的功能。并且，它们可能是独立于系统业务逻辑的，那么我们就可以将日志做成组件的形式，以方便复用。以下采用工厂方法模式，来实现日志组件的设计，并保证对功能的扩展不会改变已有的实现。我们实现三种日志记录类型：错误日志记录、按钮点击日志记录、操作日志记录。">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="工厂方法模式实现多功能日志记录">
+<meta name="twitter:description" content="有时，我们在开发的时候，会遇到一些关于日志记录的功能。并且，它们可能是独立于系统业务逻辑的，那么我们就可以将日志做成组件的形式，以方便复用。以下采用工厂方法模式，来实现日志组件的设计，并保证对功能的扩展不会改变已有的实现。我们实现三种日志记录类型：错误日志记录、按钮点击日志记录、操作日志记录。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-工厂方法模式实现多功能日志记录" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/07/25/工厂方法模式实现多功能日志记录/" class="article-date">
+  <time datetime="2011-07-24T23:20:00.000Z" itemprop="datePublished">2011-07-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      工厂方法模式实现多功能日志记录
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>有时，我们在开发的时候，会遇到一些关于日志记录的功能。并且，它们可能是独立于系统业务逻辑的，那么我们就可以将日志做成组件的形式，以方便复用。<br><br>以下采用工厂方法模式，来实现日志组件的设计，并保证对功能的扩展不会改变已有的实现。<br><br>我们实现三种日志记录类型：错误日志记录、按钮点击日志记录、操作日志记录。<br><br><a id="more"></a><br><br>首先，我们创建一个“抽象工厂”【其实是各实例工厂都必须实现的Log接口】，既然是日志记录，那么就需要有日志的实体了。也就是LogEntity，它是一个“抽象实体”，因为不同类型的日志，需要不同的日志实体，所以这里采用LogEntity作为抽象实体，来派生出各具体类型的日志实体。<br><br>实现如下：<br><br><pre name="code" class="csharp">public interface ILogFactory<br>    {<br>        void Log(LogEntity logEntity);<br>    }</pre><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 日志实体(抽象基类)<br>    /// &lt;/summary&gt;<br>    public abstract class LogEntity<br>    {<br>        public override string ToString()<br>        {<br>            return &quot;LogEntity(abstract class)&quot;;<br>        }<br>    }</pre><br>以下是各个实例工厂、和日志实体，实现各自的日志记录逻辑：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 记录错误日志实体类<br>    /// &lt;/summary&gt;<br>    public class ErrorEntity:LogEntity<br>    {<br>        /// &lt;summary&gt;<br>        /// 编号<br>        /// &lt;/summary&gt;<br>        public string ID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 用户编号<br>        /// &lt;/summary&gt;<br>        public string UserID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 页面URL<br>        /// &lt;/summary&gt;<br>        public string PageUrl { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 错误信息<br>        /// &lt;/summary&gt;<br>        public string Msg { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 发生时间<br>        /// &lt;/summary&gt;<br>        public DateTime OperateTime { get; set; }<br><br>    }</pre><br><pre name="code" class="csharp">public class ErrorFactory : ILogFactory<br>    {<br><br>        private const string FullClassName = &quot;LogComponent.ErrorFactory&quot;;<br><br>        public void Log(LogEntity logEntity)<br>        {<br>            #region check args<br>            if (logEntity == null)<br>            {<br>                throw new ArgumentNullException(string.Format(&quot;The Method in {0} occur ArgumentNullException&quot;, FullClassName));<br>            }<br><br>            ErrorEntity innerEntity = logEntity as ErrorEntity;<br><br>            if (innerEntity == null)<br>            {<br>                throw new NullReferenceException(string.Format(&quot;The Method in {0} occur NullReferenceException.Because of converting type.&quot;, FullClassName));<br>            }<br><br>            if (string.IsNullOrEmpty(innerEntity.Msg))<br>            {<br>                throw new Exception(string.Format(&quot;The Method in {0} occur logic Exception. Because of the error message is not nullable&quot;, FullClassName));<br>            }<br>            #endregion<br><br>            //记录日志<br>            string sql = @&quot;INSERT INTO SYSTEMERRORINFO(SE_USERID,SE_PAGEURL,SE_MESSAGE,SE_OPERATETIME) values (:SE_USERID,:SE_PAGEURL,:SE_MESSAGE,:SE_OPERATETIME)&quot;;<br>            OracleParameter[] parameters = new OracleParameter[]<br>            {<br>                new OracleParameter(&quot;:SE_USERID&quot;,innerEntity.UserID==null?&quot;&quot;:innerEntity.UserID),<br>                new OracleParameter(&quot;:SE_PAGEURL&quot;,innerEntity.PageUrl==null?&quot;&quot;:innerEntity.PageUrl),<br>                new OracleParameter(&quot;:SE_MESSAGE&quot;,innerEntity.Msg==null?&quot;&quot;:innerEntity.Msg),<br>                new OracleParameter(&quot;:SE_OPERATETIME&quot;,innerEntity.OperateTime==DateTime.MinValue?DateTime.Now:innerEntity.OperateTime)<br>             };<br><br>            OracleHelper.ExecuteNonQuery(OracleHelper.ConnectionStringLocalTransaction, CommandType.Text, sql, parameters);<br><br>        }<br><br>    }</pre><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 点击按钮统计–其中ButtonName为必填字段<br>    /// &lt;/summary&gt;<br>    public class ClickCountEntity:LogEntity<br>    {<br>        /// &lt;summary&gt;<br>        /// 记录编号<br>        /// &lt;/summary&gt;<br>        public string ID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 用户ID<br>        /// &lt;/summary&gt;<br>        public string UserID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 页面Url<br>        /// &lt;/summary&gt;<br>        public string PageUrl { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 操作时间<br>        /// &lt;/summary&gt;<br>        public DateTime OperateTime { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 路径名称<br>        /// &lt;/summary&gt;<br>        public string PathName { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 按钮名称<br>        /// &lt;/summary&gt;<br>        public string ButtonName { get; set; }<br>    }</pre><br><pre name="code" class="csharp">public class ClickCountFactory:ILogFactory<br>    {<br><br>        private const string FullClassName = &quot;LogComponent.ClickCountFactory&quot;;<br>        private ErrorEntity errorEntity = null;<br><br>        public void Log(LogEntity logEntity)<br>        {<br>            //check args<br>            if (logEntity==null)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur ArgumentNullException.Because of the arg: logEntity is not nullable.&quot;, FullClassName);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new ArgumentNullException(string.Format(&quot;The method in {0} occur ArgumentNullException.Because of the arg: logEntity is not nullable.&quot;, FullClassName));<br>            }<br><br>            ClickCountEntity innerEntity = logEntity as ClickCountEntity;<br>            if (innerEntity==null)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur NullReferenceException.Becaues of converting type&quot;, FullClassName);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new NullReferenceException(string.Format(&quot;The method in {0} occur NullReferenceException..Becaues of converting type&quot;, FullClassName));<br>            }<br><br>            if (String.IsNullOrEmpty(innerEntity.ButtonName))<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur Exception.Because of the field ButtonName is not nullable.&quot;, FullClassName);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new Exception(string.Format(&quot;The method in {0} occur Exception.Because of the field ButtonName is not nullable.&quot;, FullClassName));<br>            }<br><br>            string sql = @&quot;INSERT INTO buttonclickstatistic<br>                           (bs_userid, bs_pageurl, bs_buttonid, bs_operatetime, bs_pathname, bs_buttonname)<br>                           VALUES<br>                           (:v_bs_userid, :v_bs_pageurl, :v_bs_buttonid, :v_bs_operatetime, :v_bs_pathname, :v_bs_buttonname)&quot;;<br><br>            OracleParameter[] parameters = new OracleParameter[]{<br>               new OracleParameter(&quot;:v_bs_userid&quot;,innerEntity.UserID==null?&quot;&quot;:innerEntity.UserID),<br>               new OracleParameter(&quot;:v_bs_pageurl&quot;,innerEntity.PageUrl==null?&quot;&quot;:innerEntity.PageUrl),<br>               new OracleParameter(&quot;:v_bs_buttonid&quot;,innerEntity.ID==null?&quot;&quot;:innerEntity.ID),<br>               new OracleParameter(&quot;:v_bs_operatetime&quot;,innerEntity.OperateTime),<br>               new OracleParameter(&quot;:v_bs_pathname&quot;,innerEntity.PathName==null?&quot;&quot;:innerEntity.PathName),<br>               new OracleParameter(&quot;:v_bs_buttonname&quot;,innerEntity.ButtonName)<br>            };<br><br>            try<br>            {<br>                OracleHelper.ExecuteNonQuery(OracleHelper.ConnectionStringLocalTransaction, CommandType.Text, sql, parameters);<br>            }<br>            catch (Exception ex)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = ex.Message + ex.StackTrace;<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw;<br>            }<br><br>        }<br><br>    }</pre><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 操作日志实体类–其中Msg为必填字段<br>    /// &lt;/summary&gt;<br>    public class OperatingEntity:LogEntity<br>    {<br>        /// &lt;summary&gt;<br>        /// 记录编号<br>        /// &lt;/summary&gt;<br>        public string ID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 用户Id<br>        /// &lt;/summary&gt;<br>        public string UserID { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 操作日志<br>        /// &lt;/summary&gt;<br>        public string Msg { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 操作时间<br>        /// &lt;/summary&gt;<br>        public DateTime OperatingTime { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 登陆时间<br>        /// &lt;/summary&gt;<br>        public DateTime LoginTime { get; set; }<br><br>        /// &lt;summary&gt;<br>        /// 下线时间<br>        /// &lt;/summary&gt;<br>        public DateTime LogoutTime { get; set; }<br><br>    }</pre><br><pre name="code" class="csharp">public class OperatingFactory:ILogFactory<br>    {<br>        private const string FullClassName = &quot;LogComponent.OperatingFactory&quot;;<br>        private ErrorEntity errorEntity = null;<br><br>        public void Log(LogEntity logEntity)<br>        {<br>            //check args<br>            if (logEntity==null)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur ArgumentNullException.Because of the arg: {1} is not nullable&quot;, FullClassName, &quot;logEntity&quot;);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new ArgumentNullException(string.Format(&quot;The method in {0} occur ArgumentNullException.Because of the arg: {1} is not nullable&quot;, FullClassName, &quot;logEntity&quot;));<br><br>            }<br><br>            OperatingEntity innerEntity = logEntity as OperatingEntity;<br>            if (innerEntity==null)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur NullReferenceException.Because of Converting type.&quot;, FullClassName);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new NullReferenceException(string.Format(&quot;The method in {0} occur NullReferenceException.Because of Converting type.&quot;, FullClassName));<br>            }<br><br>            if (string.IsNullOrEmpty(innerEntity.Msg))<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = string.Format(&quot;The method in {0} occur Exception.Because of the field:Msg is not nullable.&quot;,FullClassName);<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw new Exception(string.Format(&quot;The method in {0} occur Exception.Because of the field:Msg is not nullable.&quot;, FullClassName));<br>            }<br><br>            //记录日志<br>            string sql = @&quot;INSERT INTO operatinglog(ol_uf_id,ol_msg,ol_op_time,ol_li_time,ol_lo_time)<br>                                             VALUES(:ol_uf_id,:ol_msg,:ol_op_time,:ol_li_time,:ol_lo_time)&quot;;<br><br>            OracleParameter[] paras = new OracleParameter[]<br>            {<br>                new OracleParameter(&quot;:ol_uf_id&quot;,innerEntity.UserID==null?&quot;&quot;:innerEntity.UserID),<br>                new OracleParameter(&quot;:ol_msg&quot;,innerEntity.Msg),<br>                new OracleParameter(&quot;:ol_op_time&quot;,innerEntity.OperatingTime),<br>                new OracleParameter(&quot;:ol_li_time&quot;,innerEntity.LoginTime),<br>                new OracleParameter(&quot;:ol_lo_time&quot;,innerEntity.LogoutTime),<br>            };<br><br>            try<br>            {<br>                OracleHelper.ExecuteNonQuery(OracleHelper.ConnectionStringLocalTransaction, CommandType.Text, sql, paras);<br>            }<br>            catch (Exception ex)<br>            {<br>                errorEntity = new ErrorEntity();<br>                errorEntity.Msg = ex.Message + ex.StackTrace;<br>                ILogFactory logFactory = new ErrorFactory();<br>                logFactory.Log(errorEntity);<br><br>                throw;<br>            }<br><br>        }<br>    }</pre><br>在客户端调用的时候，你需要先new 一个你需要的具体的日志实体，然后设置它的属性，比如：<br><br>OperatingEntity entity=new OperatingEntity();<br><br>//set Property<br><br>entity.OperatingTime=DateTime.Now;<br><br>…..<br><br>然后提供你的实例工厂：<br><br>ILogFactory factory=new OperatingFactory();<br><br>factory.Log(entity);<br><br>扩展的时候，你需要构建你新的日志实体类和新的实例工厂，来实现你的记录逻辑。<br><br>原有的实现都无需改动。<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/07/25/工厂方法模式实现多功能日志记录/" data-id="cii1bfd84001rgaz22pt1mkos" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/08/14/智力题：关于进入房间一次，判断哪个开关控制哪盏灯的问题/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          智力题：关于进入房间一次，判断哪个开关控制哪盏灯的问题
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/07/17/android中关于activity的一些理解/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">android中关于activity的一些理解</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-工厂方法模式实现多功能日志记录" data-title="工厂方法模式实现多功能日志记录" data-url="http://vinoyang.com/2011/07/25/工厂方法模式实现多功能日志记录/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>谈消息总线的路由模型 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近在写一个基于RabbitMQ的消息总线。虽然RabbitMQ提供了plugin的机制可以实现对其进行扩展，但是由于对erlang语言不熟，考虑到上手成本高，因此放弃实现plugin，转而基于Smart client + 树形拓扑路由的模型。当然这也大大降低了我们实现功能的灵活性，后面我会找个时间开篇新文章，谈谈Smart Client的限制。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="谈消息总线的路由模型">
+<meta property="og:url" content="http://vinoyang.com/2015/03/19/谈消息总线的路由模型/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="最近在写一个基于RabbitMQ的消息总线。虽然RabbitMQ提供了plugin的机制可以实现对其进行扩展，但是由于对erlang语言不熟，考虑到上手成本高，因此放弃实现plugin，转而基于Smart client + 树形拓扑路由的模型。当然这也大大降低了我们实现功能的灵活性，后面我会找个时间开篇新文章，谈谈Smart Client的限制。">
+<meta property="og:image" content="http://img.blog.csdn.net/20150318215406195?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150318215417826?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20150318220604106?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="谈消息总线的路由模型">
+<meta name="twitter:description" content="最近在写一个基于RabbitMQ的消息总线。虽然RabbitMQ提供了plugin的机制可以实现对其进行扩展，但是由于对erlang语言不熟，考虑到上手成本高，因此放弃实现plugin，转而基于Smart client + 树形拓扑路由的模型。当然这也大大降低了我们实现功能的灵活性，后面我会找个时间开篇新文章，谈谈Smart Client的限制。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-谈消息总线的路由模型" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2015/03/19/谈消息总线的路由模型/" class="article-date">
+  <time datetime="2015-03-18T22:16:00.000Z" itemprop="datePublished">2015-03-19</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      谈消息总线的路由模型
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>最近在写一个<a href="https://github.com/yanghua/banyan" target="_blank" rel="external"><strong>基于RabbitMQ的消息总线</strong></a>。虽然RabbitMQ提供了plugin的机制可以实现对其进行扩展，但是由于对erlang语言不熟，考虑到上手成本高，因此放弃实现plugin，转而基于Smart client + 树形拓扑路由的模型。当然这也大大降低了我们实现功能的灵活性，后面我会找个时间开篇新文章，谈谈Smart Client的限制。<br><br><a id="more"></a><br><br># 预备知识<br><br>RabbitMQ对于消息的通信只提供了几个非常简单的API：Channel#basicPublish；Channel#basicConsume(Channel#basicGet)。API非常简单，几乎可以看作只提供了produce/consume这一种通信模型。但RabbitMQ的灵活性在于其多种exchange的组合。如果你不了解exchange的种类，请移步官网的说明文档。<br><br>有几个原则：RabbitMQ一切消息都发送给exchange，一切消息都从queue中获取。至于消息怎样从exchange路由到queue，这取决于exchange的类型+exchange与exchange或exchange与queue共同组合的结果（但前提是queue只能作为叶子节点，queue之间无法组合）。<br><br># 树形拓扑<br><br>消息总线的整个架构采用的是SmartClient + Server端树形拓扑形式。这是非常典型的代理式拓扑结构，这种拓扑的好处是：方便隐藏内部细节、方便统一管控、方便实现拦截等。虽然是树形拓扑结构，但对于其细节的实现上还是有很大的讲究，下面谈谈在实现过程中的一些个人想法。<br><br># App在拓扑结构中的权衡<br><br>最初的实现很简单，只支持了点对点的produce/consume模型，这也是rabbitmq的原生模型。当时，一部分关注点放在它可以以非常小的成本记录所有通过总线的日志上。其树形拓扑是这样的：<br><br><img src="http://img.blog.csdn.net/20150318215406195?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>（备注：图中长方形表示exchange，圆形表示queue，下同）<br><br>在实现完成之后，发现这些队列的粒度太粗，几乎是app级别的。这无法满足一个app需要有多个队列的需求，而这种需求在一个app被拆分成分布式组件之后是很常见的。因此，这里必须将队列的粒度进一步细化，几乎细化成一种队列”服务”（没错，你可以这么理解，每个队列无论在生产消息，还是在消费消息，就好像在提供一种服务）。而app是这些“服务队列”的上级。因此这些app被上提为最后一个层级的exchange，成为这些服务队列的组织者，而队列都处于同一高度上，这样也便于管控。于是拓扑图变成这样：<br><br><img src="http://img.blog.csdn.net/20150318215417826?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>继续思考过后发现，将App从queue上提为最后一级的exchange，唯一好处就是能够在管控台上一目了然得看出某个queue的归属，以及对一个app下的所有的queue进行管控。其实要做到上面说的这些，只需要维护好app跟queue的逻辑关系（通过管控台界面操纵数据库）即可，没必要维护让app成为真实的exchange还使得整个路由多了一层，反而影响性能。因此决定把这个app exchange层去掉。<br><br># request/response实现的权衡<br><br>消息总线目前提供四种通信模型：<br><br><em>   produce/consume
+</em>   request/response<br><br><em>   publish/subscribe
+
+</em>   broadcast<div>从上面的拓扑图可以看出主要有两个消息路由exchange：pubsub，business。其中，business中的消息是point to point的，一个消息只能被消费一次而且有且只能有一个消费者。而pubsub的消息是one to many的，这从实现上不可复用同一套体系。回到上文，我们说提供了四中通信模型，而我们这里只有两种消息路由exchange，也就是说通信模型复用了路由exchange，它们的对应关系是：<br></div><div><br><br><em>   produce/consume -&gt; business
+
+</em>   request/response -&gt; business<br><br><em>   publish/subscribe -&gt; pubsub
+
+</em>   broadcast -&gt;pubsub<div>复用路由exchange的结果导致了队列的复用，这给 request/response的实现带来了不小的麻烦。主要有以下两个问题：<br></div></div><div><br><br>1.  队列的职责不清晰：produce消息跟request消息混杂于同一个队列中而消费消息的API却是区分的，这会导致一个消费API消费它“不想”消费的消息（比如response遇到produce的消息）。这时这些它&quot;不想&quot;消费的消息，没有好的处理方式。<br><br>2.  无限等待：这个主要跟request/response的实现机制相关。它是一种阻塞式同步等待响应的通信方式。如果它跟produce/consume模式复用队列，那么如果队列中有produce发送的大量消息未曾消费，那么request发送过来的消息将不可能得到及时消费，导致response也几乎不可能迅速给出应答，也就是request/response模式有可能根本就无法真正实现。<div><br><br>上面的症结主要在于不同类型的消息复用了相同的队列，但却区分了消费不同类型消息的API；而且队列里不同类型消息的顺序是不可测的。<br>这里就存在两种解决思路：<br></div></div><div><br><br>1.  复用队列，复用消费API，针对不同的消息指定不同的处理逻辑；<br><br>2.  不复用队列，区分消费API。<div>我几乎直接排除了第一种思路，因为区分通信模型，就是为了给client编程提供方便，封装的目的就是为了更高级别的抽象；而且第一种思路肯定无法实现request/response这种模型，因为这种模型的特征就是实时性，而复用队列，无法保证这一点。</div></div>
+
+<h1 id="Publish/subscribe实现的权衡">Publish/subscribe实现的权衡</h1><div>从上图你可以看到pubsub那个exchange的类型是fanout的（fanout表示扩散，即跟它绑定的exchange和queue都能收到消息）。其实实现publish/subscribe在RabbitMQ的基础上，可以有两种实现方式：<br></div><div><br><br>1.  pubsub exchange为fanout，客户端筛选<br>2.  pubsub exchange为 topic，服务端精准推送<div>稍微解释一下，首先你需要了解：这是一个通用的exchange，也就是凡是通信类似为publish/subscirbe类型的队列都绑定在它下面。<br></div></div><div>对于第一种方式：如果为fanout，那么客户端只需要调用publish推送一条消息，当消息被路由到pubsub，那么下面所有绑定的队列都会收到该消息（也就是这个fanout其实就是广播的方式）。那么怎么让不是订阅该channel的队列不接收到该消息呢？其实是客户端调用subscribe的时候，接收到消息在客户端内部过滤的（客户端连接着一个管控中心，可以获取订阅关系）。<br></div><div>对于第二种方式：正好跟第一种实现是相反的，它将pubsub的exchange定义为topic。当客户端调用publish推送一条消息时，它通过获取订阅关系，一条条发送到pubsub下的每个订阅的队列中，因此此处真实的发送次数跟该channel的订阅数一致；而这种情况下，subscribe只管消费，无需筛选，因为可以确定发送到其队列里的消息肯定是它订阅的channel发送的！<br></div><div>对于这两种模式，可谓各有利弊：<br></div><div><br><br><em>   第一种方式：发送次数少，服务端效率高（fanout几乎无需特定的路由），但每个pubsub下的队列都会受到消息，而如果某些队列的消费者是离线的情况下，这些消息会占据服务器资源，并且增加了客户端消费的速度，因为需要筛选
+
+</em>   第二种方式：发送次数多，多少个订阅者就发送多少次，服务端效率较第一种低，但这种按序推送的方式可以有效节省消息服务器的资源，并且这种模式客户端的消费效率高具体的实现方式应该取决于应用的场景。这是一种权衡，在性能跟资源之间的权衡。目前，的实现方式已从第一种方式切换成第二种方式——为了跟其他两种模型一致。因为其他两种模型都是生产者验证权限，而消费者只管消费。</div>
+
+<h1 id="broadcast实现的权衡">broadcast实现的权衡</h1><div>我们对广播的认知应该是可被所有通信参与者实时接收的消息（有时广播消息甚至可以认为是不可拒绝的，但这个取决场景）。因为consume与response也应该可以接收到广播消息。因此，它不应该跟publish/subscribe混合处理（虽然他们的从技术实现上是非常相似的，你可以认为broadcast是publish/subscribe的一种特例）。如果不混合处理，那就意味着对于广播，又得另外针对每个通信参与者独立分配一个队列？也就是说，这个系统上有多少通信参与者，就会有多少对应的广播消息队列。<br></div><div><br><br>从之前的讨论来看，如果想队列数减少，就必须复用队列，而如果复用队列，我们就必须合并消费该队列里不同类型消息的API并且承担接收同类型消息不及时的风险。因此我尝试了下面这样的拓扑图结构，这也是目前而言，最新的拓扑结构图：<br><br><img src="http://img.blog.csdn.net/20150318220604106?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>它让每个队列都得到了复用，除了接收跟自己职责相关的消息，还会接收到广播消息。这种设计的好处就是节省了服务器的资源。它跟普通业务消息复用了队列，这导致它只能在消费API被调用时“跟随”调用。而且上面谈到的某些纯粹的消息发送方比如produce,publish，它们通常是没有队列的，因此无法接收到广播消息，这也是一种权衡设计。<br></div><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2015/03/19/谈消息总线的路由模型/" data-id="cii1bfd4m0005gaz2ql96cfef" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2015/03/22/再谈消息总线客户端的多线程实现/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          再谈消息总线客户端的多线程实现
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2015/03/09/谈消息总线客户端的多线程实现/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">谈消息总线客户端的多线程实现</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-谈消息总线的路由模型" data-title="谈消息总线的路由模型" data-url="http://vinoyang.com/2015/03/19/谈消息总线的路由模型/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

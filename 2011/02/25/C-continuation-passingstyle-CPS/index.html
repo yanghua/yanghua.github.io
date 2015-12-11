@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>C#-continuation-passingstyle(CPS) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="如果你还不是很了解CPS是什么，那么推荐几个链接给你(希望你的英语要给力啊):">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C#-continuation-passingstyle(CPS)">
+<meta property="og:url" content="http://vinoyang.com/2011/02/25/C-continuation-passingstyle-CPS/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="如果你还不是很了解CPS是什么，那么推荐几个链接给你(希望你的英语要给力啊):">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C#-continuation-passingstyle(CPS)">
+<meta name="twitter:description" content="如果你还不是很了解CPS是什么，那么推荐几个链接给你(希望你的英语要给力啊):">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-C-continuation-passingstyle-CPS" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/02/25/C-continuation-passingstyle-CPS/" class="article-date">
+  <time datetime="2011-02-24T16:46:00.000Z" itemprop="datePublished">2011-02-25</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      C#-continuation-passingstyle(CPS)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>如果你还不是很了解CPS是什么，那么推荐几个链接给你(希望你的英语要给力啊):<br><br><a id="more"></a><br><br><a href="http://blogs.msdn.com/b/wesdyer/archive/2007/12/22/continuation-passing-style.aspx" target="_blank" rel="external">http://blogs.msdn.com/b/wesdyer/archive/2007/12/22/continuation-passing-style.aspx</a><br><br><a href="http://en.wikipedia.org/wiki/Continuation-passing_style" target="_blank" rel="external">http://en.wikipedia.org/wiki/Continuation-passing_style</a><br><br><a href="http://blogs.msdn.com/b/ericlippert/archive/2010/10/22/continuation-passing-style-revisited-part-two-handwaving-about-control-flow.aspx" target="_blank" rel="external">http://blogs.msdn.com/b/ericlippert/archive/2010/10/22/continuation-passing-style-revisited-part-two-handwaving-about-control-flow.aspx</a><br><br>&nbsp;<br><br>CPS(continuation-passing style):字面可以理解为后继式传递格式，这是在函数式编程中的一个特性。但在C#中Lambda表达式和Action&lt;T&gt; 泛型委托结合起来，能够很好地实现这一特性。<br><br>&nbsp;<br><br>原来我们用结构化处理异常的方式：<br><br>void Q()<br>{<br>&nbsp; try<br>&nbsp; {<br>&nbsp;&nbsp;&nbsp; B(A());<br>&nbsp; }<br>&nbsp; catch<br>&nbsp; {<br>&nbsp;&nbsp;&nbsp; C();<br>&nbsp; }<br>&nbsp; D();<br>}<br><br>int A(int a)<br>{<br>&nbsp;&nbsp;&nbsp; throw;<br>&nbsp;&nbsp;&nbsp; return 0; // 不可达，暂时忽略<br><br>}<br>void B(int x) {&nbsp;//to do something&nbsp;}<br>void C() { //to do something&nbsp; }<br>void D() { //to do something&nbsp; }<br><br>&nbsp;<br><br>这些方法调用是否面向对象，这不是我们要讨论的话题。但是不管怎么说，try{…}catch{…}finally{…}这种结构化的异常处理方式，至今还是在被广泛使用。<br><br>&nbsp;<br><br>结构化的一个特点，耦合性强，关联度高。就像流水线一样紧密结合。<br><br>让我们先看一下，这个调用流程：<br><br>首先执行方法A，如果A的调用未产生任何异常，则返回结果给B作为参数，调用B方法，如果方法B执行正常。则方法C不会被执行，直接跳到方法D开始执行。<br><br>如果方法A或B任何一方产生异常，执行将会被中止。调用将会跳转到方法C执行(当然前提是，该异常能被顺利捕获到)。最后再调用方法D。<br><br>&nbsp;<br><br>其实CLR在采用结构化的异常处理机制时，实现了一些帅选器和处理器等内部和语言机制，可参考《CLR Via C# 3.0》。但是，既然我们说这种异常处理方式是一种环环相扣的，类似于流式的，为什么我们不能模拟采用CPS来实现呢？<br><br>对于ABCD四个方法，我们都考虑两种情况（其实就是一种if …else….结构）一种情况：方法调用成功；一种情况方法调用失败。<br><br>于是，可以这样定义：<br><br>Action&lt;T&gt;:接受一个类型为T的参数，并且没有返回值；<br><br>void A(Action&lt;int&gt; normal, Action error);<br><br>void B(int x, Action normal, Action error) { whatever }<br>void C(Action normal, Action error) { whatever }<br>void D(Action normal, Action error) { whatever }<br><br>注：所有的normal，都可以想象为，我们通常不考虑异常的方法体，所有的error都可以认为对原方法体中出现异常的处理方法<br><br>&nbsp;<br><br><p><span class="code">这样对try块的处理逻辑抽象为：</span><br><br><span class="code">Try (<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> tryBody&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em>/ (bodyNormal, bodyError)=&gt;A(<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> normal for A </em>/&nbsp;&nbsp; x=&gt;B(x, bodyNormal, bodyError),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> error for A&nbsp; </em>/&nbsp;&nbsp; bodyError),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> catchBody&nbsp;&nbsp;&nbsp; </em>/ C,<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> outerNormal&nbsp; </em>/ ()=&gt;D(qNormal, qError),<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /<em> outerError&nbsp;&nbsp; </em>/ qError );<br>首先，从外部来看try块只能有两个出口：</span><br><br><span class="code">由try&mdash;&mdash;&gt;outerNormal，将执行：()=&gt;D(qNormal, qError)&nbsp; 用outerNormal</span><br><br><span class="code">try&mdash;&mdash;&gt;catchBody&nbsp;将执行：()=&gt;C(outerNormal,outerError)即为：：()=&gt;C(()=&gt;D(qNormal, qError),outerError)<br></span><br></p><p>而对于try体，则有：<span class="code">(bodyNormal, bodyError)=&gt;A(x=&gt;B(x, bodyNormal, bodyError), bodyError)；</span><br><br><span class="code">因此，展开就为：</span><br><br><span class="code"><span class="code">&nbsp;</span></span><br></p><p>&nbsp;<br><br>&nbsp;<br><br></p><br><br>A(<br>&nbsp; x=&gt;B(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // A’s normal continuation<br>&nbsp;&nbsp;&nbsp; x,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // B’s argument<br>&nbsp;&nbsp;&nbsp; ()=&gt;D(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // B’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qNormal,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qError),&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s error continuation<br>&nbsp;&nbsp;&nbsp; ()=&gt;C(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // B’s error continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="code">()=&gt;D(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // C’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qNormal,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qError)</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s error continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qError)),&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // C’s error continuation<br>&nbsp; ()=&gt;C(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // A’s error continuation<br>&nbsp;&nbsp;&nbsp; <span class="code">()=&gt;D(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // C’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qNormal,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s normal continuation<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span><span class="code">qError)</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // D’s error continuation<br>&nbsp;&nbsp;&nbsp; qError))&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // C’s error continuation<br><br>&nbsp;<br><br>如果C抛出异常则，continuation立刻被转入qError执行；<br><br>从可读性上来讲这当然不是一种非常好的实现方式。但这是一种思路，我们在编写一些前后关联性很强的方法调用时，并且方法调用不是很多时，可以采用这种做法。<br><br>&nbsp;<br><br>下面的实现很好地体现了CPS的流式调用(伪递归)和数据处理控制权的交接：<br><br>实现Factorial：<br><br>&gt; <pre class="code"><span style="color: blue;">static void </span>Main()<br>&gt;<br>&gt; {<br>&gt;<br>&gt;     Factorial(5, x =&gt; <span style="color: #2b91af;">Console</span>.WriteLine(x));<br>&gt;<br>&gt; }<br>&gt;<br>&gt;<br>&gt; <span style="color: blue;">static void </span>Factorial(<span style="color: blue;">int </span>n, <span style="color: #2b91af;">Action</span>&lt;<span style="color: blue;">int</span>&gt; k)<br>&gt;<br>&gt; {<br>&gt;<br>&gt;     <span style="color: blue;">if </span>(n == 0)<br>&gt;<br>&gt;         k(1);<br>&gt;<br>&gt;     <span style="color: blue;">else<br>&gt;<br>&gt;         </span>Factorial(n - 1, x =&gt; k(n * x));<br>&gt;<br>&gt; }</pre><br>&gt;<br>&gt; <pre class="code">当然CPS还有一个很有用的特性就是能够支持异步回调，在异步编程中很有用。</pre><br><p></p><br><p></p><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/02/25/C-continuation-passingstyle-CPS/" data-id="cii1bfdd5004hgaz2a2qtjoi8" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/03/12/Math-Round-——面试题小结/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Math.Round()——面试题小结
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/02/16/SQLServer如何处理到达数据库引擎的查询/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">SQLServer如何处理到达数据库引擎的查询</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-C-continuation-passingstyle-CPS" data-title="C#-continuation-passingstyle(CPS)" data-url="http://vinoyang.com/2011/02/25/C-continuation-passingstyle-CPS/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

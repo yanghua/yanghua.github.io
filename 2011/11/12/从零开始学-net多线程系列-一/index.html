@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>从零开始学.net多线程系列(一) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开始学.net多线程系列(一)">
+<meta property="og:url" content="http://vinoyang.com/2011/11/12/从零开始学-net多线程系列-一/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321021544RohH.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321021662MzXj.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_13210217472o62.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321021785135q.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022069ZL8K.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_13210221717SS4.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022258Jm76.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022317TBBm.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022419vdjj.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022508BTD9.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022555i9ii.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022659GVtv.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022737qMtR.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321022836g6nJ.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_1321023014DnIP.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_13210231808oeo.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201111/11/0_13210232492V5v.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从零开始学.net多线程系列(一)">
+<meta name="twitter:description">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-从零开始学-net多线程系列-一" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/11/12/从零开始学-net多线程系列-一/" class="article-date">
+  <time datetime="2011-11-11T22:56:00.000Z" itemprop="datePublished">2011-11-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      从零开始学.net多线程系列(一)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><a id="more"></a><br><br>本篇涉及话题：<br><br><strong><span style="font-size:13px">什么是进程</span></strong><br><br><strong><span style="font-size:13px">时间片</span></strong><br><br><strong><span style="font-size:13px">多线程的进程</span></strong><br><br><strong><span style="font-size:13px">线程本地存储(TLS)</span></strong><br>&gt; <span style="font-size:13px">中断</span>&gt; &gt; &gt;<br>&gt;<br>&gt; <span style="font-size:13px">线程睡眠和时钟中断</span><br>&gt; &gt; <span style="font-size:13px">线程退出/完成<br>&gt; </span><span style="font-size:13px"><strong>什么是AppDomain</strong><br></span>&gt; &gt;<br>&gt;<br>&gt; <span style="font-size:13px">为什么你应该使用AppDomain</span><br>&gt;<br>&gt; <span style="font-size:13px">给AppDomain设置数据</span><br>&gt; &gt; <span style="font-size:13px">NUnit与AppDomain<br>&gt; </span><br><br><strong><span style="font-size:13px">线程优先级</span></strong><br>&gt; <span style="font-size:13px">启动线程</span>&gt; &gt; <span style="font-size:13px">回调<br>&gt; </span><strong><span style="font-size:13px">回顾与展望</span></strong><br><br>——————————————————————————————————————————————————————-<br><br><strong>
+</strong><br><br><span style="font-size:24px"><strong>什么是进程</strong></span><br><br>当一个用户开启一个应用程序，系统会为应用程序分配存储空间和所有需要的资源。而存储空间和资源的物理隔离被称之为进程。一个应用程序可能开启不止一个进程。认识到应用程序进程不是同一个概念是很重要的。<br><br>你应该知道在windows操作系统下，使用任务管理器，可以看到所有正在运行进程和应用程序。<br><br>这里是我正在使用的计算机中正在运行的应用程序：<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321021544RohH.gif" alt=""><br><br>下面是一个进程列表，你可以看到有比上面更多的进程正在运行。应用程序可能有不止一个进程参与，并且每一个进程都有它自己独立的数据，执行代码和系统资源（与其他进程的数据是隔离的）。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321021662MzXj.gif" alt=""><br><br>你可能已经注意到上面有一栏显示这CPU的利用率。这下面“隐藏”着这样一个事实：每一个进程都有供计算机的CPU使用的执行序列。该执行序列通常被称之为线程。线程被CPU使用的寄存器定义得，线程使用堆栈，并且有一个容器(Thread Local Storage, TLS)来跟踪线程的状态。<br><br>创建一个进程包含着在一个指令点开启进程运行的过程。这通常被称之为私有或者主线程。该线程的执行序列很大程度上取决于用户代码的编写。<br><br><strong><span style="font-size:24px">时间片</span></strong><br><br>随着所有这些进程都在想要获得CPU时间周期的一个时间片，怎么管理呢？其实，每一个进程可以使用CPU的时间都被限定在一个时间片之内。而该时间片永远都不应该认为它是一个常量。它受到操作系统和CPU类型的影响。<br><br><strong><span style="font-size:24px">多线程的进程</span></strong><br><br>如果我们需要我们的进程做不止一件事，比如像同时查询一个Web Service以及数据库写操作？我们可以将进程进行分割以共享分配给它的时间片。通过在当前进程中创建新线程。这些额外的线程有时被称之为工作线程。这些工作线程共享着进程的内存空间，该内存空间是与系统中所有其他进程相互隔离的。在同一进程内“孵化”出的新线程的概念被称之为<strong>自由线程</strong>。<br><br>如果你熟悉VB 6.0，那你肯定知道“套间”线程。这里每一个新的线程都创建在它的主进程之内，并且被分配有它自己的数据。所以这里线程之间是不能共享数据的。让我们看几幅图，因为它确实很重要。<br><img src="http://hi.csdn.net/attachment/201111/11/0_13210217472o62.gif" alt=""><br><br>采用这种模型，每次你想做某些后台工作，它都发生在它自己的进程中，所以它被称之为<strong>Out Of Process</strong>。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321021785135q.gif" alt=""><br><br>在自由线程的模型中，我们能通过CPU使用同一进程的数据来执行一个额外的线程。这会比单独的线程套间更高效，因为随着具有了共享同一进程的数据的能力，我们获得了额外线程所有的增值收益。<br><br><strong>注</strong>：在单处理器的操作系统中，最终在同一时间还是只有一个线程在运行。<br><br>如果我们回到上面的任务管理器，切换到包含线程总数的视图，我们可以看到类似下面的界面：<br>首先，点击任务管理器的“查看”选项卡，选择：“选择列菜单”，进入如下界面：<br><br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022069ZL8K.gif" alt=""><br><br>点击确定，就可以查看进程的线程数了：<br><br><img src="http://hi.csdn.net/attachment/201111/11/0_13210221717SS4.gif" alt=""><br><br>它很清晰地展示了每一个进程有不止一个线程。所以，它是如何做时间分配和状态信息管理的？我们将在下一节谈论它。<br><br><strong><span style="font-size:24px">线程本地存储(TLS)</span></strong><br><br>当一个线程的时间片已经失效，它不是仅仅停止然后等待下一轮。再次重申，一个CPU在一个时间点上一次只能运行一个线程，所以当前线程需要被替换为另一个线程来获得一个CPU的时间。在这发生之前，当前线程的状态信息需要被存储以保证它下次的正确执行。这就是TLS的作用。存储在TLS中的寄存器之一是程序计数器，由它来告诉线程下面将由哪个程序运行。<br><br><strong><span style="font-size:16px">中断</span></strong><br><br>进程并不需要彼此知道它们是如何被正确地安排执行的。那真的是操作系统的工作。甚至操作系统有一个主线程，有时被称之为系统线程，它来安排所有其他线程的执行时间。它通过中断来完成。中断是一种机制，它能导致正常的执行流入到计算机内存中其他没有执行程序能力的分支。<br><br>操作系统决定线程执行多长时间，并且它会再当前线程的执行序列中放置一个指令。一旦中断在指令集中，它就是一个“软中断”它不同于“硬件中断”。<br><br>中断是一个到处使用的功能，但它确实一个最简单的微处理器，来允许硬件驱动的请求。当接收到一个中断，一个微处理器将暂停执行正在运行的代码，并跳转到一个特殊的程序，该程序称之为中断处理程序。<br><br>其中的一个中断在所有的现代计算机中称之为计时器，它的功能是“定期操作”。该处理器采用传统式的某些计数器，看是否有感兴趣的事情发生，如果没有任何它感兴趣的事情，则直接返回。在windows操作系统下，有兴趣的事情之一就是一个线程的时间片到期。当该“感兴趣”的事情发生时，windows将强制来从被中断的线程中恢复一个不同的线程。<br><br>一旦一个中断发生，操作系统会允许线程的执行。当线程进入中断模式，操作系统会使用一个特别的函数（称之为中断处理器）来存储线程的状态到TLS中。一旦线程的时间片到期，它将会被移动到线程队列的末尾，并给予它优先级（稍后讨论）来等待它下一轮被调用的机会。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022258Jm76.gif" alt=""><br><br>如果一个线程没有执行结束或者需要继续执行，这种机制可以满足要求。那如果线程决定它不再需要更多的CPU时间(也许它正在等待一个资源)，那么它的时间片会转让给另一个线程吗？<br><br>这是由程序员和操作系统决定的。程序员作“让步”（通常使用Sleep()方法），线程然后清除操作系统可能在它堆栈里发生的任何中断。一个软件中断然后被执行。而该线程被存储在TLS里，然后像之前一样被移动到队列的最后。<br><br>操作系统可能已经在线程栈上发生了一个中断，但在线程被调出执行之前它必须被清除。否则，当线程再次执行，它可能会像它之前那样被中断。谢天谢地，操作系统会替我们完成这个任务。<br><br><strong><span style="font-size:16px">线程睡眠和时钟中断</span></strong><br><br>就像我们刚才说到的，一个线程可能决定为了等待某些资源而让出它的CPU执行时间，但该时间可能会很短，也可能会很长，它甚至可能会是10或者20分钟。所以，程序员可能会选择让线程睡眠，这会导致线程被放入TLS中。但它并不是被放入可运行队列中。它会被放入一个<strong>sleep queue</strong>，为了让处在睡眠队列中的线程再次运行，他们需要一个不同种类的中断，我们通常称其为一个<strong>时钟中断</strong>。当一个线程进入睡眠队列，一个新的时钟中断被排入“时间表”，来记得唤醒线程。当一个时钟中断匹配到睡眠队列中的一个线程，该线程就会被移入“可运行队列”中。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022317TBBm.gif" alt=""><br><br><strong><span style="font-size:16px">线程退出/完成</span></strong><br><br>一切都将会有个“了断”。当一个线程完成任务或者被“编程”终止，该线程的TLS将被收回。而进程的数据仍然保持着（记住，数据是被进程的所有线程共享的，所以这里可能会不止一个线程），并且只有当进程它自身被停止之后，才会被回收。<br><br>所以，我们已经谈论了一点关于调度的话题了，但是我们说过了TLS用来为线程存储他们的状态，它是怎么做的呢？下面是来自MSDN的一段原话：<br><br>“<em>线程使用一个本地内存存储的方案来存储线程特殊数据。每一个进程被创建时，CLR(公共语言运行时)分配一个多槽数据存储数组给他们。线程可以在数据存储区内分配一个数据“插槽”，来存储和接受一个数据值，并且在线程失效后还能够释放该“插槽”以供复用。数据“插槽”对每个线程来讲是唯一的。没有其他线程(甚至是一个子线程)能获得该数据。</em><br><br><em>如果命名的插槽不存在，一个新插槽将被分配。命名的数据插槽都是公有的，并且可以被任何人操作</em>。”<br><br>这里讲得很概括，让我们看看MSDN的代码<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace TLSDataSlot<br>{<br>    class Program<br>    {<br>        static void Main()<br>        {<br>            Thread[] newThreads = new Thread[4];<br>            for (int i = 0; i &lt; newThreads.Length; i++)<br>            {<br>                newThreads[i] =<br>                    new Thread(new ThreadStart(Slot.SlotTest));<br>                newThreads[i].Start();<br>            }<br>        }<br>    }<br><br>    class Slot<br>    {<br>        static Random randomGenerator = new Random();<br><br>        public static void SlotTest()<br>        {<br>            // Set different data in each thread’s data slot.<br>            Thread.SetData(<br>                Thread.GetNamedDataSlot(&quot;Random&quot;),<br>                randomGenerator.Next(1, 200));<br><br>            // Write the data from each thread’s data slot.<br>            Console.WriteLine(&quot;Data in thread<em>{0}’s data slot: {1,3}&quot;,<br>                AppDomain.GetCurrentThreadId().ToString(),<br>                Thread.GetData(<br>                Thread.GetNamedDataSlot(&quot;Random&quot;)).ToString());<br><br>            // Allow other threads time to execute SetData to show<br>            // that a thread’s data slot is unique to the thread.<br>            Thread.Sleep(1000);<br><br>            Console.WriteLine(&quot;Data in thread</em>{0}’s data slot is still: {1,3}&quot;,<br>                AppDomain.GetCurrentThreadId().ToString(),<br>                Thread.GetData(<br>                Thread.GetNamedDataSlot(&quot;Random&quot;)).ToString());<br><br>            // Allow time for other threads to show their data,<br>            // then demonstrate that any code a thread executes<br>            // has access to the thread’s named data slot.<br>            Thread.Sleep(1000);<br><br>            Other o = new Other();<br>            o.ShowSlotData();<br>            Console.ReadLine();<br>        }<br>    }<br><br>    public class Other<br>    {<br>        public void ShowSlotData()<br>        {<br>            // This method has no access to the data in the Slot<br>            // class, but when executed by a thread it can obtain<br>            // the thread’s data from a named slot.<br>            Console.WriteLine(<br>                &quot;Other code displays data in thread_{0}’s data slot: {1,3}&quot;,<br>                AppDomain.GetCurrentThreadId().ToString(),<br>                Thread.GetData(<br>                Thread.GetNamedDataSlot(&quot;Random&quot;)).ToString());<br>        }<br>    }<br>}</pre><br><br>这可能会产生下面的输出：<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022419vdjj.gif" alt=""><br><br>可以看到上面的两个方法的使用：<br><br><em>   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;GetNamedDataSlot：查找一个已命名的插槽
+</em>   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;SetData：为当前线程的特殊插槽设置数据<br><br>当然这里还有另外一种方法，我们也可以使用ThreadStaticAttribute&nbsp;，这意味着该值对每一个线程是唯一的。让我们看看MSDN的例子：<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace ThreadStatic<br>{<br>    class Program<br>    {<br>        static void Main(string[] args)<br>        {<br>            for (int i = 0; i &lt; 3; i++)<br>            {<br>                Thread newThread = new Thread(ThreadData.ThreadStaticDemo);<br>                newThread.Start();<br>            }<br>        }<br>    }<br><br>    class ThreadData<br>    {<br>        [ThreadStaticAttribute]<br>        static int threadSpecificData;<br><br>        public static void ThreadStaticDemo()<br>        {<br>            // Store the managed thread id for each thread in the static<br>            // variable.<br>            threadSpecificData = Thread.CurrentThread.ManagedThreadId;<br><br>            // Allow other threads time to execute the same code, to show<br>            // that the static data is unique to each thread.<br>            Thread.Sleep(1000);<br><br>            // Display the static data.<br>            Console.WriteLine(&quot;Data for managed thread {0}: {1}&quot;,<br>                Thread.CurrentThread.ManagedThreadId, threadSpecificData);<br>        }<br>    }<br>}</pre><br><br>这段代码可能会产生如下的输出：<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022508BTD9.gif" alt=""><br><br><strong><span style="font-size:24px">什么是AppDomain</span></strong><br><br>当我们在一开始谈论进程的时候，我提到进程有它独立的物理内存和需要他们自行管理的资源。并且我还提到一个进程至少有一个线程。微软也引入了一个额外的抽象/隔离层，称之为AppDomain。AppDomain不是一个物理上的隔离，而是相当于在线程内的逻辑隔离。一旦不止一个AppDomain可以在一个进程内共存，我们能得到很多好处。例如，在我们拥有一个AppDomain之前，进程需要访问彼此的数据不得不使用一个代理，而这也引入了额外的代码和开销。通过使用一个AppDomain，在相同的进程中启动多个应用程序成为了可能。和进程存在的隔离相同的排序也存在于AppDomain中。线程可以跨应用程序域执行而不需要内部进程通信的额外开销。这所有的一切都被封住在AppDomain类中。任何时候一个应用程序的一个命名空间被加载，它都被加载到一个AppDomain中。除非其他的特殊情况，否则AppDomain的使用将和调用代码一样。一个AppDomain可能包含线程，也可能不包含，这不同于进程。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022555i9ii.gif" alt=""><br><br><strong><span style="font-size:16px">为什么你应该使用AppDomain</span></strong><br><br>就像我在上面声明的一样，AppDomain是一个更深层次的隔离/抽象，并且他们处在一个进程中。那么为什么要使用AppDomain呢？<br><br>有一个很好的例子能说明这个问题：<br><br>我有一些私有的代码需要在一个独立的AppDomain中执行。这些代码用来做一个使用反射机制查看当前项目DLL文件的Visual Studio插件。不在一个隔离的AooDomain中查看DLL，程序员对该项目的任何改变将无法在反射中查看到，除非他们重启Visual Studio。确实是这样——一旦一个AppDomain加载一个程序集，它就不能被卸载。<br><br>所以，我们可以看到一个AppDomain可以被用来动态加载程序集，然后整个AppDomain可以被安全地“销毁”而不会对线程产生任何影响。我觉得这说明了一个AppDomain给我们的抽象/隔离。<br><br>NUnit也使用了该技术，但是不仅仅是上面提到的这些。<br><br><strong><span style="font-size:16px">设置AppDomain的数据</span></strong><br><br>让我们看一个例子关于怎样处理AppDomain 的数据：<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace AppDomainData<br>{<br>    class Program<br>    {<br>        static void Main(string[] args)<br>        {<br>            Console.WriteLine(&quot;Fetching current Domain&quot;);<br>            //use current AppDomain, and store some data<br>            AppDomain domain = System.AppDomain.CurrentDomain;<br>            Console.WriteLine(&quot;Setting AppDomain Data&quot;);<br>            string name = &quot;MyData&quot;;<br>            string value = &quot;Some data to store&quot;;<br>            domain.SetData(name, value);<br>            Console.WriteLine(&quot;Fetching Domain Data&quot;);<br>            Console.WriteLine(&quot;The data found for key {0} is {1}&quot;,<br>                name, domain.GetData(name));<br>            Console.ReadLine();<br>        }<br>    }<br>}</pre><br><br>这也会产生一个让人相当不兴奋的输出：<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022659GVtv.gif" alt=""><br><br>在一个特殊的AppDomain里面执行代码呢？让我们来看看：<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace LoadNewAppDomain<br>{<br>    class Program<br>    {<br>        static void Main(string[] args)<br>        {<br>            AppDomain domainA = AppDomain.CreateDomain(&quot;MyDomainA&quot;);<br>            AppDomain domainB = AppDomain.CreateDomain(&quot;MyDomainB&quot;);<br>            domainA.SetData(&quot;DomainKey&quot;, &quot;Domain A value&quot;);<br>            domainB.SetData(&quot;DomainKey&quot;, &quot;Domain B value&quot;);<br>            OutputCall();<br>            domainA.DoCallBack(OutputCall); //CrossAppDomainDelegate call<br>            domainB.DoCallBack(OutputCall); //CrossAppDomainDelegate call<br>            Console.ReadLine();<br>        }<br><br>        public static void OutputCall()<br>        {<br>            AppDomain domain = AppDomain.CurrentDomain;<br>            Console.WriteLine(&quot;the value {0} was found in {1}, running on thread Id {2}&quot;,<br>                domain.GetData(&quot;DomainKey&quot;),domain.FriendlyName,<br>                Thread.CurrentThread.ManagedThreadId.ToString());<br>        }<br>    }<br>}</pre><br><br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022737qMtR.gif" alt=""><br><br><strong><span style="font-size:16px">NUnit和AppDomain</span></strong><br><br>下面是我在Nunit官网上看到的一段话：<br><br><em>使用AppDomain和拷贝副本，动态重新加载一个程序集。如果你加入或者修改测试，这也会被应用。该程序集将会被重新加载并且显示将会被自动更新。拷贝副本使用一个可配置的目录来得可执行的(nunit-gui和nunit-console)配置文件。</em><br><br><em>Nunit是.net Framework专家开发的。如果你查看Nunit的源码，你可以看到他们知道怎样动态创建一个AppDomain并且将程序集加载到这些appdomain里面去。为什么一个动态的AppDomain是如此的重要？动态AppDomain让Nunit做的事就是在让Nunit处在打开的状态下，而同时允许你编译，测试，修改，再编译，再测试代码的时候却不需要关闭它。你能这么做，都是因为Nunit拷贝了你程序集的副本，将它们加载到动态AppDomain中去，并且使用一个“文件观察器”来“观察”你是否改动了文件。如果你确实改变了你的程序集，Nunit将完全卸载动态AppDomain，然后重新拷贝这些文件，并创建一个新的AppDomain，以准备重新测试。</em><br><br>本质上来看，Nunit所做的事情只是将这些测试程序集“宿主”到一个独立的AppDomain中。并且因为AppDomain是孤立的，所以它们可以在不影响它们所属进程的情况下被卸载。<br><br>&nbsp;<br><br><strong><span style="font-size:24px">线程优先级</span></strong><br><br>就像人类生活的真实世界一样，人的社会地位也分“三六九等”，线程也一样。程序员就可以决定那些线程的优先级（终于当家做主了）。但，最终还是线程的“接受者”来决定什么是应该被立即执行的，什么是可以等待的（看起来社会还是需要有法纪的，否则岂不是乱套了）。<br><br>Windows使用一个从0-31级别的优先级系统，这里31是最高级别的。任何高于15的优先级的线程，都必须拥有管理员身份才可运行。拥有在16-31之前优先级的线程被认为是“实时”的，它们将抢先于低优先级的线程。想想有关于驱动/输入设备，这些都将运行在16-31之间的优先级上。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321022836g6nJ.gif" alt=""><br><br>在Window操作系统上，有一个调度系统（采用传统的循环赛法），那里每一个优先级都有一个对应的线程队列。所有有最高权限的线程都被首先分配有一些CPU时间，然后是下一级别的线程被分配。如果一个新线程以一个更高的优先级出现，那么当前线程被抢占，让新的更高级别优先级的线程运行。而如果在其他优先级队列中没有更高优先级的线程，该低级别优先级的线程才会被调度。<br><br>如果我们再次运行任务管理器，我们可以看到让一个进程拥有更高级别的优先级是可以做到的，这将能使任何新派生的线程有更高的机会被调度执行（给予它CPU时间）。<br><img src="http://hi.csdn.net/attachment/201111/11/0_1321023014DnIP.gif" alt=""><br><br>但是，当我们编写代码的时候，我们也有这样的选项。因为System.Threading.Thread类提供了一个Priority属性。如果我们查看MSDN，我们可以看到如下的内容：<br><br>一个线程可以被分配有任何如下的优先级值：<br><br><em>   Highest
+</em>   AboveNormal<br><em>   Normal
+</em>   BelowNormal<br><em>   Lowest<br><br>注意：操作系统并不要求给线程冠以优先级<br><br>例如，一个操作系统可能会“衰变”分配给高优先级线程的优先级，或者否则就动态调整对系统中其他线程“相对公平”的优先级。一个高优先级的线程，作为一种编排，可以被低优先级的线程抢占。另外，大部分的操作系统都有无限的调度延时：系统的线程越多，操作系统安排一个线程执行的时间就会越长。任何一个因素都可能导致一个高优先级的线程失去它的“最后期限”，甚至在一个快速的CPU上也会发生这样的情况。<br><br>同样可以说，以编程的方式可以设置一个用户创建的线程为最高优先级的线程。所以，接收忠告吧，当为线程设置优先级的时候，时刻保持清醒！<br><br><strong><span style="font-size:16px">启动线程</span></strong><br><br>开始一个新线程的执行是一件相当容易的事情。我们只需要使用Thread的其中一个构造器，例如：
+
+</em>   Thread(ThreadStart)<br><em>   Thread(ParameterizedThreadStart)<br><br>当然，还有其他的，但这些是开始一个线程最通用的方式。让我们看看每一个例子吧：<br><br>无参：<br><pre name="code" class="csharp">Thread workerThread = new Thread(StartThread);<br>Console.WriteLine(&quot;Main Thread Id {0}&quot;,<br>    Thread.CurrentThread.ManagedThreadId.ToString());<br>workerThread.Start();<br><br>….<br>….<br>public static void StartThread()<br>{<br>    for (int i = 0; i &lt; 10; i++)<br>    {<br>        Console.WriteLine(&quot;Thread value {0} running on Thread Id {1}&quot;,<br>            i.ToString(),<br>            Thread.CurrentThread.ManagedThreadId.ToString());<br>    }<br>}</pre><br><br>单个参数：<br><pre name="code" class="csharp">//using parameter<br>Thread workerThread2 = new Thread(ParameterizedStartThread);<br>// the answer to life the universe and everything, 42 obviously<br>workerThread2.Start(42);<br>Console.ReadLine();<br><br>….<br>….<br>public static void ParameterizedStartThread(object value)<br>{<br>    Console.WriteLine(&quot;Thread passed value {0} running on Thread Id {1}&quot;,<br>        value.ToString(),<br>        Thread.CurrentThread.ManagedThreadId.ToString());<br>}</pre><br><br>将它们放到一起，我们可以看到一个简单的程序——一个主线程和两个工作线程：<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace StartingThreads<br>{<br>    class Program<br>    {<br>        static void Main(string[] args)<br>        {<br>            //no parameters<br>            Thread workerThread = new Thread(StartThread);<br>            Console.WriteLine(&quot;Main Thread Id {0}&quot;,<br>                Thread.CurrentThread.ManagedThreadId.ToString());<br>            workerThread.Start();<br><br>            //using parameter<br>            Thread workerThread2 = new Thread(ParameterizedStartThread);<br>            // the answer to life the universe and everything, 42 obviously<br>            workerThread2.Start(42);<br>            Console.ReadLine();<br>        }<br><br>        public static void StartThread()<br>        {<br>            for (int i = 0; i &lt; 10; i++)<br>            {<br>                Console.WriteLine(&quot;Thread value {0} running on Thread Id {1}&quot;,<br>                    i.ToString(),<br>                    Thread.CurrentThread.ManagedThreadId.ToString());<br>            }<br>        }<br><br>        public static void ParameterizedStartThread(object value)<br>        {<br>            Console.WriteLine(&quot;Thread passed value {0} running on Thread Id {1}&quot;,<br>                value.ToString(),<br>                Thread.CurrentThread.ManagedThreadId.ToString());<br>        }<br>    }<br>}</pre><br><br>输出：<br><img src="http://hi.csdn.net/attachment/201111/11/0_13210231808oeo.gif" alt=""><br><br><strong><span style="font-size:16px">回调</span></strong><br><br>你刚才已经看到了关于创建线程的简单示例了。<br><br>我们还没有看到的是在线程之间的同步管线。<br><br>线程运行在应用程序代码的其他部分的顺序之外，所以你永远也不能确信事件的发生顺序。也就是说，我们不能保证一个使用共享资源的线程将在另一个线程上的代码运行之前产生作用。<br><br>我将在随后的文章中阐述关于此更多的细节。但是现在，让我们考虑一个使用计时器的小例子。使用一个计时器，我们可以指定一个方法在某个时间间隔被调用，并且在继续调用之前，可以查看一些数据的状态。这是一个非常简单的模型，下一篇文章，将展示更多同步技术的优势的更多细节。但是，现在我们仅仅使用一个计时器来简单说明一下问题。<br><br>让我们看一个非常简单的例子。它开启一个工作线程和一个计时器。主线程进入一个循环，等待一个标识被设置为“真”这一操作的完成。在允许被“阻塞”的主线程继续执行(通过设置完成标识为“真”)之前，计时器在等待来自工作线程的一个消息——Completed。<br><pre name="code" class="csharp">using System;<br>using System.Threading;<br><br>namespace CallBacks<br>{<br>    class Program<br>    {<br>        private string message;<br>        private static Timer timer;<br>        private static bool complete;<br><br>        static void Main(string[] args)<br>        {<br>            Program p = new Program();<br>            Thread workerThread = new Thread(p.DoSomeWork);<br>            workerThread.Start();<br><br>            //create timer with callback<br>            TimerCallback timerCallBack =<br>                new TimerCallback(p.GetState);<br>            timer = new Timer(timerCallBack, null,<br>                TimeSpan.Zero, TimeSpan.FromSeconds(2));<br><br>            //wait for worker to complete<br>            do<br>            {<br>                //simply wait, do nothing<br>            } while (!complete);<br><br>            Console.WriteLine(&quot;exiting main thread&quot;);<br>            Console.ReadLine();<br>        }<br><br>        public void GetState(Object state)<br>        {<br>            //not done so return<br>            if (message == string.Empty) return;<br>            Console.WriteLine(&quot;Worker is {0}&quot;, message);<br>            //is other thread completed yet, if so signal main<br>            //thread to stop waiting<br>            if (message == &quot;Completed&quot;)<br>            {<br>                timer.Dispose();<br>                complete = true;<br>            }<br>        }<br><br>        public void DoSomeWork()<br>        {<br>            message = &quot;processing&quot;;<br>            //simulate doing some work<br>            Thread.Sleep(3000);<br>            message = &quot;Completed&quot;;<br>        }<br>    }<br>}</pre><br><br>这或许会是下面这样的结果：<br><img src="http://hi.csdn.net/attachment/201111/11/0_13210232492V5v.gif" alt=""><br><br><span style="font-size:24px"><em>*回顾与展望</em></span></em><br><br>到这里本期讨论的所有主题都已经结束了。<br><br>下篇将谈论：线程的生命周期、线程的机会以及产生的陷阱等等，敬请期待！<br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/11/12/从零开始学-net多线程系列-一/" data-id="cii1bfda1002jgaz2gfse1v1f" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/11/20/异步调用Web服务方法/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          异步调用Web服务方法
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/11/08/分布式命令模式——互联系统的一种可扩展的命令模式/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">分布式命令模式——互联系统的一种可扩展的命令模式</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-从零开始学-net多线程系列-一" data-title="从零开始学.net多线程系列(一)" data-url="http://vinoyang.com/2011/11/12/从零开始学-net多线程系列-一/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

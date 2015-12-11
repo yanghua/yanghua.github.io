@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>多映射通用集合类(C#实现)--支持一键多值存储 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content=".net的通用Dictionary集合类有一个“键”唯一约束。考虑这样一种情况：你想在Dictionary中存Author Name以及Articles。首先，你想加入Bob-&amp;gt;Article_Good_One,而当你想加入Bob-&amp;gt;Article_Good_Second，你将得到一个异常。这是因为Dictionary的唯一键约束。Dictionary拒绝接受相同的key，因为它要求键">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多映射通用集合类(C#实现)--支持一键多值存储">
+<meta property="og:url" content="http://vinoyang.com/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content=".net的通用Dictionary集合类有一个“键”唯一约束。考虑这样一种情况：你想在Dictionary中存Author Name以及Articles。首先，你想加入Bob-&amp;gt;Article_Good_One,而当你想加入Bob-&amp;gt;Article_Good_Second，你将得到一个异常。这是因为Dictionary的唯一键约束。Dictionary拒绝接受相同的key，因为它要求键">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316942763QoA0.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_13169428630naR.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316942935boI0.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316943033bjjG.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_13169430991gVG.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316943181n18W.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316943244RfCf.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316955318ZuBq.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316956040XGK8.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316955569tNno.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_13169556436CZW.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316955725POPu.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316955761oi6v.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_1316955831IAyY.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201109/25/0_13169558850EdB.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="多映射通用集合类(C#实现)--支持一键多值存储">
+<meta name="twitter:description" content=".net的通用Dictionary集合类有一个“键”唯一约束。考虑这样一种情况：你想在Dictionary中存Author Name以及Articles。首先，你想加入Bob-&amp;gt;Article_Good_One,而当你想加入Bob-&amp;gt;Article_Good_Second，你将得到一个异常。这是因为Dictionary的唯一键约束。Dictionary拒绝接受相同的key，因为它要求键">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-多映射通用集合类-C-实现-支持一键多值存储" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/" class="article-date">
+  <time datetime="2011-09-25T21:02:00.000Z" itemprop="datePublished">2011-09-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      多映射通用集合类(C#实现)--支持一键多值存储
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>.net的通用Dictionary集合类有一个“键”唯一约束。考虑这样一种情况：你想在Dictionary中存Author Name以及Articles。首先，你想加入Bob-&gt;Article_Good_One,而当你想加入Bob-&gt;Article_Good_Second，你将得到一个异常。这是因为Dictionary的唯一键约束。Dictionary拒绝接受相同的key，因为它要求键唯一。<br><br><a id="more"></a><br><br>Dictionary类被设计成对搜索具有很高的性能。而多映射类在你想让搜索具有很高的性能以及让它可以为一个相同的键增加多个&#20540;的时候可以使用。<br><br><strong><span style="font-size:16px">背景</span></strong><br><br>Dictionary通用集合是一个很好的数据结构。很多的一种情况，在程序开发或者开发服务的时候，我们需要为一个通常的Key存储多个value。一个简单的例子就是一个人有多个电话号码，而访问级别需要基于人。<br><br>使用Dictionary时，代码大致如下：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316942763QoA0.gif" alt=""><br><br>现在让我们来看一下，使用多映射类集合类，怎样来实现这个简单的例子：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_13169428630naR.gif" alt=""><br><br>第一行创建了一个MultiMapBK对象。接下来的四行加入了四个人以及他们的电话号码。然后，我们需要为这四个人设置其他的&#20540;。接下来的一些行用来检索“Mai”以及打印所有的&#20540;。<br><br><strong><span style="font-size:16px">多映射集合类的说明</span></strong><br><br>下面的图片解释了MultiMapBK的内部数据结构。<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316942935boI0.gif" alt=""><br><br>就像上面的图片显示的，每一个&#20540;都被存储在一个List对象中。而List能够为一个key存储超过一个value。<br><br>而这个多映射集合类也是类型安全和线程安全的。它也支持当一个线程在修改集合时，另一个线程可以枚举它。<br><br><strong><span style="font-size:16px">什么是一个多映射集合</span></strong><br><br>它最基本的功能是为一个键存储多个&#20540;，然而同时，它也是一个“并发”集合。下面的图片给出了一个多映射能够实现的功能。<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316943033bjjG.gif" alt=""><br><br><strong><span style="font-size:16px">使用代码</span></strong><br><br>使用这个集合类需要下面的几个步骤：<br><br>1）&nbsp; 在VS2005或者2008的解决方案中，右击“引用”<br><br>2）&nbsp; 点击“添加引用”同时加入下载下来的MultiMap.dll【附于文章结束的链接中，自行下载】<br><br>现在，让我们来看一下，如何使用这段代码<br><br>&nbsp; 1、&nbsp; 怎样定义以及为该集合加入元素：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_13169430991gVG.gif" alt=""><br><br>上面的第一行创建了一个新的集合对象。2,3,4行加入了几个元素。注意，键“Alice”在所有的三个记录中是相同的。<br><br>&nbsp; 2、 &nbsp;怎样从集合中读取元素<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316943181n18W.gif" alt=""><br><br>1,2,3,4行创建以及实例化了一个集合，第五行获得了一个枚举器来枚举集合中的每一个元素。第七行，使用了MoveNext()来读取一个特殊键（Alice）的每一个&#20540;。<br><br>&nbsp; 3、 怎样来快速定位一个特别的项并打印出其所有的&#20540;<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316943244RfCf.gif" alt=""><br><br><strong><span style="font-size:16px">多映射集合的设计</span></strong><br><br><strong>&nbsp; &nbsp; 内部使用的数据结构</strong><br><br>基本的内部结构如下图：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316955318ZuBq.gif" alt=""><br><br>如上面所说的，Dictionary&lt;Key, List&lt;Value&gt;&gt;是用来为一个相同的键存储多个&#20540;得数据结构。<br><br><strong>线程访问场景一</strong><br><br>和通常的设计一样，为了线程安全，集合类在增加，修改，以及删除的时候是被锁住的。它产生了一个很小的(通常是毫秒级别的)开销。但是为这个类的使用者提供了巨大的灵活性。这样这个集合类的使用者就不需要再担心线程安全，同步等问题。<br><br>考虑这样一种情况:线程1正在读取集合中第五键的&#20540;。现在，线程2将该&#20540;删除。那么线程一的下一次读取应该返回null。锁住内部的数据结构可以完成这个功能。<br><br><strong>线程访问场景二</strong><br><br>下一个场景是线程感知。考虑这样一种情况，两个不同的线程都正在枚举同一个键，该键有100个&#20540;，正如下面的图片显示的：<br><br><strong><img src="http://hi.csdn.net/attachment/201109/25/0_1316956040XGK8.gif" alt=""></strong><br><br>现在，当线程2被实例化来读取Key_5的&#20540;的时候，线程1已经读取了该键的5个&#20540;。而现在，下一次对MultiMap’s GetCurrentItem方法的调用，需要知道返回哪一个&#20540;。例如，是对线程1来讲的第六个&#20540;还是对线程2来讲的第一个&#20540;。为了应对这样的情况，MultiMap存储了线程的明细在一个独立的集合中。它检索一个&#20540;来查看哪个&#20540;是被哪个线程最后一次读取的。使用线程的明细，MultiMap将能够为正确的线程存储正确的&#20540;。而用多线程执行下面的代码，也仍然是正确的：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316955569tNno.gif" alt=""><br><br><strong>线程访问场景三</strong><br><br>下一步是完成在枚举时的线程安全。<br><br>考虑如下的场景，线程一使用MoveNext()来获取Current属性。与此同时，线程2删除了被线程1“命中”的当前项。如果这个场景不被处理，我们将会在线程1上看到一个有趣的“NullReferenceException”异常。一个基本的想法就是：当线程1调用MoveNext()方法的时候，让它拥有该Current属性。然而，当线程2企图删除线程1的Current时，有两个选择提供给线程2。选择1：线程2可以阻塞“删除”，直到线程一调用MoveNext方法或者移动到下一项时，删除调用才返回。选择2：线程2可以采用不阻塞地调用删除方法，并且调用可以立即返回。但该项将被标识为“删除项”，但此时仍然存在。当线程1从该被标识的项上移走时，该项将会被安全地从集合中删除。<br><br>为了简便起见，让我们离开这些并发场景。然而，主要的并发问题被列举在下一节中。<br><br><strong><span style="font-size:16px">解决并发问题</span></strong><br><br>讨论所有的并发问题的处理，将会使这篇文章变得非常长。然而，列举出那些需要被处理的并发问题，却是很有用的：<br><br>1）&nbsp; 多线程更新(或者插入)，在同一个MultiMap集合的实例上。项以它们接受到的顺序添加。<br><br>2）&nbsp; 在不同的线程之间枚举。例如，一个线程创建了一个枚举器，但是被传递给另一个线程使用？允许，甚至允许在更多的线程之间共享同一个枚举器的实例，每一个线程将获得它自己正确的“next_item”(在方法MoveNext上)和Current。<br><br>3）&nbsp; 一个线程从集合中删除一项，而此时另一个线程正在枚举或者读取相同的项？允许。一旦线程通过读取元素的MoveNext方法，或thread_abort或thread_close离开该元素，那么删除将生效。然而，有趣的是，当删除这个项的线程再次枚举该删除的项(通过Reset方法)，那将不能看到被删除的项。这也将应用在任何{除了正在读取被删除元素的线程之外的}所有线程。<br><br>4）&nbsp; 多线程同时删除同一个项？如果没有其他的线程正在访问该元素，它将被安全地删除。<br><br>5）&nbsp; 一个线程正在删除一个元素，而另一个线程正在增加一个同名的元素？这依赖于哪一个线程首先获得“锁”。<br><br>6）&nbsp; 一个线程访问一项，然后终止了。之后的某个时间，另一个线程企图删除这项？该项将会被删除。<br><br>7）&nbsp; 一个线程删除了一项，而另一个线程此时正在读该项。同时第三个线程，企图枚举该项？该项对第三个线程将是不可见的。<br><br>8）&nbsp; 为什么在API中没有暴露Count属性(元素的个数)？是为了避免糟糕的代码。<br><br><strong><span style="font-size:16px">为什么线程安全的枚举是重要的</span></strong><br><br>我们有一个UI来打印从Dictionary集合中的&#20540;。为了让该集合会有一些比较灵活的(或者比较新的)&#20540;，我们用一个线程来更新它。现在，用户按下刷新键。跟随下面的图片中基于红色序列号的事件。结果是有一个InvalidOperationException异常将被Dictionary集合的枚举器抛出。<br><br>让我们通过锁住“枚举”以及“更新”操作来解决这个异常。但是考虑这个解决方案，当用户按下刷新按钮时，后台的更新仍然在继续。而UI将被挂起。这个行为是不可取的。<br><br>现在，考虑相同的场景下使用MultiMap集合。UI线程刷新以及更新线程可以被同步执行。下面的图片解释了，这个场景：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_13169556436CZW.gif" alt=""><br><br>下面的代码是一个用Dictionary类做的一个简单的例子：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316955725POPu.gif" alt=""><br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316955761oi6v.gif" alt=""><br><br>MultiMap通过提供一种内建的线程安全机制，下面的更简短的代码以及解决了这个问题：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_1316955831IAyY.gif" alt=""><br><br>输出：<br><br><img src="http://hi.csdn.net/attachment/201109/25/0_13169558850EdB.gif" alt=""><br><br><strong><span style="font-size:16px">有什么不同</span></strong><br><br>使用一个锁住的Dictionary集合与使用MultiMap集合有什么区别？<br><br>1）&nbsp; 多线程枚举<br><br>这意味着什么？通常，枚举器不能够在一个线程上使用，当另一个线程正在更新相同的集合时。MultiMap集合则支持这样的操作。不同的线程可以更新、修改以及枚举MultiMap集合。<br><br>2）&nbsp; 线程感知枚举器<br><br>这又意味着什么？考虑到Dictionary集合在一个WCF服务中使用。通常，多线程可能服务多个会话。这种情况下，Dictionary集合需要被一个线程感知的类包裹来处理“竞争条件”。<br><br>3）&nbsp; 资源释放（支持Idisposable接口）<br><br>这意味着什么？万一你存储了一个不受托管的资源在MultiMap集合中，它能够支持释放存储的这些资源通过一个调用。难道你不愿意写multiMapObject.Dispose()？而是愿意再枚举每一项的使用调用Dispose吗？<br><br><strong>补充</strong>：本文给我们提供了一个很到的思路——多线程之间的并发问题，以及.net内置类型的组合问题。你甚至可以做这样的组合Dictionary&lt;Key, Dictionary&lt;Key,Value&gt;&gt;，来满足你特定场景的存储逻辑。当然，如果支持多线程，那么并发问题，还是得考虑地比较周全。<br><br><strong>引用：</strong><br><br><a href="http://blogs.msdn.com/pfxteam/archive/2008/08/12/8852005.aspx?CommentPosted=true#commentmessage" target="_blank" rel="external">http://blogs.msdn.com/pfxteam/archive/2008/08/12/8852005.aspx?CommentPosted=true#commentmessage</a><br><br><a href="http://blogs.msdn.com/jaredpar/archive/2009/02/11/why-are-thread-safe-collections-so-hard.aspx" target="_blank" rel="external">http://blogs.msdn.com/jaredpar/archive/2009/02/11/why-are-thread-safe-collections-so-hard.aspx</a><br><br><strong>原文链接：</strong><br><br><a href="http://www.codeproject.com/KB/cs/MultiKeyDictionary.aspx" target="_blank" rel="external">http://www.codeproject.com/KB/cs/MultiKeyDictionary.aspx</a><br><br><a href="http://www.codeproject.com/KB/collections/MultiMap_P_2.aspx" target="_blank" rel="external">http://www.codeproject.com/KB/collections/MultiMap_P_2.aspx</a><br><br><strong>示例源码和DLL下载地址：</strong><br><br><a href="http://download.csdn.net/detail/yanghua_kobe/3635173" target="_blank" rel="external">http://download.csdn.net/detail/yanghua_kobe/3635173</a><br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/" data-id="cii1bfd8h001ygaz2xh8ids2y" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2011/10/03/asp-net使用httphandler打包多CSS或JS文件以加快页面加载速度/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          asp.net使用httphandler打包多CSS或JS文件以加快页面加载速度
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2011/09/24/实时系统解决方案TIBCORendezvous—技术介绍-消息中间件-基于数据库的主动推送/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">实时系统解决方案TIBCORendezvous—技术介绍(消息中间件|基于数据库的主动推送)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-多映射通用集合类-C-实现-支持一键多值存储" data-title="多映射通用集合类(C#实现)--支持一键多值存储" data-url="http://vinoyang.com/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

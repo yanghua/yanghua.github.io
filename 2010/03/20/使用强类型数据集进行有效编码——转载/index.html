@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>使用强类型数据集进行有效编码——转载 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="曾经有人告诉我优秀的开发人员的特点是希望能够有效地利用时间。开发人员不断追求更容易更快速的编码方式，以及减少错误数量的方法。使用 ADO.NET 中的强类型数据集对象可以帮助您做到这一点。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用强类型数据集进行有效编码——转载">
+<meta property="og:url" content="http://vinoyang.com/2010/03/20/使用强类型数据集进行有效编码——转载/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="曾经有人告诉我优秀的开发人员的特点是希望能够有效地利用时间。开发人员不断追求更容易更快速的编码方式，以及减少错误数量的方法。使用 ADO.NET 中的强类型数据集对象可以帮助您做到这一点。">
+<meta property="og:image" content="http://www.microsoft.com/china/MSDN/library/data/dataAccess/art/DataTypefig01.gif">
+<meta property="og:image" content="http://www.microsoft.com/china/MSDN/library/data/dataAccess/art/DataTypefig02.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用强类型数据集进行有效编码——转载">
+<meta name="twitter:description" content="曾经有人告诉我优秀的开发人员的特点是希望能够有效地利用时间。开发人员不断追求更容易更快速的编码方式，以及减少错误数量的方法。使用 ADO.NET 中的强类型数据集对象可以帮助您做到这一点。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-使用强类型数据集进行有效编码——转载" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2010/03/20/使用强类型数据集进行有效编码——转载/" class="article-date">
+  <time datetime="2010-03-19T19:03:00.000Z" itemprop="datePublished">2010-03-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      使用强类型数据集进行有效编码——转载
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>曾经有人告诉我优秀的开发人员的特点是希望能够有效地利用时间。开发人员不断追求更容易更快速的编码方式，以及减少错误数量的方法。使用 ADO.NET 中的强类型数据集对象可以帮助您做到这一点。<br><br><a id="more"></a><br><br>本月我将从正反两方面来讨论使用强类型数据集对象开发基于 Microsoft&reg; .NET Framework 的应用程序。我将从什么是强类型数据集及其如何扩展数据集、数据表和 DataRow 类开始谈起。在这一部分中，我将提到一个示例应用程序，它包括使用强类型数据集在 SQL Server&trade; Northwind 数据库的 Orders 和 Order Details 表上执行插入、更新和删除的完整代码。。该示例多层应用程序（可以从本文前面的链接中下载）在若干层中使用类型化数据集，包括用作业务逻辑层的类库、Web 服务和 ASP.NET Web 应用程序。最后，我将以使用强类型数据集时可以利用的一些提示和技巧来结束本文。<br><br>类型化的值<br><br>记得 IntelliSense&reg; 之前的生活么？它并不像 Internet 引入时那样具有翻天覆地的变化，但是对于我这样的开发人员（一直在寻找更快的编码方式以及可以更容易地记住所有属性、方法和对象的事件名称的方式）来说，IntelliSense 已经很好了。一个还没有从 IntelliSense 获益的领域是传统的 ADO 记录集。例如，在传统的 ADO 2.<em>x</em> 编程中，您必须使用类似下面的 Visual Basic&reg; 6.0 代码来引用记录集中某个列的值：<br><br><pre class="codeSample">oRecordset.Fields(“CompanyName”).Value<br></pre><br><br>当然，为了减少代码，您可以删除 Fields 集合和 Value 属性，因为它们是其各自对象的默认属性。但是，如果列名拼写有误，那么编译时您也不会获得出错通知。还有，如果连列名都忘记了，那么您就必须返回去查看存储过程、SQL 语句、XML 文件或其他数据源。<br><br>在传统的 ADO 中引用列的另一种方式是通过其序号位置（使用索引或自定义枚举器）。整数是最简单的，但是这里再次强调，您可能很容易忘记该列在哪个序号位置，甚至忘记列是从位置 0 开始的，从而导致索引偏移一位。使用序号位置也使得可读性成为一个问题。当您在一个星期、一个月或一年后回头查看代码时，您可能就不记得第 2 列代表什么了。<br><br>创建自定义枚举器有助于提高可读性，这也是我在处理传统 ADO 中的这一问题时更喜欢的方式。但是，如果有人改变了列从存储过程返回到 ADO 的顺序，那么列仍然会失去同步。所有这些都是开发人员在传统 ADO 编程中遇到的常见问题，使用 ADO.NET 中的非类型化数据集对象时也会遇到类似问题。这些只是使用强类型数据集所解决的一小部分问题。<br><br>例如，类型化数据集包含非类型化数据集所没有的附加方法和属性。请看以下代码段，它使用类型化和非类型化数据集来引用 ADO.NET 中的列：<br><br><pre class="codeSample">//– Untyped DataSet<br>string sCoName =<br>oDs.Tables[“Customers”].Rows[0][“CompanyName”].ToString();<br>//– Strongly typed DataSet<br>string sCoName = oDs.Customers[0].CompanyName;<br></pre><br><br>类型化数据集代码更短，不需要通过字符串或序号位置访问表名或者列名，也不需要 Row 属性。您可以使用 IntelliSense 来获得类型化数据集可以使用的表名列表及其表可以使用的列名列表，因此很容易编写代码。注意，在非类型化数据集代码中，必须使用 ToString 方法来检索列中所包含值的字符串表示。在类型化数据集中，根据各个列的数据类型将所有列都定义为属性。例如，CompanyName 属性定义为字符串类型，这样就不需要 ToString 方法。由于类型化数据集中包含架构信息，所以更容易绑定到控件。将类型化数据集绑定到 ASP.NET DataGrid 时，属性菜单会读取所选类型化数据集的架构，并识别类型化数据集所公开的数据表和数据列。Properties 窗口会用所选数据集的数据表对象的名称填充 DataMember 列表。同样，可用字段列表会加载到 DataKeyField 属性中（如<strong>图 1</strong> 所示）。此功能消除了编写这种代码的必要，减少了出现任何错误拼写的可能性，甚至使得不需要记住架构中表和列的名称（注意，如果使用 ReadXmlSchema 方法将架构读取到数据集中，使用非类型化数据集也可以获得同一功能）。（参看提要栏&ldquo;<a href="http://msdn.microsoft.com/msdnmag/issues/04/12/DataPoints/default.aspx?side=true#a" target="_blank" rel="external"><em>创建一个类型化数据集</em></a>&rdquo;。）<br><br><div style="width: 300px;"><img src="http://www.microsoft.com/china/MSDN/library/data/dataAccess/art/DataTypefig01.gif" alt=""><br><br><strong>图 1 数据绑定属性</strong><br><br></div>
+
+<p>强制转换调用</p>
+<p>强类型数据集对象的列定义为特殊的数据类型。例如，Northwind 数据库的 Orders 表中 OrderDate 列定义为日期时间类型。从 Northwind Orders 表中创建强类型数据集将具有日期时间的数据类型，分别对应于数据库中各自的副本。列的这种显式类型化消除了显式强制转换的必要，以从数据集中获得值或将值写入数据集，正如前面的代码示例所示，其中，我从 Customers 数据表中检索 CompanyName。此功能减少了从数据集中获得值或将值写入数据集所需要编写的代码的数量。因而，强类型数据集为开发人员提供了更快的开发和更少的运行时错误，因为像列和字段名拼写不正确这样的错误在编译时很容易被发现。</p>
+<p>有几种方式可以引用 DataColumn 的值（使用各种可用的重载方法）。其中有些方法执行的速度比其他的方法快，而且还有些方法可读性更强，更易于维护。当引用非类型化数据集中的列时，维护和性能方面会有所不同。强类型数据集在速度和易于维护性方面优于非类型化数据集。访问类型化数据集的速度可与访问非类型化数据集的更快的技术相媲美（因为类型化数据集只是非类型化数据集上面的一层），并且类型化数据集的可读性是最好的：oDs.Orders[0].OrderDate。以下非类型化数据集技术在方便性和性能上有各种组合。首先，可以使用 DataColumn 实例来访问列值： </p>
+<pre class="codeSample">oDs.Tables["Orders"].Rows[0][DataColumn]
+</pre>
+
+<p>这可能是最不方便的，因为您需要首先获得 DataColumn 实例。但是其执行速度最快。如果要从多行中检索值，这就是一个很好的解决方案，因为可以获得一次 DataColumn 实例，然后不断地加以使用。也可以使用其序号位置来访问列，如下面的代码行所示： </p>
+<pre class="codeSample">oDs.Tables["Orders"].Rows[0][Ordinal]
+</pre>
+
+<p>这可能使您很难确定在引用哪一列，但是其执行速度相当快。第三种选择是使用字符串并根据名称来引用列： </p>
+<pre class="codeSample">oDs.Tables["Orders"].Rows[0][StringName]
+</pre>
+
+<p>这比序号位置的可读性更强，并且更易于维护，但是其执行速度最慢，因为它必须按照名称来搜索列，而不是像通过序号位置选择所做的那样仅仅在数组中进行索引就可以了。 </p>
+<p>派生类</p>
+<p>它使用 XML Schema Definition (XSD) 文件以及类文件来创建强类型数据集。XSD 文件存储为强类型数据集定义架构的 XML。<strong>图 2</strong> 显示了一个类型化数据集的关系图视图，它表示 Orders 数据表、OrderDetails 数据表以及这两个表之间的关系。该数据集还描述了这两个表的主键。定义类型化数据集的架构存储在 XSD 文件中。图 2 中显示的视图只是定义强类型数据集的 XML 架构的视觉表示。还有用于存储设计器布局信息的 XML 架构扩展 (Schema Extended, XSX) 文件，它用于描述数据集的视觉表示，如<strong>图 2</strong> 所示。（此强类型数据集用在示例应用程序中，该示例应用程序可以从 <em>MSDN Magazine</em> Web 站点下载。）</p>
+<div style="width: 400px;"><img src="http://www.microsoft.com/china/MSDN/library/data/dataAccess/art/DataTypefig02.gif" alt=""><br><br><strong>图 2 Orders 数据集</strong><br><br></div>
+
+<p>强类型数据集实际上是从 System.Data.DataSet 类中继承的类，并且添加了一些自己的额外功能。该类文件是从 XSD 文件中生成的。右键单击 XSD 的设计视图并选择 Generate DataSet（另外，也可以选择使用 xsd.exe 命令行工具），可以重新生成该类文件。该类文件实际上包含一系列类，这些类继承并扩展了 DataSet、DataTable、DataRow 和 EventArgs 类。由于这种继承性，开发人员使用强类型数据集不会丢失任何功能。例如，即使您可以通过具有与表相同的名称的属性来引用数据表，您仍然可以通过 Tables 集合来引用该表。下面两行对同一数据表对象进行求值： </p>
+<pre class="codeSample">oDs.Tables["Orders"]
+oDs.Orders
+</pre>
+
+<p>强类型数据集类文件包含一个从基数据集继承的类。它还包含数据集中每个数据表的一个类。例如，如果一个强类型数据集中同时有 Orders 和 OrderDetails 两个数据表中，则将有名为 OrdersDataTable 和 OrderDetailsDataTable 的类，它们都是从 DataTable 对象继承的。同样，还有名为 OrdersRow 和 OrderDetailsRow 的类，它们是从DataRow 对象继承的。因为这种继承性，这些类也公开基类所公开的全部标准功能。</p>
+<p>强类型数据集还提供了一些附加方法来扩展 DataSet 基类。例如，基于 Northwind 数据库的 Orders 表的类型化数据集会公开 FindByOrderID 方法，它使用一个整数参数来定位带有相应 OrderID 值的 DataRow。因为基类的所有方法和属性都是可用的，所以仍然可以使用标准的 Find 方法，但是扩展属性和方法可以使编写代码对开发人员更容易一些。假定创建了一个如<strong>图 2</strong> 所示的强类型数据集实例，扩展属性和方法如<a href="http://msdn.microsoft.com/msdnmag/issues/04/12/DataPoints/default.aspx?fig=true#fig3" target="_blank" rel="external"><em>图 3</em></a> 所示。</p>
+<p>企业应用程序中的类型化数据集</p>
+<p>在多层应用程序中使用强类型数据集时，通常要求在所有（至少大部分）的层中强类型数据集都是可用的。通常，在最低层中存储强类型数据集对象及其文件是个不错的主意。这样，引用该层的任何项目和程序集都可以引用该强类型数据集。例如，让我们再次引用该示例应用程序，该应用程序的类库项目（业务逻辑层）中存在一个强类型数据集。Web 服务项目含有对该类库项目的引用，因此它也可以引用该类库项目中所包含的强类型数据集。</p>
+<p>我将指出在多层解决方案中使用强类型数据集的位置，并将它们与使用非类型化数据集的编写方式进行比较。首先，看一看<a href="http://msdn.microsoft.com/msdnmag/issues/04/12/DataPoints/default.aspx?fig=true#fig4" target="_blank" rel="external"><em>图 4</em></a>，其中显示的代码块将新的 OrderDetailsRow 添加到一个强类型数据集中。此代码块是示例应用程序中 WebForm1.aspx 的 grdOrderDetail_OnItemCommand 事件的示例。我突出显示了使用强类型数据集的扩展方法和属性的相关代码。</p>
+<p>又如，以下代码定位类型化数据集中的 OrderDetailsRow。该代码在 WebForm1.aspx 文件的 grdOrderDetail_OnUpdateCommand 事件中： </p>
+<pre class="codeSample">OrdersDataSet.OrderDetailsRow oRow;
+oRow = oDs.OrderDetails.FindByOrderIDProductID(
+nOrderID_OrderDetail, nProductID_Original);
+</pre>
+
+<p>此示例代码可以使用非类型化数据集进行编写，如下所示： </p>
+<pre class="codeSample">DataRow oRow;
+oRow = oDs.Tables["OrderDetails"].Rows.Find(
+new object[]{nOrderID_OrderDetail, nProductID_Original});
+</pre>
+
+<p>为了演示使用强类型数据集和非类型化数据集之间的其他差别，让我们再看几个示例，它们没有包含在附带的示例应用程序中。例如，如果要检查一个列是否包含空值，并且将其设置为空（如果没有这样设置），则可以使用如下带有强类型数据集的代码： </p>
+<pre class="codeSample">if(!oDs.Orders[0].IsOrderDateNull())
+{
+oDs.Orders[0].SetOrderDateNull();}
+</pre>
+
+<p>同样的任务可以用非类型化数据集实现，如以下代码所示： </p>
+<pre class="codeSample">if(!oDs.Tables["Orders"].Rows[0].IsNull("OrderDate"))
+{
+oDs.Tables["Orders"].Rows[0]["OrderDate"] = Convert.DBNull;
+}
+</pre>
+
+<p>虽然这两个代码块都能完成工作，但是使用强类型数据集的代码更容易编写和阅读。 </p>
+<p>作为另一个说明使用类型化和非类型化数据集编写代码二者之间差别的示例，我将展示如何获得父表中某一行的所有子行。首先，假定有一个强类型数据集（如前面<strong>图 2</strong> 中所示）来代表 Orders 和 OrderDetails DataTable 对象。再假定它们彼此关联。如果想要依次通过所有的定单及其所有相关的详细定单数据，可以使用如下代码块： </p>
+<pre class="codeSample">foreach(OrdersDataSet.OrdersRow oOrderRow in oDs.Orders)
+{
+Debug.WriteLine("OrderID = " + oOrderRow.OrderID);
+foreach(OrdersDataSet.OrderDetailsRow oOrderDetailRow in
+oOrderRow.GetOrderDetailsRows())
+{
+Debug.WriteLine(" &mdash; " + oOrderDetailRow.ProductName);
+}
+}
+</pre>
+
+<p>此代码块依次通过所有的定单，并显示 OrdersRow 的 OrderID 值，然后依次通过定单的 OrderDetailsRow 对象，并显示它们的 ProductName 值。可以通过如下代码块使用非类型化数据集来编写相同的代码： </p>
+<pre class="codeSample">foreach(DataRow oOrderRow in oDs.Tables["Orders"].Rows)
+{
+Debug.WriteLine("OrderID = " + oOrderRow["OrderID"].ToString());
+foreach(DataRow oOrderDetailRow in
+oOrderRow.GetChildRows("Orders2OrderDetails"))
+{
+Debug.WriteLine(" &mdash; " + oOrderDetailRow["ProductName"]);
+}
+}
+</pre>
+
+<p>此代码块举例说明了这样的事实，使用非类型化数据集编写的代码没有使用强类型数据集编写的代码优雅。 </p>
+<p>重要花絮</p>
+<p>使用类型化数据集时请记住，如果基础数据库表中对应的架构发生改变，则需要同步类型化数据集中的架构。这并不要紧，因为使用非类型化数据集时，如果基础架构发生改变，您仍然可能必须更改一些客户端代码。然而，在这种情况下使用强类型数据集有一个非常大的好处，即编译器可以在用户代码中标记出大部分的必要改动，而使用非类型化数据集在运行时引发异常之前不可能发现错误。在任何情况下，类型化数据集必须与架构保持同步，这一点是值得注意的。</p>
+<p>我发现在创建强类型数据集时为其选择名称始终是一个不错的主意。如果在创建之后更改名称，则可能需要重新生成强类型数据集的类文件，因为类和方法不会更新它们的名字以反映新的名称。而且对类型化数据集来说，手动修改生成的类文件通常不是一个好主意。该代码是自动生成的，用于反映 XSD 中定义的架构。而且，如果重新生成类型化数据集的类文件，则您以前可能作的任何手动修改都会丢失，因为该文件将被重写。</p>
+<p>规则总是有例外的，修改类型化数据集的类文件或 XSD 的 XML 的一个例外是，当我需要类型化数据集包含一个属性时，我不能通过 XSD 设计器进行设置。例如，在示例应用程序中我设置了两个这样的属性：AutoIncrementStep 和 AutoIncrementSeed。我想让它们从 -1 开始，并且以 -1 为单位递增。设计器中没有界面来设置这些属性，不过我可以查看它们。我在以下代码的第二行中改变 XSD 的 XML 以便包含这些属性： </p>
+<pre class="codeSample">&lt;xs:element name="OrderID" msdata:ReadOnly="true"
+msdata:AutoIncrement="true" msdata:AutoIncrementSeed="-1"
+msdata:AutoIncrementStep="-1" type="xs:int" /&gt;
+</pre>
+
+<p>通过将此代码添加到 XSD 的 XML中，然后重新生成类文件，强类型数据集就能够对这些自动递增功能进行响应。 </p>
+<p>使用强类型数据集和 Web 服务还有一些需要记住的重要事情。例如，使用数据集的 Web 服务不能在自动生成的 WSDL 中公开该数据集，除非它的一个 WebMethod 签名以某种方式对其进行引用。</p>
+<p>尾声</p>
+<p>强类型数据集对象实际上是自编文档 (self documenting) 的，因为它们十分易读。由于它们所代表的表名和列的名称是类型化数据集类的属性，所以使用类型化数据集来编写代码更直观、更易于维护。通过使开发时间更快速、更容易，输入错误更少，代码可维护性更强，强类型数据集极大地帮助了开发人员更高效地编写更有效的代码。</p>
+<p></p></div><p></p>
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2010/03/20/使用强类型数据集进行有效编码——转载/" data-id="cii1bfd91002agaz26gv6jpf8" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2010/03/20/C-如何识别引用的真实类型-一-——转载/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          C#如何识别引用的真实类型(一)——转载
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2010/02/23/关于23种设计模式的有趣见解-转载/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">关于23种设计模式的有趣见解(转载)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-使用强类型数据集进行有效编码——转载" data-title="使用强类型数据集进行有效编码——转载" data-url="http://vinoyang.com/2010/03/20/使用强类型数据集进行有效编码——转载/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

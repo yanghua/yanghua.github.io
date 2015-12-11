@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>浅谈简单工作流设计——责任链模式配合策略与命令模式的实现 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="本文以项目中的一个工作流模块，演示责任链模式、策略模式、命令模式的组合实现！流程简介最近在做的一个项目，涉及到的是一个流程性质的需求。关于工程机械行业的服务流程：服务任务流程和备件发运流程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈简单工作流设计——责任链模式配合策略与命令模式的实现">
+<meta property="og:url" content="http://vinoyang.com/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="本文以项目中的一个工作流模块，演示责任链模式、策略模式、命令模式的组合实现！流程简介最近在做的一个项目，涉及到的是一个流程性质的需求。关于工程机械行业的服务流程：服务任务流程和备件发运流程。">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/7/0_1325898520DqU8.gif">
+<meta property="og:image" content="http://hi.csdn.net/attachment/201201/7/0_1325899836k44t.gif">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈简单工作流设计——责任链模式配合策略与命令模式的实现">
+<meta name="twitter:description" content="本文以项目中的一个工作流模块，演示责任链模式、策略模式、命令模式的组合实现！流程简介最近在做的一个项目，涉及到的是一个流程性质的需求。关于工程机械行业的服务流程：服务任务流程和备件发运流程。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-浅谈简单工作流设计——责任链模式配合策略与命令模式的实现" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" class="article-date">
+  <time datetime="2012-01-07T10:43:00.000Z" itemprop="datePublished">2012-01-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅谈简单工作流设计——责任链模式配合策略与命令模式的实现
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>本文以项目中的一个工作流模块，演示责任链模式、策略模式、命令模式的组合实现！<br><br><span style="font-family:'Microsoft YaHei'; font-size:18px"><strong>流程简介</strong></span><br><br>最近在做的一个项目，涉及到的是一个流程性质的需求。关于工程机械行业的服务流程：服务任务流程和备件发运流程。<br><br><a id="more"></a><br><br>项目之初，需求不是很清晰，算是演化模型吧。先出一个简单版本，然后根据用户的使用情况，再进一步探测新需求。所以也就是说这两个流程中的每一步暂时都不是固定的，而应该是可配置、可增减的。<br><br>目前暂定的两个流程示意图如下：<br><br><img src="http://hi.csdn.net/attachment/201201/7/0_1325898520DqU8.gif" alt="">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<br><br>以上为两个流程的大致过程，当然实际过程中，可能还要走其他的流程。<br><br>但是，仔细分析，你会看到。不管有多少个中间步骤，它们始终都对应着它们在该流程中所处的状态：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 服务流程状态枚举<br>    /// &lt;/summary&gt;<br>    public enum MaintanStateEnum<br>    {<br>        non_assign,         //已创建，待分配<br>        non_accept,         //已分配，待接收<br>        maintaining,        //已接收，服务中<br>        non_confirm,        //完成服务，待确认<br>        non_userConfirm,    //已确认，待客户确认<br>        non<em>feedback,       //客户已确认，待回访<br>        feedbacked,         //回访完成，流程结束<br>        goback              //退回分配，此为动作，为了方便编码，不对应服务状态<br>    }</em></pre><br><br>你会看到non后面跟的都是一个个动作。在这里分清状态和动作是很重要的，不然就很难理清了。还有有时一个动作对应着前后状态，不要出现重复的状态比如：created(创建完成)和non_assign(待分配)在这里就是所谓的重复状态。<br><br>这些状态其实就是贯穿着整个流程的主线，类&#20284;于一个城市的主干道一样。我们只要抓着这样一天线索来思考，就能够化繁为简。<br><br><span style="font-family:'Microsoft YaHei'; font-size:18px"></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:18px"><strong>每个步骤可配置，各个步骤不相耦合，实现调用端一致性——责任链模式</strong></span><br><br>而责任链模式，正是为此而生的！<br><br>在这里，我采用了责任链模式来封装这种步骤的不确定带来的变化。<br><br>首先我们有必要先了解一下，什么是责任链模式：<br><br><img src="http://hi.csdn.net/attachment/201201/7/0_1325899836k44t.gif" alt=""><br><br>职责链模式（Chain of Responsibility）：使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止。<br><br>适用场景：<br><br>1、有多个的对象可以处理一个请求，哪个对象处理该请求运行时刻自动确定；<br><br>2、在不明确指定接收者的情况下，向多个对象中的一个提交一个请求；<br><br>3、处理一个请求的对象集合应被动态指定。<br><br>&nbsp;可以看到无论是上面哪种场景，都存在一个多对一的关系。在这个流程中，一很明显对应着服务流程（说白了就是数据库服务任务的一条记录）。大部分情况下，我们都在完成对一条服务中相关字段的修改，同时置不同的服务状态。而多，在这里应该对应着不同的步骤。<br><br>下面来看看实现：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 维修服务 处理器-抽象基类<br>    /// &lt;/summary&gt;<br>    public abstract class ServiceHandler<br>    {<br>        protected ServiceHandler nextHandler;<br><br>        public virtual void Handle(MaintenanceForm maintenanceForm, object otherParams)<br>        {<br>            if (nextHandler!=null)<br>            {<br>                nextHandler.Handle(maintenanceForm, otherParams);<br>            }<br>        }<br><br>    }</pre><br><br>这是一个抽象处理器，流程中每个步骤的处理器，会覆写这个处理器的处理方法：<br><br>创建：<br><br><pre name="code" class="csharp"> /// &lt;summary&gt;<br>    /// 创建服务单流程–应对接线员/服务接收员角色【或者其他具有创建权限的其他角色】<br>    /// &lt;/summary&gt;<br>   public class CreateHanlder:ServiceHandler<br>    {<br>       public override void Handle(MaintenanceForm maintenanceForm, object otherParams)<br>       {<br>           //如果已创建(未分配)<br>           if (maintenanceForm.CurrentState==MaintanStateEnum.non_assign)<br>           {<br>               //创建该服务单<br><br>               return;<br>           }<br>           else    //已分配,则传递给下一个流程(假定为分配流程)<br>           {<br>               base.Handle(maintenanceForm,otherParams);<br>           }<br>       }<br><br>       //设置下一个处理流程<br>       public ServiceHandler NextHandler<br>       {<br>           set<br>           {<br>               base.nextHandler = value;<br>           }<br>       }</pre><pre name="code" class="csharp">}</pre><br><br>分配：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 服务流程之分配流程–应对服务处长等分配人员角色【或其他具有分配权限的人员】<br>    /// &lt;/summary&gt;<br>    public class AssignHandler:ServiceHandler<br>    {<br>        public override void Handle(Model.MaintenanceForm maintenanceForm, object otherParams)<br>        {<br>            //如果当前处于已分配(未接收)状态<br>            if (maintenanceForm.CurrentState == MaintanStateEnum.non_accept)<br>            {<br>                //进行分配<br><br>                //记录日志<br>                Log(maintenanceForm);<br>                return;<br>            }<br>            else<br>            {<br>                //进入下一流程<br>                base.Handle(maintenanceForm,otherParams);<br>            }<br><br>        }<br><br>        public ServiceHandler NextHandler<br>        {<br>            set<br>            {<br>                base.nextHandler=value;<br>            }<br>        }</pre><br><br>其他流程我就不一一贴出代码。下面来分析一下以上这几个处理器，有什么特别之处。首先，我们看出了，它是以状态为导向的（在Handle方法的判断中）。每个步骤都有一个NextHandler属性，用来配置下一个处理器，这就可以串联他们到一个流程中。大家可以看到每个Handle方法最后都有一个&quot;return;&quot;语句。没错，这里我使用了不完整的责任链模式。也就是一个流程不是一次走结束的，因为它们可能不是一个时间上的连贯，也可能不是一个人走完所有的流程，比如某人负责创建任务单，某人负责分配等。<br><br>下面看看，如何来串联他们到一个流程中：<br><br><pre name="code" class="csharp">//初始化服务流程链<br>        static ServiceHandler InitServiceChain()<br>        {<br>            //此处应用责任链模式，这样对维修服务单处理的入口只有一个<br>            //根据当前的服务所处的状态可以导向到特定的处理流程【流程为链式】<br><br>            CreateHanlder createHandler = new CreateHanlder();<br>            AssignHandler assignHandler=new AssignHandler();<br>            FinishHandler finishHandler=new FinishHandler();<br>            FeedbackHandler feedbackHandler = new FeedbackHandler();<br><br>            //显式指定流程链<br>            /<em>
+             </em>注：此处体现流程可增减，可配置【例如写入配置文件】<br>             <em>/<br>            createHandler.NextHandler=assignHandler;<br>            assignHandler.NextHandler=finishHandler;<br>            finishHandler.NextHandler = feedbackHandler;<br>            feedbackHandler.NextHandler = null;<br><br>            //返回流程启示，类似一个链表结构的头部指针<br>            return createHandler;<br>        }</em></pre><br><br>上面中第二大代码块，即实现了所有处理器的拼装与整合（只是示例，并不完整）<br><br>下面我们来看看客户端调用：<br><br><pre name="code" class="csharp">static void Main(string[] args)<br>        {<br>            ServiceHandler serviceHandler = InitServiceChain();<br>            //应用场景：<br><br>            //场景一【演示创建服务单流程】<br>            //点击新增按钮，弹出窗口，创建维修服务表单<br>            MaintenanceForm newMaintenanceForm=new MaintenanceForm();<br>            newMaintenanceForm.Creator = &quot;yh&quot;;<br>            newMaintenanceForm.CreatedTime = DateTime.Now;<br>            newMaintenanceForm.CurrentState = MaintanStateEnum.non_assign;<br><br>            serviceHandler.Handle(newMaintenanceForm,null);  //创建<br><br>            //场景二【演示分配流程】<br>            //在未分配维修单列表中选择一条维修单，点击分配<br>            MaintenanceForm maintenanceForm = new MaintenanceForm();<br>            maintenanceForm.LastModifiedTime = DateTime.Now;<br>            maintenanceForm.CurrentState = MaintanStateEnum.non_accept;<br><br>            serviceHandler.Handle(maintenanceForm,null);     //创建(跳过)-&gt;分配<br><br>            //场景三【演示已分配被维修人员退回,重新分配流程】<br>            //在被退回维修单列表中选择一条维修单，点击分配/重新分配<br>            maintenanceForm.LastModifiedTime = DateTime.Now;<br>            maintenanceForm.CurrentState = MaintanStateEnum.goback;<br><br>            serviceHandler.Handle(maintenanceForm,null);     //创建(跳过)-&gt;分配<br><br>            //场景四【演示接受流程】<br>            //在已分配待完成表单中，选择一条记录，点击接受任务按钮<br>            maintenanceForm.LastModifiedTime = DateTime.Now;<br>            maintenanceForm.CurrentState = MaintanStateEnum.maintaining;<br><br>            serviceHandler.Handle(maintenanceForm,null);     //创建(跳过)-&gt;分配(跳过)-&gt;接受<br><br>            //场景五【演示回访流程】<br>            //在已完成待回访表单中，选择一条记录，点击完成回访按钮<br>            maintenanceForm.LastModifiedTime = DateTime.Now;<br>            maintenanceForm.CurrentState = MaintanStateEnum.feedbacked;<br><br>            serviceHandler.Handle(maintenanceForm,null);     //创建(跳过)-&gt;分配(跳过)-&gt;接受(跳过)……-&gt;回访<br><br>            Console.Read();<br>        }</pre><br><br>无论走哪个流程，整个的调用方法只有一个：<br><br><pre name="code" class="csharp">serviceHandler.Handle(maintenanceForm,null); </pre><br><br>第一个参数为任务的实体，第二个为附带参数（如果没有，可不必传递）。在任务实体会在流程链中传递，实体中当前状态会指引它交给哪个Handler处理。这样无论你流程中步骤如何变化，在调用端的调用方式都是唯一的。而且你增减步骤对其他流程都不产生任何影响，唯一需要改变的就是组装他们的地方。比如，你需要在创建完服务单之后，走一个审核流程，那么增加它就是一个非常简单的动作。<br><br>这里关于发运流程的做法我就不多举例子了，大同小异。<br><br><span style="font-family:'Microsoft YaHei'"><strong><span style="font-size:18px">实现每个步骤不同的日志记录方式之——策略模式</span></strong></span><br><br>这里可能会对日志的记录有多种需求，比如发送Email给远端工程师或者某些领导等，存入数据库或平面文件备份…..<br><br>策略模式的细节就不多做介绍了，看实现：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 日志记录策略抽象类<br>    /// &lt;/summary&gt;<br>    public abstract class LogStrategy<br>    {<br>        public abstract void Log(Object obj);<br>    }</pre><br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 数据库策略–服务日志记录实现类<br>    /// &lt;/summary&gt;<br>    public class ServiceDatabaseLogStrategy:LogStrategy<br>    {<br>        public override void Log(Object obj)<br>        {<br>            if (obj == null)<br>            {<br>                throw new NullReferenceException(&quot;obj&quot;);<br>            }<br><br>            MaintenanceForm maintenanceForm = obj as MaintenanceForm;<br>            //插入数据库<br>            Console.WriteLine(&quot;数据库日志记录&quot;);<br>            Console.WriteLine();<br>        }<br>    }</pre><br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// E-mail策略–服务日志记录实现类<br>    /// 某些不关注细节的角色<br>    /// (比如领导，他们只关注结果，但他们需要宏观的把握，那么在完成服务步骤，日志可以通过email发送到领导邮箱)<br>    /// &lt;/summary&gt;<br>    public class ServiceEMailDatabaseLogStrategy:LogStrategy<br>    {<br>        public override void Log(object obj)<br>        {<br>            if (obj==null)<br>            {<br>                throw new NullReferenceException(&quot;obj&quot;);<br>            }<br><br>            MaintenanceForm maintenanceForm = obj as MaintenanceForm;<br>            //发送到指定邮箱操作<br>            Console.WriteLine(&quot;email日志记录&quot;);<br>            Console.WriteLine();<br>        }<br>    }</pre><br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 平面文件策略–服务日志记录实现类<br>    /// 可以支持文本文档或者XML文档，便于查看和交互<br>    /// &lt;/summary&gt;<br>    public class ServiceFileDatabaseLogStrategy : LogStrategy<br>    {<br>        public override void Log(object obj)<br>        {<br>            if (obj==null)<br>            {<br>                throw new NullReferenceException(&quot;obj&quot;);<br>            }<br>            Console.WriteLine(&quot;文件日志记录&quot;);<br>            Console.WriteLine();<br>        }<br>    }</pre><br><br>上面就是暂定的几个日志记录策略的实现，下面看看如何将它们组合到各个处理器中。首先，其实刚才处理器的抽象基类是有一个记录日志的虚方法的：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 维修服务 处理器-抽象基类<br>    /// &lt;/summary&gt;<br>    public abstract class ServiceHandler<br>    {<br>        protected ServiceHandler nextHandler;<br><br>        public virtual void Handle(MaintenanceFormmaintenanceForm, object otherParams)<br>        {<br>            if (nextHandler != null)<br>            {<br>               nextHandler.Handle(maintenanceForm, otherParams);<br>            }<br>        }<br><br>        public virtual void Log(MaintenanceFormmaintenanceForm)<br>        {<br>            //记录入数据库<br><br>        }<br>    }</pre><br><br>上面的抽象类实现的是，默认记录入数据库<br><br>其实，每个步骤的处理器中也都存在日志记录的处理(只是为了不干扰讲解责任链，而省略了)<br><br><pre name="code" class="csharp">public classCreateHanlder:ServiceHandler<br>    {<br>       public override voidHandle(MaintenanceForm maintenanceForm, object otherParams)<br>       {<br>           //如果未分配<br>           if(maintenanceForm.CurrentState==MaintanStateEnum.non_assign)<br>           {<br><br>               //记录日志<br>               Log(maintenanceForm);<br>               return;<br>           }<br>           else    //已分配,则传递给下一个流程(假定为分配流程)<br>           {<br>              base.Handle(maintenanceForm,otherParams);<br>           }<br>       }<br><br>       //设置下一个处理流程<br>       public ServiceHandler NextHandler<br>       {<br>           set<br>           {<br>               base.nextHandler = value;<br>           }<br>       }<br><br>       public LogStrategy LogStrategy { get;set; }<br><br>       public override void Log(MaintenanceFormmaintenanceForm)<br>       {<br>           //如果没有显式指定日志记录策略，则调用基类记录方法【存入DB】<br>           if (LogStrategy == null)<br>           {<br>               base.Log(maintenanceForm);<br>           }<br>           else<br>           {<br>              LogStrategy.Log(maintenanceForm);<br>           }<br>       }<br>    }<br></pre><br><br>这里有一个LogStrategy（日志策略基类）类型的属性，用来对外提供配置接口。每个处理器类都覆写了处理器基类的Log方法，逻辑为：如果有日志记录策略，则以日志记录策略来记录，否则用基类的记录方式(DB方式)。<br><br>上面在Handle方法返回之前，调用了被覆写的Log方法。<br><br>下面看看，外面是如何组装日志记录策略的：<br><br><pre name="code" class="csharp">static ServiceHandlerInitServiceChain()<br>        {<br>            //此处应用责任链模式，这样对维修服务单处理的入口只有一个<br>            //根据当前的服务所处的状态可以导向到特定的处理流程【流程为链式】<br><br>            CreateHanlder createHandler = newCreateHanlder();<br>            AssignHandler assignHandler=newAssignHandler();<br>            FinishHandler finishHandler=newFinishHandler();<br>            FeedbackHandler feedbackHandler =new FeedbackHandler();<br><br>            //显式指定流程链<br>            /<br>             <em>注：此处体现流程可增减，可配置【例如写入配置文件】
+             </em>/<br>           createHandler.NextHandler=assignHandler;<br>           assignHandler.NextHandler=finishHandler;<br>            finishHandler.NextHandler =feedbackHandler;<br>            feedbackHandler.NextHandler = null;<br><br>            //显式指定日志的记录策略<br>            /<em>
+             </em> 支持多种日志记录策略(包括DB、Email、File)<br>             <em> 如果不配置，缺省记录方式为DB
+             </em><br>             <em> 此处体现可配置性–某些高层只关注结果
+             </em> (也就是说可能他们只关注‘服务完成’流程，那么该流程的日志记录策略就可以设置为email)<br>             <em>
+             </em> 配置同样可以写入配置文件,也可支持一个流程多种日志记录方式<br>             <em>
+             </em>/<br><br>            //日志记录策略示例：<br>            createHandler.LogStrategy = newServiceDatabaseLogStrategy();          //DB<br>            assignHandler.LogStrategy = newServiceFileDatabaseLogStrategy();      //File<br>            finishHandler.LogStrategy = newServiceEMailDatabaseLogStrategy();     //email<br>            feedbackHandler.LogStrategy = newServiceEMailDatabaseLogStrategy();    //email<br><br>            //返回流程启示，类似一个链表结构的头部指针<br>            return createHandler;<br>        }</pre><br><br>可以看到在组装流程的时候我们同时组装了日志记录的策略。事实上，这里每个流程只对应了一种策略，当然可以为一个流程配置几个日志记录策略啦(修改为List&lt;LogStrategy&gt;，然后在处理器的Log方法中依次调用)。<br><br><span style="font-family:'Microsoft YaHei'; font-size:18px"><strong>处理数据库处理逻辑调用端的一致性<span lang="EN-US">——命令模式</span></strong></span><br><br>不知道大家平时是否都习惯了用三层架构来应对一般项目。在我们的项目中，BLL层是一个傀儡这是一个事实（不对此进行辩论，无论你的是不是，反正我们的项目是了，至于对与错，大家心里都明白）。这里，我一改往日数据库操作调用端采用的各种繁杂的XXXBLL.XXX()的不一致性。改为采用了命令模式来实现对数据库的增改删查。至于理由——业务都由各个处理器实现，没有采用BLL形式的必要。同时我的数据库操作方法的调用端一直，修改就封装在内部。<br><br>看看实现：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 命令接口–可以支持：撤消/重做 操作<br>    /// &lt;/summary&gt;<br>    public interface ICommand<br>    {<br>        //object Undo();<br><br>        object Execute();<br><br>        //object Redo();<br>    }</pre><br><br>命令实现：<br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 实现创建服务任务单命令–Command模式<br>    /// &lt;/summary&gt;<br>    public classCreateMaintenanceFormCommand:ICommand<br>    {<br>        private MaintenanceFormmaintenanceForm;<br>        publicCreateMaintenanceFormCommand(MaintenanceForm _maintenanceForm)<br>        {<br>            maintenanceForm = _maintenanceForm;<br>        }<br><br>        public object Execute()<br>        {<br>            //string str=&quot;insertinto….&quot;;<br>            //DB.ExecuteNonQuery(….);<br>            return null;<br>        }<br>    }<br></pre><br><br><pre name="code" class="csharp">/// &lt;summary&gt;<br>    /// 分配维修任务命令实现<br>    /// &lt;/summary&gt;<br>    public classAssignMaintenanceFormCommand:ICommand<br>    {<br>        private MaintenanceFormmaintenanceForm;<br>        publicAssignMaintenanceFormCommand(MaintenanceForm _maintenanceForm)<br>        {<br>            maintenanceForm = _maintenanceForm;<br>        }<br><br>        public object Execute()<br>        {<br>            //throw new NotImplementedException();<br>            return null;<br>        }<br>    }</pre><br><br>且看创建服务单处理器中，如何调用：<br><br><pre name="code" class="csharp">public classCreateHanlder:ServiceHandler<br>    {<br>       public override voidHandle(MaintenanceForm maintenanceForm, object otherParams)<br>       {<br>           //如果未分配<br>           if(maintenanceForm.CurrentState==MaintanStateEnum.non_assign)<br>           {<br><br>               //构造创建服务单命令，并执行<br>               ICommand createCommand = newCreateMaintenanceFormCommand(maintenanceForm);<br>               createCommand.Execute();<br><br>               //记录日志<br>               Log(maintenanceForm);<br>               return;<br>           }<br>           else    //已分配,则传递给下一个流程(假定为分配流程)<br>           {<br>              base.Handle(maintenanceForm,otherParams);<br>           }<br>       }</pre><br><br>参数都是，各个命令的构造方法传入，所以有灵活性。额外的参数，来自Handle方法的otherParams，所以参数传递没有产生限制。<br><br>当然，这里没有实现命令的撤销与重做。<br><br><span style="font-family:'Microsoft YaHei'; font-size:18px"><strong>总结</strong></span><br><br>以上就是该服务流程所采用的三种设计模式——责任链模式、策略模式、命令模式。对设计不精，但是很有兴趣。这是我的一些想法，我觉得在大家设计一些简单工作流或者流程性质很强的需求的时候，能够有一定的指导意义！<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" data-id="cii1bfd6u0012gaz2e4pc7gx0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/01/02/从零开始学-net多线程系列-三-——同步/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">从零开始学.net多线程系列(三)——同步</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-浅谈简单工作流设计——责任链模式配合策略与命令模式的实现" data-title="浅谈简单工作流设计——责任链模式配合策略与命令模式的实现" data-url="http://vinoyang.com/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>iOS解析新浪微博的@##以及URL链接并展示 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近在做一个跟微博相关的应用。其中涉及到了对微博中@、##以及URL链接的解析与展示。分享一下个人处理的方式，希望对需要的人有所帮助。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="iOS解析新浪微博的@##以及URL链接并展示">
+<meta property="og:url" content="http://vinoyang.com/2012/11/07/iOS解析新浪微博的-以及URL链接并展示/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="最近在做一个跟微博相关的应用。其中涉及到了对微博中@、##以及URL链接的解析与展示。分享一下个人处理的方式，希望对需要的人有所帮助。">
+<meta property="og:image" content="http://img.my.csdn.net/uploads/201211/06/1352200344_7994.jpg">
+<meta property="og:image" content="http://img.my.csdn.net/uploads/201211/06/1352201319_4001.png">
+<meta property="og:image" content="http://img.my.csdn.net/uploads/201211/06/1352202128_3256.png">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="iOS解析新浪微博的@##以及URL链接并展示">
+<meta name="twitter:description" content="最近在做一个跟微博相关的应用。其中涉及到了对微博中@、##以及URL链接的解析与展示。分享一下个人处理的方式，希望对需要的人有所帮助。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-iOS解析新浪微博的-以及URL链接并展示" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/11/07/iOS解析新浪微博的-以及URL链接并展示/" class="article-date">
+  <time datetime="2012-11-06T19:34:00.000Z" itemprop="datePublished">2012-11-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      iOS解析新浪微博的@##以及URL链接并展示
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>最近在做一个跟微博相关的应用。其中涉及到了对微博中@、##以及URL链接的解析与展示。分享一下个人处理的方式，希望对需要的人有所帮助。<br><br><a id="more"></a><br><br>最终的展现效果：<br><br><img src="http://img.my.csdn.net/uploads/201211/06/1352200344_7994.jpg" alt="">&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<br><br>首先，第一步是你得从纯文本中找到它们。毫无疑问，采用正则表达式匹配是最佳的方式。我采用的是RegexKitLite库。<br><br>解析这三种格式的正则表达式如下：<br><br><pre class="plain" name="code">/<strong><strong><strong><strong><strong><strong><strong>*</strong></strong></strong></strong></strong></strong></strong>regular expressions<strong><strong><strong><strong><strong><strong>**</strong></strong></strong></strong></strong></strong>/<br>#define ALABEL_EXPRESSION @&quot;(&lt;[aA].<em>?&gt;.+?&lt;/[aA]&gt;)&quot;<br>#define HREF_PROPERTY_IN_ALABEL_EXPRESSION @&quot;(href\s</em>=\s<em>(?:\&quot;([^\&quot;]</em>)\&quot;|\’([^\’]<em>)\’|([^\&quot;\’&gt;\s]+)))&quot;<br>#define URL_EXPRESSION @&quot;([hH][tT][tT][pP][sS]?:\/\/[^ ,’\&quot;&gt;\]\)]</em>[^\. ,’\&quot;&gt;\]\)])&quot;<br>#define AT_IN_WEIBO<em>EXPRESSION @&quot;(@[\u4e00-\u9fa5a-zA-Z0-9</em>-]{4,30})&quot;<br>#define TOPIC_IN_WEIBO_EXPRESSION @&quot;(#[^#]+#)&quot;<br></pre><br>分别为：匹配&lt;a&gt;&lt;/a&gt;标签，匹配a标签的href属性，匹配URL地址，匹配微博中的@，匹配微博中的##(topic);<br><br>对于文本的处理：<br><pre class="plain" name="code">- (NSString<em>)handleForShowing{<br>    NSArray </em>expressions = expressions = [[NSArray alloc] initWithObjects:<br>                                          AT_IN_WEIBO_EXPRESSION,<br>                                          TOPIC_IN_WEIBO_EXPRESSION,<br>                                          URL_EXPRESSION,<br>                                          nil];<br><br>    //如果有&lt;a&gt;&lt;/a&gt;则先进行预处理<br>    NSString <em>aLabelExpression=@&quot;(&lt;[aA].</em>?&gt;.+?&lt;/[aA]&gt;)&quot;;<br>    if ([self stringByMatching:aLabelExpression]) {<br>        NSArray <em>matchedArr=[self componentsMatchedByRegex:ALABEL_EXPRESSION];<br>        for (NSString </em>matchedItem in matchedArr) {<br>            NSString <em>tmpHrefVal=[[matchedItem stringByMatching:HREF_PROPERTY_IN_ALABEL_EXPRESSION]<br>stringByMatching:URL_EXPRESSION];<br>            if (tmpHrefVal) {<br>                self=[self replaceAll:matchedItem with:tmpHrefVal];<br>            }<br>        }<br>    }<br><br>    for (NSString </em>expression in expressions)<br>{<br>        NSString <em>replaceStr=@&quot;&quot;;<br>        if ([expression contains:@&quot;@&quot;]) {<br>            replaceStr=@&quot;&lt;a href=\&quot;$1\&quot;&gt;$1&lt;/a&gt;&quot;;<br>        }else if([expression contains:@&quot;#&quot;]){<br>            replaceStr=@&quot;&lt;a href=\&quot;$1\&quot;&gt;$1&lt;/a&gt;&quot;;<br>        }else{<br>            replaceStr=@&quot;&lt;a href=\&quot;$1\&quot;&gt;$1&lt;/a&gt;&quot;;<br>        }<br>        self=[self stringByReplacingOccurrencesOfRegex:expression withString:replaceStr];<br>}<br>    [expressions release];<br>    return self;<br>}</em></pre><br><br>这里需要注意的是，微博的种类有很多种。大部分的地址都直接是纯粹的Url，但其中的一种微博(记不清是视频还是音乐的)返回的url是附带在a标签的内部作为href属性的。这样就不便于统一处理，所以我采取的做法是：首先，让解析流程统一化。也就是先把文本中包含的a标签去掉，把href包含的链接作为纯文本。然后，解析出微博中的这三种特殊字符串，并为其包裹一层a标签。<br><br>接着，谈谈关于展示的问题。上面你可能想知道为什么需要包上一层a标签呢？那是为了展示用的。<br><br>如何让@、##、URL高亮呢，我目前只找到三种展示它的方式：<br><br><span style="font-size:14px;"><strong>(1)&nbsp;&nbsp;&nbsp;Three 20中的TTStyledTextLabel</strong></span><br><br><span style="font-size:14px;"><strong>(2)&nbsp;&nbsp;&nbsp;原先用于展示Twitter，后来被改写支持中文展示的<a href="http://code4app.com/ios/FancyLabel/4ff55ea76803fa933d000000" target="_blank" rel="external">FancyLabel</a></strong></span><br><br><span style="font-size:14px;"><strong>(3)&nbsp;&nbsp;&nbsp;最擅长呈现html标记的UIWebView</strong></span><br><br>三种我全部试过，最后还是选择了UIWebView。下面说明一下未曾使用前两种的原因。<br><br>其实，原本我是不倾向于使用UIWebView，我想能使用普通的控件，就无需把UIWebView这种大部头搬出来“救场”了(据说UIWebView的内存泄露问题由来已久，后续我会谈到这个问题，本篇不作深究)。<br><br>我首先尝试的是第二种：FancyLabel。开始使用的时候，觉得好像真能展示。它文件内部已经存在了解析的正则表达式了，并且RegexKitLite也是作为它的组件使用的(可见原理都是一样的)。但展示了几个发现：@、##、URL各种不同方式的复杂搭配，它显得有些无能为力(这其实是它附带的正则表达式匹配得不够健全的问题)，但当时我却不是这个原因放弃它的。放弃的原因是，它无法“折断换行”，也就是，当一个匹配项它呈现的位置已经在一行的末尾了，它无法呈现匹配项的一部分，同时将另一部分折断到下一行的起始去显示，它的处理方式时另起一行。这看起来非常难看，后面还有空间空出来了，就直接跑到下面一行去展示了，并且该行它也是独占的，后面的文本也不得不另起一行，显得非常不流畅。最致命的是：你无法算准它的高度，因为它归根到底是一个UILabel的子类。对于Label的高度，在它的宽度固定的情况下，通常都是带着它文本的字体大小算出来的。但这个时候，你已经无法准确地计算高度了(因为普通的计算方式，它默认Label文本的呈现方式是那种“流式”的，你换行起始占用了增大了它的高度，但在算的时候你无法将这些情况估算到)，所以它影响了接下来用于呈现评论/转发等控件的布局。<br><br>放弃了第二种，又在网上寻找其他的解决方案，发现大名鼎鼎的Three 20里面，有一种呈现富客户端文本的控件：TTStyledTextLabel，支持对连接、简单html标签以及样式。那我将这些解析出来的内容，包裹上&lt;a&gt;&lt;/a&gt;不就可以了吗？我当时就是这么想。结果同样不是太理想，也是无法折断换行的原因。当然，如果你下面没有依赖它来布局的控件(如同你在web中使用的是绝对定位，而不是相对定位一样)。那么你还是可以使用它的。<br>这可不像FancyLabel，你直接把接受到的纯文本丢给它一了百了。它自身只负责普通html标签以及链接的解析，所以你给它的文本必须是处理好之后的。其实，你处理好之后展现也是没有问题的。如果你使用的是UITableView的方式来展示它，并且你自定义了UITableViewCell来呈现它，会显得很麻烦。因为这个部分可能要计算两次高度：在heightForRowAtIndexPath代理方法中算一次，在自定义的Cell内部，为了下面控件的布局，必须算一次。其实，TTStyledTextLabel自身是可以返回高度的，并且它返回的高度是正确的(即使它有些匹配项是另起一行的，但占用的“额外”高度也被它包含在内，这也是我认为它很强大的地方)。但，在heightForRowAtIndexPath计算起来就不那么简单了，我简单得把一样的文本给一个“帮助方法”，它内部构建一个TTStyledTextLabel对象，获取到文本，并算高度，还是有所偏差。所以说能不能使用，主要是看你用怎样的方式来展示你的微博内容。如果你想用，这样是不够的，因为它只是完成了呈现的工作。使用过新浪微博或者腾讯微博客户端的人都知道，@、##、URL这些高亮文本是可以点击的。很遗憾的是，TTStyledTextLabel自身对于a标签的点击事件仅仅只是，用它内部的另一个浏览器组件来加载href属性的URL，这显然不是我们想要的。为了改变它这种默认行为，我继承了TTStyledTextLabel，重写了它的点击事件，以拦截它的默认行为：<pre class="plain" name="code">- (void)touchesEnded:(NSSet )touches withEvent:(UIEvent <em>)event{<br>    TTTableView</em> tableView = (TTTableView<em>)[self isKindOfClass:[TTTableView class]];<br>    if (!tableView) {<br>        if (self.highlightedNode) {<br>            // nodes to converse with.<br>            if ([self.highlightedNode isKindOfClass:[TTStyledLinkNode class]]) {<br>                //NSLog([(TTStyledLinkNode</em>)_highlightedNode URL]);<br>            } else if ([self.highlightedNode isKindOfClass:[TTStyledButtonNode class]]) {<br>                //NSLog([(TTStyledButtonNode<em>)_highlightedNode URL]);<br>            } else {<br>                NSLog(@&quot;others&quot;);<br>            }<br>            self.highlightedNode=nil;<br>        }<br>    }<br>}<br></em></pre><br><br>在上段代码中：NSLog(@”others”);部分，你可以去实现你的逻辑：比如点击@XXX，弹出XXX的个人详情。你可以在地址中包含你需要的数据，在上面可以通过获得url来得到你的数据。<br><br>你可能会好奇，为何这两种方式都出现这种无法折断换行的行为呢。这也是由它们的实现方式决定的。你看到上面这段代码中，比如：TTStyledLinkNode、TTStyledButtonNode，它把相应的匹配项都转化为特定的Node，对这段Node单独绘制(这里牵扯到CoreText以及NSAttributeString等，具体未有空详细研究)，比如某个子节点是可点击的，那可能就是TTStyledButtonNode类型，也就形如一个Button。很明显，一个Button内的文本，如果在一个区域显示不下，只能另起一行了。<br><br>要应对这种方式，看来不得不请出：UIWebView。它本身也擅长于图文混排以及富文本的呈现。你只要按照上面的方式处理好文本，然后在UIWebView里设置相关样式，就可以完美呈现，甚至图片都省去了获取并处理的过程。形如：<br><br><img src="http://img.my.csdn.net/uploads/201211/06/1352201319_4001.png" alt=""><br><br>一不用二不休，下面的转发与评论的列表，也顺便用它来展示吧。<br><br>展示的问题完美地解决了，下面还要能够响应点击事件。这里同样要改变UIWebView中a标签的默认行为，使其响应本地调用(obj-c代码)。怎么办呢？用js给a标签注册一个click event，然后它调用一个方法，发起一个请求：<br><pre class="javascript" name="code">sendCommand: function (cmd,param){<br>var url=&quot;FEB:&quot;+cmd+&quot;:&quot;+param;<br>document.location = url;<br>}<br></pre><br><br>它其实并不是一个真实意义上的url地址，只是一个携带了操作命令以及参数的“virtual url”。发起的任何请求都会被：<br><br>UIWebView 的shouldStartLoadWithRequest代理方法截获。<br><br>然后在这里，你可以判断相关的请求行为，获取参数，进行你的本地处理，比如弹出XXX的详情的模式窗口：<br><br><pre class="plain" name="code">- (BOOL)webView:(UIWebView)webView shouldStartLoadWithRequest:(NSURLRequest<em>)request<br>navigationType:(UIWebViewNavigationType)navigationType {<br>    NSString </em>requestString = [[request URL] absoluteString];<br>    NSArray <em>components = [requestString componentsSeparatedByString:@&quot;:&quot;];<br>    if ([components count] &gt; 1 &amp;&amp;<br>[(NSString </em>)[components objectAtIndex:0] isEqualToString:[@&quot;FEB&quot; lowercaseString]]) {<br>        NSString <em>cmdName=(NSString </em>)[components objectAtIndex:1];<br>        if([cmdName isEqualToString:@&quot;loadRepublishList&quot;]) {<br><br>} else if([cmdName isEqualToString:@&quot;loadCommentList&quot;]){<br><br>}<br><br>}<br>}</pre><br><br>这篇就分享到这里，下面准备就UIWebView的使用分享一些经验。比如使用一些模板引擎来增强代码的可读性以及提升开发效率。对于“微博详情界面”我使用了两个模板：一个是用于呈现微博本身的HTML模板引擎；另一个是JS模板引擎(为了提升响应速度，并且为了配合转发/评论列表的异步加载)。<br><br>最后，为自己打个广告：<br><br><img src="http://img.my.csdn.net/uploads/201211/06/1352202128_3256.png" alt=""><br><br>这是本人的第一个“个人iOS应用”，它是一款能够帮助你同时在多个社交平台和好友沟通交流以及分享的应用。支持一键发表状态/心情/照片到所有绑定平台，快速浏览/回复/分享，以及多终端同时在线浏览好友微博与好友互动，为你提供更为便捷的社交体验。<br><br>开发这款应用的主要目的是：熟悉整个iOS的开放、上架流程，以及开发技术，为转型iOS开发做准备。它使用了大概十几个开源库，之后会跟大家分享~<br><br>目前这个应用已经在“人人应用广场”、“新浪微博应用广场”上线了(腾讯微博还在准备中)，如果希望我分享更多的内容，请到App Store下载它并给它一个评价。我会持续不断地对它进行更新，以让它看起来更加专业。<br>另外欢迎交流：yanghua1127@gmail.com<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/11/07/iOS解析新浪微博的-以及URL链接并展示/" data-id="cii1bfdau0038gaz25fkqpvu7" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2012/11/18/iOS多线程编程之多社交平台同步推送的设计与实现/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          iOS多线程编程之多社交平台同步推送的设计与实现
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2012/09/10/关于iOS应用设计的一些最佳实践/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">关于iOS应用设计的一些最佳实践</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-iOS解析新浪微博的-以及URL链接并展示" data-title="iOS解析新浪微博的@##以及URL链接并展示" data-url="http://vinoyang.com/2012/11/07/iOS解析新浪微博的-以及URL链接并展示/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

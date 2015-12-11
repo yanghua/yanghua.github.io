@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>pipeline-filter模式变体之尾循环 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="注：这篇文章的设计存在一些问题，或者说不够优雅。关于原因，请移步本人另一篇文章：《再谈pipeline-filter模式》">
+<meta property="og:type" content="article">
+<meta property="og:title" content="pipeline-filter模式变体之尾循环">
+<meta property="og:url" content="http://vinoyang.com/2014/10/31/pipeline-filter模式变体之尾循环/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="注：这篇文章的设计存在一些问题，或者说不够优雅。关于原因，请移步本人另一篇文章：《再谈pipeline-filter模式》">
+<meta property="og:image" content="http://img.blog.csdn.net/20141030191049477?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20141030192109453?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
+<meta property="og:image" content="http://img.blog.csdn.net/20141031160031390?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="pipeline-filter模式变体之尾循环">
+<meta name="twitter:description" content="注：这篇文章的设计存在一些问题，或者说不够优雅。关于原因，请移步本人另一篇文章：《再谈pipeline-filter模式》">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-pipeline-filter模式变体之尾循环" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2014/10/31/pipeline-filter模式变体之尾循环/" class="article-date">
+  <time datetime="2014-10-31T15:09:00.000Z" itemprop="datePublished">2014-10-31</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      pipeline-filter模式变体之尾循环
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>注：这篇文章的设计存在一些问题，或者说不够优雅。关于原因，请移步本人另一篇文章：<a href="http://blog.csdn.net/yanghua_kobe/article/details/43908659" target="_blank" rel="external">《再谈pipeline-filter模式》</a><br><br><a id="more"></a><br><br>pipeline-filter作为一种处理数据的模式（见【POSA】卷4）可以将应用的任务划分为几个自我完备的数据处理步骤，并连接到一个数据管道。本文介绍一种不太常见的pipeline-filter的变体——尾循环的pipeline-filter，当然这也是在特定的需求场景下才会出现的。<br><br>首先，我们来看一个常见的pipeline-filter的模式图：<br><br><img src="http://img.blog.csdn.net/20141030191049477?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>模式的思路比较简单明了，就是对数据的处理步骤进行拆分。然后以统一的编程接口加上递归的方式，将它们串在一起。<br><br>最近在写的一个Message broker中处理消息通信的时候也采用了这种模式来切分消息处理步骤。在发送消息的时候这种模式使用得非常的顺畅，因此很自然得在接收消息的时候同样采用了这种模式。我们可以先来简单来看一个发送消息的时候整个pipeline就是像下面这样：<br><br><img src="http://img.blog.csdn.net/20141030192109453?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br><br>关于名词的说明：本文中谈到的handler可以类比为filter，提到的handler-chain可以类比为pipeline，只是叫法不同。<br><br>如果不去多想，接收消息的pipeline也应该跟发送消息类似，只是produce-handler变成了consume-handler。但在代码实现的时候，rabbitmq-java-client的实现方式使得这种模式的运用有些受阻。正常情况下，我们的理解是一个消息的处理或一个消息集合的处理，会穿过一个pipeline，但官方提供的java-client对于接收消息的实现是socket-blocking以等待消息推送到client的（push）方式。因为官方client的这种实现方式，使得外部封装的做法最好是将socket-blocking搬迁到一个独立的EventLoop-Thread上，然后获取到消息之后，解封送并以事件的方式对外提供消息，而客户端在该事件中实现自己的处理逻辑即可，也就是说是一种异步接收的方式，仔细想想也确实应该是这种push的方式。<br><br>由此可见在接收消息时的pipeline还是很不同于发送消息的。对接收消息而言，filter分成两个部分，第一部分的多个filter只执行一次（主要是在真正开始接收消息之前，处理一些前置任务，比如权限检查，参数验证等）；第二部分的多个filter却要不断得在另外一个EventLoop-Thread上循环执行（因为这些filter涉及到对接收到的message进行处理）。所以，在接收消息时的示意图为：<br><br><img src="http://img.blog.csdn.net/20141031160031390?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/Center" alt=""><br><br>其中，下面框起来的两个handler是在EventLoop-Thread上循环执行的。<br><br>显然，上面用于produce的那种pipeline-filter不能应对这种变化（既无法跨线程也无法在就其中的几个进行循环）。而此时不可能独立得为consume单独实现一套新的pipeline-filter（因为在pipeline-filter的基础设施上，我们已经将produce,consume以及request,response、publish,subscribe等都抽象为消息传输(carry)）。因此，我们只能在同一套运行机制上，找到一种办法来满足所有的消息传输方式。<br><br>我们的做法是，实现一个“过渡handler”（此处的handler即为filter，只是取名不同而已），并实现handle方法。该handler用于将后续的逻辑过渡到一个独立的EventLoop-Thread上并启动EventLoop-Thread（把传递给当前handler的上下文以及chain对象传递到事件处理线程上去），其后的所有handler都在该线程上循环执行。<br>其实现代码段如下：<br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_1_7653635" name="code" class="java">public void handle(@NotNull MessageContext context,<br>                       @NotNull IHandlerChain chain) {<br>        if (!context.isSync()) {<br>            ReceiveEventLoop eventLoop = new ReceiveEventLoop();<br>            eventLoop.setChain(chain);<br>            eventLoop.setContext(context);<br>            eventLoop.setChannelDestroyer(context.getDestroyer());<br>            eventLoop.setCurrentConsumer((QueueingConsumer) context.getOtherParams().get(&quot;consumer&quot;));<br>            context.setReceiveEventLoop(eventLoop);<br><br>            //repeat current handler<br>            ((MessageCarryHandlerChain) chain).setEnableRepeatBeforeNextHandler(true);<br><br>            eventLoop.startEventLoop();<br>        } else {<br>            chain.handle(context);<br>        }<br>    }</pre><br><br>如上，ReceiveEventLoop即为一个独立的EventLoop-Thread，启动之后，对于pipeline发起的线程而言，它启动的本次调用链（handle方法的递归调用）已经结束。因此主线程将会从该调用的触发点向下继续执行<br><br>而后续的filter在eventloop线程上独立运行：<br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_2_7263680" name="code" class="java">public void run() {<br>    try {<br>        while (true) {<br>            QueueingConsumer.Delivery delivery = this.currentConsumer.nextDelivery();<br><br>            AMQP.BasicProperties properties = delivery.getProperties();<br>            byte[] msgBody = delivery.getBody();<br><br>            context.getChannel().basicAck(delivery.getEnvelope().getDeliveryTag(), false);<br><br>            //…..<br><br>            this.context.setConsumedMsg(msg);<br>            this.chain.handle(this.context);<br>        }<br>    } catch (InterruptedException e) {<br>        logger.info(&quot;[run] close the consumer’s message handler!&quot;);<br>    } catch (IOException e) {<br>        logger.error(&quot;[run] occurs a IOException : &quot; + e.getMessage());<br>        this.shutdown();<br>    } catch (ConsumerCancelledException e) {<br>        logger.info(&quot;[run] the consumer has been canceled &quot;);<br>        this.shutdown();<br>    } catch (Exception e) {<br>        logger.error(&quot;[run] occurs a Exception : &quot; + e.getMessage());<br>        this.shutdown();<br>    }<br><br>    logger.info(&quot;<strong><em>**</em></strong> thread id &quot; + this.getThreadID() + &quot; quit from message receiver <strong><em>**</em></strong>&quot;);<br>}</pre><br><br>有一个问题：我们必须拿到对EventLoop-Thread的控制权（外部可以在任意时刻关闭该eventloop），而获取其控制权的关键代码就是上上段代码中的：<br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_3_4848203" name="code" class="java">context.setReceiveEventLoop(eventLoop);</pre><br><br>我们将当前EventLoop的实例包装成一个Thread类型的属性，并为其开放了相应的开、关方法，将其控制权丢给外部：<br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_4_256022" name="code" class="java">public void startEventLoop() {<br>      this.currentThread.start();<br>}<br><br>public void shutdown() {<br>      this.channelDestroyer.destroy(context.getChannel());<br>      this.currentThread.interrupt();<br>}</pre><br><br>然后在主线程发起接收消息的方法最后会返回一个IReceiverCloser接口的实例，在其接口方法close中调用shutdown，来对其进行关闭：<br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_5_2665218" name="code" class="java">//launch pipeline<br>        carry(ctx);<br><br>        return new IReceiverCloser() {<br>            @Override<br>            public void close() {<br>                synchronized (this) {<br>                    if (ctx.getReceiveEventLoop().isAlive()) {<br>                        ctx.getReceiveEventLoop().shutdown();<br>                    }<br>                }<br>            }<br>        };</pre><br><br>另一个问题，handler-chain是如何知道从某个handler之后转入eventloop线程会开始循环执行？是如何实现的？它来自于第一段代码中的如下这句代码：<br><br><pre code_snippet_id="503313" snippet_file_name="blog_20141031_6_9534515" name="code" class="java">((MessageCarryHandlerChain) chain).setEnableRepeatBeforeNextHandler(true);</pre>这句代码会在进入下一个handler之前设置一个“循环执行”的标志。下面看看，我们是如何来改造handlerchain来达到这个目的的，在MessageCarryHandlerChain（它实现了IHandlerChain接口）的实现中，有如下四个变量：<pre code_snippet_id="503313" snippet_file_name="blog_20141031_7_8355661" name="code" class="java">    private List&lt;AbstractHandler&gt; handlerChain;<br>    private int     pos          = 0;<br>    private boolean enableRepeat = false;<br>    private int     repeatPos    = -1;</pre><br><br><em>   handlerChain：解析并顺序存储每个handler
+
+</em>   pos：用来记录当前已经执行到哪个handler<br><br><em>   enableRepeat：用来标识是否启用重复执行handler
+
+</em>   repeatPos：用于记录重复执行的handler的起始位置<div>在设置启用enableRepeat属性的时候，会记录当前的位置状态:<br></div><div><pre code_snippet_id="503313" snippet_file_name="blog_20141031_8_4352907" name="code" class="java">public void setEnableRepeatBeforeNextHandler(boolean enableRepeat) {<br>        this.enableRepeat = enableRepeat;<br>        if (this.enableRepeat) {<br>            this.repeatPos = this.pos;<br>        } else {<br>            this.repeatPos = Integer.MIN_VALUE;<br>        }<br>    }</pre><div><br></div><div><div>MessageCarryChain的handle实现，这也是handler串接的核心：</div><div><pre code_snippet_id="503313" snippet_file_name="blog_20141031_9_350154" name="code" class="java">public void handle(MessageContext context) {<br>        if (this.repeatPos != Integer.MIN_VALUE) {<br>            if (this.pos &lt; handlerChain.size()) {<br>                AbstractHandler currentHandler = handlerChain.get(pos++);<br>                currentHandler.handle(context, this);<br>            } else if (this.enableRepeat) {<br>                this.pos = this.repeatPos;<br>            }<br>        }<br>    }</pre></div></div><div>在处理第一条到来的消息时，对应到上面while(true)中的最后一句：</div><div><pre code_snippet_id="503313" snippet_file_name="blog_20141031_10_566739" name="code" class="java">this.chain.handle(this.context);</pre></div><div><br></div><div>调用会进入MessageCarryChain的handle方法，并执行：</div><div><pre code_snippet_id="503313" snippet_file_name="blog_20141031_11_2627270" name="code" class="java">if (this.pos &lt; handlerChain.size()) {<br><br>}</pre><br>判断分支，在其中会触发下一个handler的handle方法，并一直执行下去直到判断条件不成立之后会执行else逻辑，将之前保存的起始循环的handler的位置置为新的handler的位置。</div>于是，当下一次，事件循环在上面while(true)中收到新的消息时，会再次执行上面的if判断分支（因为在接收上一条消息时，已将pos重置了，所以If判断条件又重新成立）并以循环位置的handler作为起始，直到走到handlerChain中的最后一个之后，又将当前位置的pos重置为repeatPos保存的位置（注意repeatPos在第一次被设置之后不再改变），如此周而复始。也就在表面上形成了上图所示的尾循环。</div><div>为什么说只是表面上形成了呢。因为在表述中，我故意“忽略”了这样一个现实——pipeline-filter模式根本上还是利用了递归来实现的，递归会有个还原点，用于“保护现场”之后再“还原现场”。因此，上面MessageCarryChain中的handle代码段中的：<br></div><div><pre code_snippet_id="503313" snippet_file_name="blog_20141031_12_1448416" name="code" class="java">currentHandler.handle(context, this);</pre><br>对于每个被执行的handler都是还原点，当第一轮handler执行完成（调用完这句：this.pos = this.repeatPos;）都会在还原点层层回退（执行还原点之后的该方法内部的剩余代码）。因此，在收到第二个消息时，其实是触发了新一轮的handler-chain执行流程，只是因为pos在之前被置为chain中的循环起始位置，而不是从0开始而已。但对于后面尾循环的handler而言，它们递归调用的本质没有改变，所以其实只是看起来在尾部“循环”而已。<br></div><div>说明：其实如果你回顾pipeline-filter模式的本质，它们是用来处理数据的。我这里不管是发送还是接收消息兼顾处理了消息之外的一些逻辑。如果这里只处理消息，其实是可以不用跨线程以及尾循环的。我只是利用了这种模式，将消息通信的各个环节进行拆分，组合，重用从而不可回避得遇到了这个问题，如果回到纯粹的pipeline-filter模式，是不需要这么做的。</div><div>如果我没表述清楚的，请直接看代码：<a href="https://github.com/yanghua/messagebus/tree/master/client/src/main/java/com/freedom/messagebus/client/handler/consume" target="_blank" rel="external">Messagebus-Consume</a></div><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2014/10/31/pipeline-filter模式变体之尾循环/" data-id="cii1bfdam0034gaz2ups6wlfb" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2014/12/08/谈ApacheOFbiz会员模块表结构设计/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          谈ApacheOFbiz会员模块表结构设计
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2014/10/23/谈长耗时任务的优化/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">谈长耗时任务的优化</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-pipeline-filter模式变体之尾循环" data-title="pipeline-filter模式变体之尾循环" data-url="http://vinoyang.com/2014/10/31/pipeline-filter模式变体之尾循环/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

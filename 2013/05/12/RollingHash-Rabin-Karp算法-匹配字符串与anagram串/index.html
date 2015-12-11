@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>RollingHash(Rabin-Karp算法)匹配字符串与anagram串 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RollingHash(Rabin-Karp算法)匹配字符串与anagram串">
+<meta property="og:url" content="http://vinoyang.com/2013/05/12/RollingHash-Rabin-Karp算法-匹配字符串与anagram串/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description">
+<meta property="og:image" content="http://img.blog.csdn.net/20130511180045224">
+<meta property="og:image" content="http://img.blog.csdn.net/20130511180144588">
+<meta property="og:image" content="http://img.blog.csdn.net/20130511180251868">
+<meta property="og:image" content="http://img.blog.csdn.net/20130511180337601">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RollingHash(Rabin-Karp算法)匹配字符串与anagram串">
+<meta name="twitter:description">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-RollingHash-Rabin-Karp算法-匹配字符串与anagram串" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2013/05/12/RollingHash-Rabin-Karp算法-匹配字符串与anagram串/" class="article-date">
+  <time datetime="2013-05-11T18:03:00.000Z" itemprop="datePublished">2013-05-12</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      RollingHash(Rabin-Karp算法)匹配字符串与anagram串
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br><a id="more"></a><br><br># 该算法常用的场景<br><br>字符串中查找子串，字符串中查找anagram形式的子串问题。<br><br># 关于字符串查找与匹配<br><br>字符串可以理解为字符数组。而字符可以被转换为整数，他们具体的值依赖于他们的编码方式(ASCII/Unicode)。这意味着我们可以把字符串当成一个整形数组。找到一种方式将一组整形数字转化为一个数字，就能够使得我们借助一个预期的输入值来Hash字符串。<br><br>既然字符串被看成是数组而不是单个元素，比较两个字符串是否想到就没有比较两个数值来得简单直接。去检查A和B是否相等，我们不得不通过枚举所有的A和B的元素来确定对于所有的i来讲A[i]=B[i]。这意味着字符串比较的复杂度依赖于字符串的长度。比较两个长度为n的字符串，需要的复杂度为O(n)。另外，去hash一个字符串是通过枚举整个字符串的元素，所以hash一个长度为n的字符串也需要O(n)的时间复杂度。<br><br># 做法<br><br>假设，一个模式串P(需要被匹配的串)长度为L，需要在其中查找匹配的串S长度为n。一种在S中查找P的方式为：<br><br>1、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash P 得到 h(p) 。时间复杂度：O(L)<br><br>2、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;从S的索引为0开始来枚举S里长度为L的子串，hash子串并计算出h(P)’。时间复杂度为O(nL)。<br><br>3、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果一个子串的hash值与h(P)匹配，将该子串与P进行比较，如果不匹配则停止，如果匹配则继续进行步骤2。时间复杂度：O(L)<br><br>这个做法的时间复杂度为O(nL)。我们可以通过使用rollinghash来优化这种做法。在步骤2中，我们看到对于O(n)的子串，都花费了O(L)来hash他们(你可以想象成，找了一个长度为L的框，框住了S，每迭代一次向前移动一位，所以会移动n次，而对于每次每个框中的子串都需要迭代这个子串来算哈希值，所以复杂度为nL)。然而你可以看到这些子串中很多字符都是重复的。比如，看一个字符串“algorithms”中长度为5的子串，最开始的两个子串长度为“algor”和“lgori”。如果我们能利用这两个子串又有共同的子串“lgor”这个事实，将会为我们省去很多时间来处理每一个字符串。看起来我们应该使用rollinghash。<br><br># “数值”示例&nbsp; &nbsp;&nbsp;<br><br>让我们回到字符串上去，假如我们有P和S都被转化为了两个整形数组：<br><br>P=[9,0,2,1,0] &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; (1)<br><br>S=[4,8,9,0,2,1,0,7]&nbsp;&nbsp;&nbsp;&nbsp; (2)<br><br>长度为5的S的子串被列举在下面：<br><br>S0=[4,8,9,0,2] &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(3)<br><br>S1=[8,9,0,2,1] &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(4)<br><br>S2=[9,0,2,1,0] &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(5)<br><br>…. &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;&nbsp;(6)<br>我们想知道P是否能与S的某个子串匹配，可以使用上面的“做法”中的三个步骤。我们的Hash函数可以是：<br><br><img src="http://img.blog.csdn.net/20130511180045224" alt=""><br><br>或者换句话说，我们将长度为5的整形数组中的每个数值都映射到一个5位数的每一位上，然后用这个数值跟m做“mod”运算。h(P)=90210mod m，h(S0)=48902mod m，以及h(S1)=98021mod m。注意这个哈希函数，我们可以是用h(S0)来帮助计算h(S1)。我们从48902开始，去除第一位得到8902，乘以10得到89020，然后加上下一位数值得到：89021.更通用的公式是：<br><br><img src="http://img.blog.csdn.net/20130511180144588" alt=""><br><br>我们可以想象为这是在所有的S的子串上一个滑动的窗口。计算下一个子串的hash值其是值关系到两个元素，这两个元素正好是在这个滑动窗口的两端（一个进来一个出去）。这里与上面有很大的不同，这里我们除了第一次去计算长度为L的第一个子串之后，我们将不在依赖这长度为L的元素集合了，我们只依赖两个元素，这使得计算子串hash值的复杂度变成了O(1)的操作。<br><br>在这个数值的示例中，我们看到了简单的按位存放整数，并且设置了“底”为10，因此我们可以很轻易得分离出其中的每个数字。为了通用话，我们可以采用如下通用公式：<br><img src="http://img.blog.csdn.net/20130511180251868" alt=""><br><br>并且计算下一个子串的hash值就是：<br><img src="http://img.blog.csdn.net/20130511180337601" alt=""><br><br># 回到字符串的问题上<br><br>既然字符串可以被转换为数字，我们可以在字符串上也像跟数值的示例一样用同样的方法来提高运行效率。算法实现如下：<br><br>1、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hash P 得到h(P) 时间复杂度为O(L)<br><br>2、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Hash S中长度为L的第一个子串 时间复杂度为O(L)<br><br>3、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用rolling hash 方法来计算S 所有的子串 O(n)，并以计算出的hash值与h(P)进行比较 时间复杂度为O(n)<br><br>4、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果一个子串的hash值与h(p)相等，那么将该子串与P进行比较，如果匹配则继续，否则则中断当前匹配 时间复杂度为O(L)<br><br>这加快了整个算法的效率，只要所有做比较的总时间为O(n)，那么整个算法的时间复杂度为O(n)。我们进入一个问题，如果我们在我们的hashtable中假设产生了O(n)次“哈希碰撞”（指由于哈希函数的问题，导致多个key对应到同一个值），那么步骤4的总复杂度就为O(nL)。因此我们不得不确保我们的hashtable的大小为n（也就是必须保证每个子串都能唯一对应一个哈希key，这取决于hash函数的设计），这样我们就可以期待子串可以被一次命中，所以我们只需要走步骤4O(1)次。而我们步骤4的时间复杂度为O(L)，在这种情况下，我们仍然可以保证整个问题的时间复杂度为O(n)<br><br># 共同子串问题<br><br>刚才的算法被设计成：在一个字符串S中查找一个模式串P的匹配。然而，现在我们需要处理另一个问题：看看两个长度为n的长字符串S和T，看他们是否拥有长度为L的共同子串。这看起来是一个更难处理的问题，但我们还是能有采用rollinghash使得其复杂度为O(n)。我们采用一个相似的策略：<br><br>1、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash S的第一个长度为L的子串 时间复杂度为：O(L)<br><br>2、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用rolling hash 来计算S的所有O(n)个子串，然后把每个子串加入一个hash table中 时间复杂度为：O(n)<br><br>3、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hash T的第一个长度为L的子串 时间复杂度为：O(L)<br><br>4、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;使用rolling hash方法来计算T的所有O(n)个子串，对每个子串，检查hashtable看是否能命中。<br><br>5、&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如果T的一个子串命中了S的一个子串，那么就进行匹配，如果相等则继续，否则停止匹配。时间复杂度为：O(L)<br><br>然而，保持运行的次数为O(n)，我们又再次需要注意限制“哈希碰撞”的次数，以减少我们进入步骤5来进行不必要的匹配。这次，如果我们的hashtable的大小为O(n)，那么我们对于T的每个子串所期待的命中复杂度为O(1)(最坏的情况)。这样的结果会导致字符串进行O(n)次比较，总共的复杂度为O(nL)次，这使得字符串的比较在这里成为了瓶颈。我们可以扩大hashtable的大小，同时修改我们的hash函数使得我们的hashtable有O(n的平方)个槽（槽指hash表中真正用于存储数据的单元），来使得对于每个T的子串来讲，可能的碰撞降低到O(1/n)。这可以解决我们的问题，并且使得整个问题的复杂度仍然为O(n)，但我们可能没有必要像这样来创建这么大的hashtable消耗不必要的资源。<br><br>取而代之的是，我们将利用字符串签名的优势来替代消耗更多存储资源的做法，我们将再为每个子串分配一个hash值，称之为h(k)’。注意，这个h(k)’的hash 函数最终将字符串映射到0到n的平方的范围而不是上面的0到n。现在当我们在hashtable中产生哈希碰撞时，在我们做最终“昂贵”的字符串比较之前，我们首先可以比较两个字符串的签名，如果签名不匹配，那么我们就可以跳过字符串比较。对于两个子串k1和k2，仅当h(k1)=h(k2)以及h(k1)’=h(k2)’时，我们才会做最终的字符串比较。对于一个好的h(k)’的哈希函数，这将大大减少字符串比对，使得比对的复杂度接近O(n)，将共同子串问题的复杂度限制在O(n)。<br><br>&nbsp;<br><br># 关于rollinghash算法的JAVA简单实现<br><br>查找与给定字符串是anagram的子串，例如：<br><br>GetAnagram(&quot;abcdbcsdaqdbahs’’, &quot;scdcb’’) ==&gt;&quot;cdbcs’’。<br><br>因为这里不是查找相等的字符串，而是对应的anagram，所以比较的次数要比上面的第一个示例多，但也可以采用一定的机制来保证尽量少的哈希碰撞，从而减少比对的次数，大大降低复杂度。<br>大致实现如下：<br><pre code_snippet_id="606144" snippet_file_name="blog_20150218_1_3395925" name="code" class="java">package rollingHash;<br><br>/<strong><br> <em> User: yanghua
+ </em> Date: 5/11/13<br> <em> Time: 10:54 AM
+ </em> Copyright (c) 2013 yanghua. All rights reserved.<br> */<br><br>import java.util.HashMap;<br>import java.util.Map;<br><br>/</strong><br> <em> rolling Hash(Rabin-Karp Algorithm)练习
+ </em> 功能：求给定串的anagram 子串<br> <em> 示例：GetAnagram(&quot;abcdbcsdaqdbahs&quot;,&quot;scdcb&quot;) –&gt; cdbcs 【Google面试题】
+ </em>/<br>public class RollingHash {<br><br>//the simple hash calculate expression is : (a[0] + a[1] + a[2]+ …. + a[n]) <em> FACTOR<br>private static final int FACTOR = 41;<br>private static long hashValueOfPattern;<br><br>/**
+ </em> generate the pattern’s hash<br> <em>
+ </em> @param patternStr the pattern string<br> <em>/<br>private static void generatePatternHash(String patternStr) {<br>if (null == patternStr || patternStr.isEmpty()) {<br>throw new IllegalArgumentException(&quot;the arg:patternStr can not be null or empty&quot;);<br>}<br><br>hashValueOfPattern = 0;<br>int sum = 0;<br><br>for (int i = 0; i &lt; patternStr.length(); i++) {<br>char c = patternStr.charAt(i);<br>sum += (int) c;<br>}<br><br>hashValueOfPattern = sum </em> FACTOR;<br>}<br><br>/<strong><br> <em> find the matched anagram-str
+ </em><br> <em> @param searchingStr the searching string
+ </em> @param patternStr   the pattern for searching string<br> <em> @return matched count
+ </em>/<br>private static int findAnargamStr(String searchingStr, String patternStr) {<br>if (null == searchingStr || searchingStr.isEmpty()) {<br>throw new IllegalArgumentException(&quot;the arg:searchingStr can not be null or empty&quot;);<br>}<br><br>if (null == patternStr || patternStr.isEmpty()) {<br>throw new IllegalArgumentException(&quot;the arg:patternStr can not be null or empty&quot;);<br>}<br><br>if (searchingStr.length() &lt; patternStr.length()) {<br>return 0;<br>}<br><br>int count = 0;<br><br>//generate hashmap and hashvalue<br>generatePatternHash(patternStr);<br>long tmpHashValue = 0;<br><br>int l = patternStr.length();<br>int n = searchingStr.length();<br><br>for (int i = 0; i &lt; n; i++) {<br>char c = searchingStr.charAt(i);<br><br>//calculate the first sub-string (0:pattern.length()-1) which length equal to pattern<br>if (i &lt; l) {<br>tmpHashValue += ((int) c) <em> FACTOR;<br>} else {<br>//new tmpHashValue: (a[in-index]-a[out-index]) </em> FACTOR<br>tmpHashValue += ((int) c - (int) searchingStr.charAt(i - l)) * FACTOR;<br><br>//if the hash-value matched, compare each character<br>//注：如果这里采用一个好的hash函数 或者 增大hash 槽 或者给字符串进行hash签名来避免过多的hash碰撞，<br>// 那么这里就可以大大简化对isAnagram的调用，从而使得整个问题的复杂度逼近O(n)<br>if (hashValueOfPattern == tmpHashValue)<br>if (isAnagram(searchingStr, i - l + 1, i, patternStr))<br>count++;<br>}<br><br>}<br><br>return count;<br>}<br><br>/</strong><br> <em> is the two string anagram （因为哈希碰撞的存在，该函数用于验证字符串是否确实相等）
+ </em><br> <em> @param comparedStr compared string
+ </em> @param startIndex  start index<br> <em> @param endIndex    end index
+ </em> @param pattern     pattern string<br> <em> @return true / false
+ </em>/<br>private static boolean isAnagram(String comparedStr, int startIndex, int endIndex, String pattern) {<br><br>if (null == comparedStr || comparedStr.isEmpty()) {<br>throw new IllegalArgumentException(&quot;the arg:comparedStr can not be null or empty&quot;);<br>}<br><br>if (null == pattern || pattern.isEmpty()) {<br>throw new IllegalArgumentException(&quot;the arg:pattern can not be null or empty&quot;);<br>}<br><br>if (startIndex &gt; endIndex || endIndex - startIndex != pattern.length() - 1) {<br>throw new IllegalArgumentException(&quot;the arg:startIndex or endIndex is illegal&quot;);<br>}<br><br>boolean anagram = true;<br><br>int[] letterCountOfPattern = new int[256];<br>//not only number and letter , contain backspace and special symbol<br>for (int j = 0; j &lt; 256; j++) {<br>letterCountOfPattern[j] = 0;<br>}<br><br>for (int k = 0; k &lt; pattern.length(); k++) {<br>++letterCountOfPattern[pattern.charAt(k)];<br>}<br><br>for (int i = startIndex; i &lt;= endIndex; i++) {<br>–letterCountOfPattern[comparedStr.charAt(i)];<br>}<br><br>for (int m = 0; m &lt; 256; m++) {<br>if (letterCountOfPattern[m] != 0) {<br>anagram = false;<br>break;<br>}<br>}<br><br>return anagram;<br>}<br><br>public static void main(String[] args) {<br>String searchingStr = &quot;abcdbcsdaqdbahs&quot;;<br>String patternStr = &quot;scdcb&quot;;<br><br>int count=findAnargamStr(searchingStr,patternStr);<br>System.out.println(count);<br>}<br><br>}<br></pre><br>代码在本人<a href="https://github.com/yanghua/AlgorithmFactory/blob/master/rollingHash/RollingHash.java" target="_blank" rel="external">GitHub</a>上。<br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2013/05/12/RollingHash-Rabin-Karp算法-匹配字符串与anagram串/" data-id="cii1bfdbr003qgaz2xg78s5g0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2013/07/28/iOS开发之主题皮肤/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          iOS开发之主题皮肤
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2013/03/31/对iOS开发有用的一些自动化处理脚本/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">对iOS开发有用的一些自动化处理脚本</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-RollingHash-Rabin-Karp算法-匹配字符串与anagram串" data-title="RollingHash(Rabin-Karp算法)匹配字符串与anagram串" data-url="http://vinoyang.com/2013/05/12/RollingHash-Rabin-Karp算法-匹配字符串与anagram串/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>

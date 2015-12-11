@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>C#编码规范——转载 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="### 1. 简介本规范为一套编写高效可靠的 C# 代码的标准、约定和指南。它以安全可靠的软件工程原则为基础，使代码易于理解、维护和增强，提高生产效率。同时，将带来更大的一致性，使软件开发团队的效率明显提高。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C#编码规范——转载">
+<meta property="og:url" content="http://vinoyang.com/2010/03/23/C-编码规范——转载/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="### 1. 简介本规范为一套编写高效可靠的 C# 代码的标准、约定和指南。它以安全可靠的软件工程原则为基础，使代码易于理解、维护和增强，提高生产效率。同时，将带来更大的一致性，使软件开发团队的效率明显提高。">
+<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C#编码规范——转载">
+<meta name="twitter:description" content="### 1. 简介本规范为一套编写高效可靠的 C# 代码的标准、约定和指南。它以安全可靠的软件工程原则为基础，使代码易于理解、维护和增强，提高生产效率。同时，将带来更大的一致性，使软件开发团队的效率明显提高。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-C-编码规范——转载" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2010/03/23/C-编码规范——转载/" class="article-date">
+  <time datetime="2010-03-22T19:42:00.000Z" itemprop="datePublished">2010-03-23</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      C#编码规范——转载
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <div><br><br>### <a name="_Toc153593019">1. 简介</a><br><br>本规范为一套编写高效可靠的 C# 代码的标准、约定和指南。它以安全可靠的软件工程原则为基础，使代码易于理解、维护和增强，提高生产效率。同时，将带来更大的一致性，使软件开发团队的效率明显提高。<br><br><a id="more"></a><br><br>### <a name="_Toc153593020">2. 适用范围</a><br><br>本规范适用于公司所有的C#源代码，为详细设计，代码编写和代码审核提供参考和依据。<br><br>### <a name="_Toc153593021">3. 文体</a><br><br>本规范中的建议分为四种：<strong>要，建议，避免，不要</strong>，表示需要遵循的级别。文档中会以粗体表示。对于应遵循的规范，前面会以“”来表示，对不好的做法前面会以“”来表示：<br><br><strong>要</strong>：描述必须遵循的规范。例如：<br><br> 异常类<strong>要</strong>以“Exception”做为后缀；<br><br><strong>建议</strong>：描述在一般情况下应该遵循的规范，但如果完全理解规范背后的道理，并有很好的理由不遵循它时，也不畏惧打破常规。例如：<br><br> 强制类型转换时，在类型和变量之间<strong>建议</strong>加一空&#26684;。<br><br><strong>不要</strong>：描述一些几乎绝对绝不应该违反的规范。例如：<br><br> 每个函数有效代码（不包括注释和空行）长度<strong>不要</strong>超过50行。<br><br><strong>避免</strong>：与<strong>建议</strong>相对，一般情况下应该遵循，但有很好的理由时也可以打破。例如：<br><br> <strong>避免</strong>块内部的变量与它外部的变量名相同。<br><br>对一些规范内容一并提供了示例代码。<br><br>### <a name="_Toc153593022">4. 代码组织与风&#26684;</a><br><br>#### <a name="_Toc153593023">4.1. Tab</a><br><br> <strong>要</strong>使一个Tab为4个空&#26684;长。<br><br>#### <a name="_Toc153593024">4.2. 缩进</a><br><br> <strong>要</strong>使一个代码块内的代码都统一缩进一个Tab长度。<br><br>#### <a name="_Toc153593025">4.3. 空行</a><br><br> <strong>建议</strong>适当的增加空行，来增加代码的可读性。<br><br> 在在类，接口以及彼此之间<strong>要</strong>有两行空行：<br><br> 在下列情况之间<strong>要</strong>有一行空行：<br><br>方法之间；<br><br>局部变量和它后边的语句之间；<br><br>方法内的功能逻辑部分之间；<br><br>#### <a name="_Toc153593026">4.4. 函数长度</a><br><br> 每个函数有效代码（不包括注释和空行）长度<strong>不要</strong>超过50行。<br><br>#### <a name="_Toc153593027">4.5. {</a>”，“}”<br><br> 开括号“{”<strong>要</strong>放在块的所有者的下一行，单起一行；<br><br> 闭括号“}”<strong>要</strong>单独放在代码块的最后一行，单起一行。<br><br>#### <a name="_Toc153593028">4.6. 行宽</a><br><br> 每行代码和注释<strong>不要</strong>超过70个字符或屏幕的宽度，如超过则应换行，换行后的代码应该缩进一个Tab。<br><br>#### <a name="_Toc153593029">4.7. 空&#26684;</a><br><br> 括号和它里面的字符之间<strong>不要</strong>出现空&#26684;。括号应该和它前边的关键词留有空&#26684;，如：while (true) {};<br><br> 但是方法名和左括号之间<strong>不要</strong>有空&#26684;。<br><br> 参数之间的逗号后<strong>要</strong>加一空&#26684;。如：method1(int i1, int i2)<br><br> for语句里的表达式之间<strong>要</strong>加一空&#26684;。如：for (expr1; expr2; expr3)<br><br> 二元操作符和操作数之间<strong>要</strong>用空&#26684;隔开。如：i &#43; c;<br><br> 强制类型转换时，在类型和变量之间<strong>要</strong>加一空&#26684;。如：(int) i ;<br><br>### <a name="_Toc153593030">5. 注释</a><br><br>#### <a name="_Toc153593031">5.1. 注释的基本约定</a><br><br> 注释应该增加代码的清晰度；<br><br> 保持注释的简洁，不是任何代码都需要注释的，过多的注释反而会影响代码的可读性。<br><br> 注释<strong>不要</strong>包括其他的特殊字符。<br><br> <strong>建议</strong>先写注释，后写代码，注释和代码一起完成<br><br> 如果语句块（比如循环和条件分枝的代码块）代码太长，嵌套太多，则在其结束“｝”<strong>要</strong>加上注释，标志对应的开始语句。如果分支条件逻辑比较复杂，也<strong>要</strong>加上注释。<br><br> 在VS2005环境中通过配置工程编译时输出XML文档文件可以检查注释的完整情况，如果注释不完整会报告编译警告；<br><br>#### <a name="_Toc153593032">5.2. 注释类型</a><br><br>##### <a name="_Toc153593033">5.2.1. 块注释</a><br><br> 主要用来描述文件，类，方法，算法等，放在所描述对象的前边。具体&#26684;式以IDE编辑器输入“///”自动生成的&#26684;式为准，另外再附加我们自定义的&#26684;式，如下所列：<br><br>/// &lt;Remark&gt;作者，创建日期，修改日期&lt;/ Remark &gt;<br><br>对类和接口的注释必须加上上述标记，对方法可以视情况考虑<br><br>##### <a name="_Toc153593034">5.2.2. 行注释</a><br><br> 主要用在方法内部，对代码，变量，流程等进行说明。整个注释占据一行。<br><br>##### <a name="_Toc153593035">5.2.3. 尾随注释</a><br><br> 与行注释功能相&#20284;，放在代码的同行，但是要与代码之间有足够的空间，便于分清。例：<br><br>int m = 4 ; /／ 注释<br><br> 如果一个程序块内有多个尾随注释，每个注释的缩进<strong>要</strong>保持一致。<br><br>#### <a name="_Toc153593036">5.3. 注释哪些部分</a><br><br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td width="251" valign="top"><br><br><strong>项目</strong><br><br></td><br><td width="251" valign="top"><br><br><strong>注释哪些部分</strong><br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>参数<br><br></td><br><td width="251" valign="top"><br><br>参数用来做什么<br><br>任何约束或前提条件<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>字段/属性<br><br></td><br><td width="251" valign="top"><br><br>字段描述<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>类<br><br></td><br><td width="251" valign="top"><br><br>类的目的<br><br>已知的问题<br><br>类的开发/维护历史<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>接口<br><br></td><br><td width="251" valign="top"><br><br>目的<br><br>它应如何被使用以及如何不被使用<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>局部变量<br><br></td><br><td width="251" valign="top"><br><br>用处/目的<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>成员函数注释<br><br></td><br><td width="251" valign="top"><br><br>成员函数做什么以及它为什么做这个<br><br>哪些参数必须传递给一个成员函数<br><br>成员函数返回什么<br><br>已知的问题<br><br>任何由某个成员函数抛出的异常<br><br>成员函数是如何改变对象的<br><br>包含任何修改代码的历史<br><br>如何在适当情况下调用成员函数的例子适用的前提条件和后置条件<br><br></td><br></tr><br><tr><br><td width="251" valign="top"><br><br>成员函数内部注释<br><br></td><br><td width="251" valign="top"><br><br>控制结构<br><br>代码做了些什么以及为什么这样做<br><br>局部变量<br><br>难或复杂的代码<br><br>处理顺序<br><br></td><br></tr><br></tbody><br></table><br><br>#### <a name="_Toc153593037">5.4. 程序修改注释</a><br><br> 新增代码行的前后<strong>要</strong>有注释行说明，对具体&#26684;式不作要求，但必须包含作者，新增时间，新增目的。在新增代码的最后必须加上结束标志；<br><br> 删除代码行的前后<strong>要</strong>用注释行说明，删除代码用注释原有代码的方法。注释方法和内容同新增；删除的代码行<strong>建议</strong>用#region XXX #endregion 代码段折叠，保持代码文件干净整洁<br><br> 修改代码行<strong>建议</strong>以删除代码行后再新增代码行的方式进行（针对别人的代码进行修改时，必须标明，对于自己的代码进行修改时，酌情进行）。注释方法和内容同新增；<br><br>### <a name="_Toc153593038">6. 命名</a><br><br>#### <a name="_Toc153593039">6.1. 命名的基本约定</a><br><br> <strong>要</strong>使用可以准确说明变量/字段/类的完整的英文描述符，如firstName。对一些作用显而易见的变量可以采用简单的命名，如在循环里的递增（减）变量就可以被命名为 ” i ”。<br><br> <strong>要</strong>尽量采用项目所涉及领域的术语。<br><br> <strong>要</strong>采用大小写混合，提高名字的可读性。为区分一个标识符中的多个单词，把标识符中的每个单词的首字母大写。不采用下划线作分隔字符的写法。有两种适合的书写方法，适应于不同类型的标识符：<br><br>PasalCasing：标识符的第一个单词的字母大写；<br><br>camelCasing：标识符的第一个单词的字母小写。<br><br>下表描述了不同类型标识符的大小写规则：<br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td valign="top"><br><p><strong>标识符</strong><br><br></p></td><br><td valign="top"><br><br><strong>大小写</strong><br><br></td><br><td valign="top"><br><br><strong>示例</strong><br><br></td><br></tr><br><tr><br><td valign="top"><br><br>命名空间<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>namespace Com.Techstar.ProductionCenter<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>类型<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>public class DevsList<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>接口<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>public interface ITableModel<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>方法<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>public void UpdateData()<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>属性<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>Public int Length{…}<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>事件<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>public event EventHandler Changed;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>私有字段<br><br></td><br><td valign="top"><br><br>Camel<br><br></td><br><td valign="top"><br><br>private string fieldName;<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>非私有字段<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>public string FieldName；<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>枚举&#20540;<br><br></td><br><td valign="top"><br><br>Pascal<br><br></td><br><td valign="top"><br><br>FileMode{Append}<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>参数<br><br></td><br><td valign="top"><br><br>Camel<br><br></td><br><td valign="top"><br><br>public void UpdateData(string fieldName)<br><br></td><br></tr><br><tr><br><td valign="top"><br><br>局部变量<br><br></td><br><td valign="top"><br><br>Camel<br><br></td><br><td valign="top"><br><br>string fieldName;<br><br></td><br></tr><br></tbody><br></table><br><p></p><br><br> <strong>避免</strong>使用缩写，如果一定要使用，就谨慎使用。同时，应该保留一个标准缩写的列表，并且在使用时保持一致。<br><br> 对常见缩略词，两个字母的缩写<strong>要</strong>采用统一大小写的方式（示例：ioStream，getIOStream）；多字母缩写采用首字母大写，其他字母小写的方式（示例：getHtmlTag）；<br><br> <strong>避免</strong>使用长名字（最好不超过 15 个字母）。<br><br> <strong>避免</strong>使用相&#20284;或者仅在大小写上有区别的名字。<br><br>#### <a name="_Toc153593040">6.2. 各种标示符类型的命名约定</a><br><br>##### <a name="_Toc153593041">6.2.1. 程序集命名</a><br><br> 公司域名（Techstar）&#43; 项目名称 &#43; 模块名称（可选），例如：<br><br>中心系统程序集：Techstar.ProductionCenter；<br><br>中心系统业务逻辑程序集：Techstar. ProductionCenter.Business；<br><br>##### <a name="_Toc153593042">6.2.2. 命名空间命名</a><br><br> 采用和程序集命名相同的方式：公司域名（Techstar）&#43; 项目名称 &#43; 模块名称。 另外，一般情况下建议命名空间和目录结构相同。例如：<br><br>中心系统：Techstar.ProductionCenter；<br><br>中心系统下的用户控件：Techstar.ProductionCenter.UserControl；<br><br>中心系统业务逻辑：Techstar. ProductionCenter.Business；<br><br>中心系统数据访问：Techstar. ProductionCenter.Data；<br><br>##### <a name="_Toc153593043">6.2.3. 类和接口命名</a><br><br> 类的名字<strong>要</strong>用名词；<br><br> 避免使用单词的缩写，除非它的缩写已经广为人知，如HTTP。<br><br> 接口的名字<strong>要</strong>以字母I开头。保证对接口的标准实现名字只相差一个“I”前缀，例如对IComponent的标准实现为Component；<br><br> 泛型类型参数的命名：命名<strong>要</strong>为T或者以T开头的描述性名字，例如：<br><br>public class List&lt;T&gt;<br><br>public class MyClass&lt;TSession&gt;<br><br> 对同一项目的不同命名空间中的类，命名<strong>避免</strong>重复。避免引用时的冲突和混淆；<br><br>##### <a name="_Toc153593044">6.2.4. 方法命名</a><br><br> 第一个单词一般是动词<br><br> 如果方法返回一个成员变量的&#20540;，方法名一般为Get&#43;成员变量名，如若返回的&#20540; 是bool变量，一般以Is作为前缀。另外，如果必要，考虑用属性来替代方法，具 体建议见10.1.2节;<br><br> 如果方法修改一个成员变量的&#20540;，方法名一般为：Set &#43; 成员变量名。同上，考虑 用属性来替代方法；<br><br>##### <a name="_Toc153593045">6.2.5. 变量命名</a><br><br> 按照使用范围来分，我们代码中的变量的基本上有以下几种类型，类的公有变量；类的私有变量（受保护同公有）；方法的参数变量；方法内部使用的局部变量。这些变量的命名规则基本相同，见标识符大小写对照表。区别如下：<br><br>i. 类的公有变量按通常的方式命名，无特殊要求；<br><br>ii. 类的私有变量采用两种方式均可：采用加“m”前缀，例如mWorkerName;<br><br>iii. 方法的参数变量采用camalString，例如workerName；<br><br>iv. 方法内部的局部变量采用camalString，例如workerName；<br><br> <strong>不要</strong>用_或&amp;作为第一个字母；<br><br> 尽量<strong>要</strong>使用短而且具有意义的单词；<br><br> 单字符的变量名一般只用于生命期非常短暂的变量。i,j,k,m,n一般用于integer；c,d,e 一般用于characters；s用于string<br><br> 如果变量是集合，则变量名<strong>要</strong>用复数。例如表&#26684;的行数，命名应为：RowsCount；<br><br> 命名组件<strong>要</strong>采用匈牙利命名法，所有前缀均应遵循同一个组件名称缩写列表<br><br>#### 6.3. <a name="_Toc153593046">组件名称缩写列表</a><br><br>缩写的基本原则是取组件类名各单词的第一个字母，如果只有一个单词，则去掉其中的元音，留下辅音。缩写全部为小写。<br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td width="177" valign="top"><br><p>组件类型<br><br></p></td><br><td width="168" valign="top"><br><br>缩写<br><br></td><br><td width="155" valign="top"><br><br>例子<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>Label<br><br></td><br><td width="168" valign="top"><br><br>Lbl<br><br></td><br><td width="155" valign="top"><br><br>lblNote<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>TextBox<br><br></td><br><td width="168" valign="top"><br><br>Txt<br><br></td><br><td width="155" valign="top"><br><br>txtName<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>Button<br><br></td><br><td width="168" valign="top"><br><br>Btn<br><br></td><br><td width="155" valign="top"><br><br>btnOK<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>ImageButton<br><br></td><br><td width="168" valign="top"><br><br>Ib<br><br></td><br><td width="155" valign="top"><br><br>ibOK<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>LinkButton<br><br></td><br><td width="168" valign="top"><br><br>Lb<br><br></td><br><td width="155" valign="top"><br><br>lbJump<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>HyperLink<br><br></td><br><td width="168" valign="top"><br><br>Hl<br><br></td><br><td width="155" valign="top"><br><br>hlJump<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>DropDownList<br><br></td><br><td width="168" valign="top"><br><br>Ddl<br><br></td><br><td width="155" valign="top"><br><br>ddlList<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>CheckBox<br><br></td><br><td width="168" valign="top"><br><br>Cb<br><br></td><br><td width="155" valign="top"><br><br>cbChoice<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>CheckBoxList<br><br></td><br><td width="168" valign="top"><br><br>Cbl<br><br></td><br><td width="155" valign="top"><br><br>cblGroup<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>RadioButton<br><br></td><br><td width="168" valign="top"><br><br>Rb<br><br></td><br><td width="155" valign="top"><br><br>rbChoice<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>RadioButtonList<br><br></td><br><td width="168" valign="top"><br><br>Rbl<br><br></td><br><td width="155" valign="top"><br><br>rblGroup<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>Image<br><br></td><br><td width="168" valign="top"><br><br>Img<br><br></td><br><td width="155" valign="top"><br><br>imgBeauty<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>Panel<br><br></td><br><td width="168" valign="top"><br><br>Pnl<br><br></td><br><td width="155" valign="top"><br><br>pnlTree<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>TreeView<br><br></td><br><td width="168" valign="top"><br><br>Tv<br><br></td><br><td width="155" valign="top"><br><br>tvUnit<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>WebComTable<br><br></td><br><td width="168" valign="top"><br><br>Wct<br><br></td><br><td width="155" valign="top"><br><br>wctBasic<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>ImageDateTimeInput<br><br></td><br><td width="168" valign="top"><br><br>Dti<br><br></td><br><td width="155" valign="top"><br><br>dtiStart<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>ComboBox<br><br></td><br><td width="168" valign="top"><br><br>Cb<br><br></td><br><td width="155" valign="top"><br><br>cbList<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>MyImageButton<br><br></td><br><td width="168" valign="top"><br><br>Mib<br><br></td><br><td width="155" valign="top"><br><br>mibOK<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>WebComm.TreeView<br><br></td><br><td width="168" valign="top"><br><br>Tv<br><br></td><br><td width="155" valign="top"><br><br>tvUnit<br><br></td><br></tr><br><tr><br><td width="177" valign="top"><br><br>PageBar<br><br></td><br><td width="168" valign="top"><br><br>Pb<br><br></td><br><td width="155" valign="top"><br><br>pbMaster<br><br></td><br></tr><br></tbody><br></table><br><p></p><br><br>### <a name="_Toc153593047">7. 声明</a><br><br> 每行<strong>要</strong>只有一个声明，如果是声明i,j,k之类的简单变量可以放在一行;<br><br> 除了for循环外，声明<strong>要</strong>放在块的最开始部分。for循环中的变量声明可以放在for语句中。如：for(int i = 0; I &lt; 10; i&#43;&#43;) 。<br><br> <strong>避免</strong>块内部的变量与它外部的变量名相同。<br><br>### <a name="_Toc153593048">8. 表达式和语句</a><br><br> 每行建议只有一条语句。<br><br> if-else,if-elseif语句，任何情况下，都应该有“{”，“}”，&#26684;式如下：<br><br>if (<em>condition</em>)<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>else if (<em>condition</em>)<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>else<br><br>{<br><br><em>statements</em>;<br><br>}<br><br> for语句&#26684;式如下：<br><br>for (<em>initialization</em>; <em>condition</em>; <em>update</em>)<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>如果语句为空：<br><br>for (<em>initialization</em>; <em>condition</em>; <em>update</em>) ;<br><br> while语句&#26684;式如下：<br><br>while (<em>condition</em>)<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>如果语句为空:<br><br>while (<em>condition</em>);<br><br> do-while语句&#26684;式如下：<br><br>do<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>while (<em>condition</em>);<br><br> switch语句，每个switch里都应包含default子语句,&#26684;式如下：<br><br>switch (<em>condition</em>)<br><br>{<br><br>case ABC:<br><br><em>statements</em>;<br><br>/<em> falls through </em>/<br><br>case DEF:<br><br><em>statements</em>;<br><br>break;<br><br>case XYZ:<br><br><em>statements</em>;<br><br>break;<br><br>default:<br><br><em>statements</em>;<br><br>break;<br><br>}<br><br> try-catch语句&#26684;式如下：<br><br>try<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>catch (ExceptionClass e)<br><br>{<br><br><em>statements</em>;<br><br>}<br><br>finally<br><br>{<br><br><em>statements;</em><br><br>}<br><br><pre>&nbsp;</pre><br><br>### <a name="_Toc153593049">9. 类型设计规范</a><br><br> <strong>要</strong>确保每个类型由一组定义明确，相互关联的成员组成，而不仅仅是一些无关功能的随 机集合；<br><br>#### <a name="_Toc153593050">9.1. 类型和命名空间</a><br><br> <strong>要</strong>用命名空间把类型组织成相关域的层次结构。例如：<br><br>界面层：Techstar.ProductionCenter；<br><br>业务逻辑层：Techstar.ProductionCenter.Business；<br><br>数据访问层：Techstar.ProductionCenter.Data；<br><br> <strong>避免</strong>过深的命名空间；<br><br> <strong>避免</strong>太多的命名空间；<br><br>#### <a name="_Toc153593051">9.2. 类型和接口的选择</a><br><br> <strong>要</strong>优先采用类而不是接口。<br><br>接口的缺点在于语义变化时改变困难。注意接口并不是协定，把协定和实现分开并非一 定用接口实现，用基类和抽象类同样可以表达；<br><br> <strong>建议</strong>使用抽象类而不是接口来解除协定与实现间的偶合；<br><br> <strong>要</strong>定义接口，来实现类&#20284;多重继承的效果；<br><br>精心定义接口的标志是一个接口只做一件事情。关键是接口的协定需要保持不变， 如果一个接口包含太多功能，那么这个胖接口产生变化的机会就会大得多。<br><br>#### <a name="_Toc153593052">9.3. 抽象类设计：</a><br><br> <strong>不要</strong>在抽象类中定义公有的或内部受保护的构造函数。因为抽象类无法实例化，所以这 种设计会误导用户；<br><br> <strong>要</strong>为抽象类定义受保护的构造函数或内部构造函数；<br><br>#### <a name="_Toc153593053">9.4. 静态类设计</a><br><br>静态类是一个只包含静态成员的类，它提供了一种纯面向对象设计和简单性之间的一个权衡，广泛用来提供类&#20284;于全局变量或一些通用功能。<br><br> <strong>要</strong>少用静态类。静态类应该仅用作辅助类；<br><br> <strong>避免</strong>把静态类当作杂物箱。每个静态类都应该有其明确目的；<br><br> <strong>不要</strong>在静态类中声明或覆盖实例成员；<br><br>#### <a name="_Toc153593054">9.5. 枚举设计</a><br><br> <strong>要</strong>用枚举来加强那些表示&#20540;的集合的参数，属性以及返回&#20540;的类型性；<br><br> <strong>要</strong>优先使用枚举而不是静态常量。例如：<br><br>//不好的写法<br><br>public static class Color<br><br>{<br><br>public static int Red = 0;<br><br>public static int Green = 1;<br><br>public static int Blue = 2;<br><br>}<br><br>//好的写法<br><br>public enum Color<br><br>{<br><br>Red,<br><br>Green,<br><br>Blue<br><br>}<br><br> <strong>不要</strong>把枚举用于开放的场合，例如操作系统的版本，朋友的名字等；<br><br> <strong>枚举最后一个&#20540;不要加逗号；</strong><br><br> 枚举中<strong>不要</strong>提供为了今后使用而保留的枚举&#20540;；<br><br>### <a name="_Toc153593055">10. 成员设计规范</a><br><br>方法，属性，事件，构造函数以及字段等统称为成员。<br><br>#### <a name="_Toc153593056">10.1. 成员设计的一般规范</a><br><br>#### <a name="_Toc153593057">10.2. 方法的重载规范；</a><br><br> <strong>避免</strong>在重载中随意的给参数命名。如果两个重载中的某个参数表示相同的输入，那么该参数的名字应该相同。例如：<br><br>public class String<br><br>{<br><br>//好的写法<br><br>public int IndexOf(string value) { …}<br><br>public int IndexOf(string value, int startIndex) { …}<br><br>//不好的写法<br><br>public int IndexOf(string value) { …}<br><br>public int IndexOf(string str, int startIndex) { …}<br><br>}<br><br> <strong>避免</strong>使重载成员的参数顺序不一致。在所有的重载中，同名参数应该出现在相同的位置。 例如：<br><br>public class EventLog<br><br>{<br><br>public EventLog();<br><br>public EventLog(string logName);<br><br>public EventLog(string logName, string machineName);<br><br>public EventLog(string logName, string machineName, string source);<br><br>}<br><br> 较短的重载应该仅仅调用较长的来实现。另外，重载如果需要扩展性，把最长重载 做成虚函数。例如：<br><br>public class String<br><br>{<br><br>public int IndexOf(string s)<br><br>{<br><br>//调用<br><br>return IndexOf(s, 0);<br><br>}<br><br>public int IndexOf(string s, int startIndex)<br><br>{<br><br>//调用<br><br>return IndexOf(s, startIndex, s.Length);<br><br>}<br><br>public virtual int IndexOf(string s, int startIndex, int Count)<br><br>{<br><br>//实际的代码<br><br>}<br><br>}<br><br> <strong>要</strong>允许可选参选为null。这样做是为了避免调用者调用之前需要检查参数是否null。例 如：<br><br>//允许为null时的调用<br><br>DrawGeometry(brush, pen, geometry);<br><br>//不允许为null时的调用<br><br>if (geometry == null) DrawGeometry(brush, pen);<br><br>else DrawGeometry(brush, pen, geometry);<br><br>#### <a name="_Toc153593058">10.3. 属性和方法的选择</a><br><br> 基本原则是方法表示操作，属性表示数据。如果其他各方面都一样，优先使用属性而不 是方法。<br><br> <strong>要</strong>使用属性，如果该成员表示类型的逻辑attribue<br><br> 如果属性的&#20540;存储在内存中，而提供属性的目的仅仅是为了访问该&#20540;，<strong>要</strong>使用属性而不 要使用方法<br><br> 如果该操作每次返回的结果不同，那么<strong>要</strong>使用方法。例如来自于.net framework的例子:<br><br>//好的写法<br><br>Guid.NewGuid();<br><br>//不好的写法<br><br>DateTime.Now;<br><br> 如果该操作比访问字段慢一个或多个数量级，<strong>要</strong>使用方法。<br><br> 如果该操作有严重的副作用，<strong>要</strong>使用方法。<br><br>#### <a name="_Toc153593059">10.4. 属性的设计规范：</a><br><br> 如果不应该让调用方法改变属性&#20540;，<strong>要</strong>创建只读属性；<br><br> <strong>不要</strong>提供只写属性；<br><br> <strong>要</strong>为所有的属性提供合理的默认&#20540;，这样可以确保默认&#20540;不会导致漏洞或效率低的代 码；<br><br> <strong>要</strong>允许用户以任何顺序来设置属性的&#20540;；<br><br> <strong>避免</strong>在属性的获取方法抛出异常。<br><br>属性的获取方法应该是个简单的操作，不应该有任何的条件。如果一个获取方法会抛出 异常，按么可能它更应该设计为方法。<br><br>#### <a name="_Toc153593060">10.5. 构造函数的设计规范</a><br><br> <strong>建议</strong>提供简单的构造函数，最好是默认构造函数。简单的构造函数增强易用性；<br><br> 考虑扩展性，如果构造函数设计的不自然，<strong>建议</strong>用静态的工厂方法来替代构造函数；<br><br> <strong>要</strong>把构造函数的参数用作设置主要属性的便捷方法。如果构造函数参数仅用来设置属 性，应和属性名称相同。仅有大小写的区别；<br><br> <strong>要</strong>在构造函数中做最少的工作。任何其他处理应该推迟到需要的时候；<br><br> <strong>要</strong>在类中显示的声明公用的默认构造函数，如果这样的构造函数是必须的。<br><br>如果没有显示默认构造函数，填加有参数构造函数时往往会破坏已有使用默认构造函数 的代码；<br><br> <strong>避免</strong>在对象的构造函数内部调用虚成员。这样在扩展设计的时候会导致难以理解的现 象；<br><br>#### <a name="_Toc153593061">10.6. 字段设计规范</a><br><br> <strong>不要</strong>提供公有的或受保护的字段。代之以属性来访问字段；<br><br> <strong>要</strong>只用常量字段来表示永远不会改变的量。否则会导致兼容性问题。下面是正确的例子：<br><br>public struct Int32<br><br>{<br><br>public const int MaxValue = 0x7fffffff;<br><br>public const int MinValue = unchecked((int)0x80000000);<br><br>}<br><br> <strong>要</strong>用公有的静态只读字段来定义预定义的对象实例。例如：<br><br>public struct Color<br><br>{<br><br>public static readonly Color Red = new Color(0x0000FF);<br><br>}<br><br>#### <a name="_Toc153593062">10.7. 参数的设计规范</a><br><br> <strong>要</strong>用类结构层次中最接近基类类型来作为参数的类型，同时要保证该类型能够提供成员 所需的功能。例如：<br><br>要设计一个集合遍历的方法，那么参数应该是IEnbumerable为参数，而不应该是IList， 这样方法具有更强的适应性。<br><br> <strong>不要</strong>使用保留参数。如果将来需要更多的参数，那么可以增加重载成员。例如：<br><br>//不好的写法<br><br>public void Method(string reserved, SomeOption option);<br><br>//好的写法<br><br>public void Method(SomeOption option);<br><br>//将来填加<br><br>public void Method(SomeOption option, string path);<br><br>##### <a name="_Toc153593063">10.7.1. 参数设计中枚举和布尔参数的选择规范</a><br><br> <strong>要</strong>用枚举。在代码阅读，书写中，枚举都比布尔的可读性好很多。例如：<br><br>//使用布尔型，阅读的时候不会轻易了解参数的含义<br><br>FileStream f = File.Open(“1.txt”, true, false);<br><br>//使用枚举型<br><br>FileStream f = File.Open(“1.txt”，CasingOptions.CaseSenstive, FileMode.Open);<br><br> <strong>不要</strong>使用布尔参数，除非百分之百肯定绝对不需要两个以上的&#20540;。即使此时，采用枚举 往往也可以提供更好的可读性，如上例。<br><br> 考虑在构造函数中，对确实只有两种状态&#20540;的参数以及用来初始化布尔属性的参数使用 布尔类型；<br><br>##### <a name="_Toc153593064">10.7.2. 参数验证的规范：</a><br><br> <strong>要</strong>验证传给公有的，受保护的或显示成员的参数是否合法。如果验证失败，应该抛出 System.ArgutmentException或其子类；<br><br> <strong>要</strong>抛出System.ArgutmentNullException，如果传入的null，而该成员不支持null；<br><br>##### <a name="_Toc153593065">10.7.3. 参数传递的规范：</a><br><br> <strong>避免</strong>使用输出参数或引用参数；<br><br>### <a name="_Toc153593066">11. 扩展性设计规范</a><br><br> 如果没有恰当理由，<strong>不要</strong>把类密封起来。这些理由包括：<br><br>A）类为静态类；<br><br>B）类的受保护成员保存了高度机密信息；<br><br>C）类继承了许多虚成员，逐个密封的代价太高，不如密封整个类；<br><br>D）不要在密封类中声明保护成员或虚成员，因为无法覆盖其实现；<br><br> <strong>建议</strong>用保护成员用于高级定制。它提供了扩展性，同时也避免了公用接口过于复杂；<br><br> <strong>不要</strong>使用虚成员，除非有合适的理由；<br><br> <strong>建议</strong>只有在绝对必须的时候才用虚成员提供扩展性，并使用Template Method模式；<br><br> <strong>要</strong>优先使用受保护的虚成员，而不是公有虚成员。公有成员通用调用受保护的虚成员的方式来提供扩展性；<br><br>### <a name="_Toc153593067">12. 异常处理规范</a><br><br> 异常的思想是只对错误采用异常处理：逻辑和编程错误，设置错误，被破坏的数据，资源耗尽，等等。通常的法则是系统在正常状态下以及无重载和硬件失效状态下，不应产生任何异常。<strong>异常处理时</strong>可以采用适当的日志机制来报告异常，包括异常发生的时刻；<br><br> 一般情况下<strong>不要使用异常实现来控制程序流程结构；</strong><br><br> <strong>使用异常而不要用错误代码来报告错误；</strong><br><br> <strong>要通过抛出异常的方式来报告操作失败。如果成员无法成功地完成它应该做的任务，那么应该抛出异常；</strong><br><br>#### <a name="_Toc153593068"><strong>12.1. 异常类型选择规范</strong></a><br><br> <strong>优先考虑使用System命名空间中已有的异常，而不是自己创建新的异常类型；</strong><br><br> <strong>要使用最合理，最具针对性的异常。例如，对参数为空，应抛出 </strong>System.ArgutmentNullException，而不是System.ArgutmentException<br><br>#### <a name="_Toc153593069"><strong>12.2. 异常处理规范</strong></a><br><br> 不是百分之百确定的情况，<strong>不要</strong>吞掉异常；<br><br> <strong>建议</strong>捕获特定类型的异常，如果理解该异常在具体环境当中产生的原因；<br><br> <strong>不要</strong>捕获不应该捕获的异常，通常应该允许异常沿着调用栈传递；<br><br> 进行清理工作时<strong>要</strong>用try-finally，避免使用try-catch；<br><br> <strong>要</strong>在捕获并重新抛出异常时使用空的throw语句，这是保持调用栈的最好方法<br><br>#### <a name="_Toc153593070"><strong>12.3. 标准异常类的使用：</strong></a><br><br>##### <a name="_Toc153593071">12.3.1. Exception</a>与SystemException<br><br> <strong>不要</strong>抛出这两种类型的异常；<br><br> <strong>避免</strong>捕获这两种异常，除非是在顶层的异常处理器中；<br><br>##### <a name="_Toc153593072">12.3.2. InvalidOperationException</a><br><br> 对象处于不正确状态时抛出；<br><br>##### <a name="_Toc153593073">12.3.3. ArgumentException</a>，ArgumentNullException，ArgumentOutOfRangeException<br><br> 如果传入的是无效参数，<strong>要</strong>抛出参数异常，尽可能使用位于继承层次末尾的类型；<br><br> <strong>要</strong>在抛出异常时设置ParaName属性；<br><br>##### <a name="_Toc153593074">12.3.4. NullRefernceException</a>，IndexOutOfRangeException，AccessViolationException<br><br> <strong>不要</strong>显示抛出或捕获；<br><br>##### <a name="_Toc153593075">12.3.5. StackOverflowException</a>：<br><br> <strong>不要</strong>显示抛出或捕获；<br><br>##### <a name="_Toc153593076">12.3.6. OutOfMemoryException</a>：<br><br> <strong>不要</strong>显示抛出或捕获；<br><br>#### <a name="_Toc153593077"><strong>12.4. 自定义异常类型设计规则：</strong></a><br><br> <strong>避免</strong>太深的继承层次；<br><br> <strong>要</strong>从已有的异常基类继承；<br><br> 异常类<strong>要</strong>以“Exception”做为后缀；<br><br> <strong>要</strong>使异常可序列化，使其能跨应用程序域和远程边界仍能正常使用；<br><br> <strong>要</strong>把与安全性有关的信息保存在私有的异常状态中<br><br>#### <a name="_Toc153593078"><strong>12.5. 异常与性能</strong></a><br><br> 如果在普通场景都会抛出异常，<strong>要</strong>采用先效验合法性的方式来避免抛出异常引起的性能 问题；<br><br>### <a name="_Toc153593079">13. 其他规定</a><br><br> 为避免频繁改动代码，代码中只写比较简单的和不会经常发生变化的SQL，如果SQL 经常发生变化或是比较复杂，存到SysMisc中，比如统计用到的SQL；<br><br> 在VS2005开发环境中，采用代码分析工具来做自动化的代码分析，以保证代码质量， 具体的使用建议如下：<br><br>A）启用代码分析，并设置当风&#26684;不符合要求时为错误而不是警告；<br><br>B）如果不是做代码审核，此开关应关闭。加上了这个选项的时候编译很慢；<br><br>C）详设的时候打开开关，检查详设是否符合编程规范；<br><br>D）所有的选项都应当打开。以下内容需要单独设置：<br><table border="1" cellspacing="0" cellpadding="0"><br><tbody><br><tr><br><td width="14%"><br><p>编码<br><br></p></td><br><td width="24%"><br><br>名称<br><br></td><br><td width="19%"><br><br>大类<br><br></td><br><td width="26%"><br><br>建议<br><br></td><br><td width="15%"><br><br>使用等级<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA2209<br><br></td><br><td width="24%"><br><br>程序集应声明最小安全性<br><br></td><br><td width="19%"><br><br>用法规则<br><br></td><br><td width="26%"><br><br>不建议使用<br><br></td><br><td width="15%"><br><br>警告<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA1814<br><br></td><br><td width="24%"><br><br>与多维数组相比，首选使用交错的数组<br><br></td><br><td width="19%"><br><br>性能规则<br><br></td><br><td width="26%"><br><br>使用，但降低等级<br><br></td><br><td width="15%"><br><br>警告<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA1822<br><br></td><br><td width="24%"><br><br>将成员标记为 static<br><br></td><br><td width="19%"><br><br>性能规则<br><br></td><br><td width="26%"><br><br>较繁锁，且影响代码质量<br><br></td><br><td width="15%"><br><br>禁用<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA2210<br><br></td><br><td width="24%"><br><br>程序集应具有有效的强名称<br><br></td><br><td width="19%"><br><br>设计规则<br><br></td><br><td width="26%"><br><br>影响Xcopy部署<br><br></td><br><td width="15%"><br><br>禁用<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA1302<br><br></td><br><td width="24%"><br><br>不要对区域设置特定的字符串进行硬编码<br><br></td><br><td width="19%"><br><br>全球化规则<br><br></td><br><td width="26%"><br><br>很繁琐，并且工具支持的不好。全球化规则全部禁用<br><br></td><br><td width="15%"><br><br>禁用<br><br></td><br></tr><br><tr><br><td width="14%"><br><br>CA2100<br><br></td><br><td width="24%"><br><br>检查 Sql 查询中是否有安全漏洞<br><br></td><br><td width="19%"><br><br>安全性规则<br><br></td><br><td width="26%"><br><br>都采用参数化查询，有可能会参数过长；如果是内部参数，也不会有安全问题<br><br></td><br><td width="15%"><br><br>警告<br><br></td><br></tr><br></tbody><br></table><br><p></p><br><br>### <a name="_Toc153593080">14. 参考文档</a><br><br>1，《.NET设计规范》，本规范很多内容都参考了这本书，书中对规范背后的背景和原则做了深入讨论；<br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2010/03/23/C-编码规范——转载/" data-id="cii1bfdcw004dgaz2igouarw0" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2010/04/05/Asp-net实现即时消息通讯-Ajax/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Asp.net实现即时消息通讯(Ajax)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2010/03/23/大象之关于对UML的一些理解/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">大象之关于对UML的一些理解</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-C-编码规范——转载" data-title="C#编码规范——转载" data-url="http://vinoyang.com/2010/03/23/C-编码规范——转载/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 10px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/flume/" style="font-size: 10px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 10px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+          <li>
+            <a href="/2015/11/20/build-log-sys-with-flume-and-morphline/">日志系统之Flume采集加morphline解析</a>
+          </li>
+        
+          <li>
+            <a href="/2015/10/30/messagebus-refactor-simplify-client/">消息总线重构之简化客户端</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/29/a-lightweight-async-task-invoker-based-on-redis-and-disque/">一个基于redis和disque实现的轻量级异步任务执行器</a>
+          </li>
+        
+          <li>
+            <a href="/2015/08/23/redis-incr-implement-rate-limit/">redis实现访问频次限制的几种方式</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2015 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
