@@ -7,19 +7,22 @@
   
   <title>日志系统重构之多源聚合的采集器 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。
-重构之前当前的设计以日志类型为中心，一个日志类型对应一个独立的flume的配置模板。这个配置模板主要针对这个日志类型的日志文件名称、是否存在多行日志、日志首字符等固定属性。我将这个配置称为 采集模板配置。当然，光靠这些配置还不够，因为这些日志类型所对应的日志会存在于各个具体的主机节点以及可能不同的文件系统路径下，所以在">
+  <meta name="description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="日志系统重构之多源聚合的采集器">
-<meta property="og:url" content="http://vinoyang.com/2016/02/05/日志系统重构之多源聚合的采集器/index.html">
+<meta property="og:url" content="http://vinoyang.com/2016/02/10/log-system-refactor-agent-with-multi-flow/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。
-重构之前当前的设计以日志类型为中心，一个日志类型对应一个独立的flume的配置模板。这个配置模板主要针对这个日志类型的日志文件名称、是否存在多行日志、日志首字符等固定属性。我将这个配置称为 采集模板配置。当然，光靠这些配置还不够，因为这些日志类型所对应的日志会存在于各个具体的主机节点以及可能不同的文件系统路径下，所以在">
-<meta property="og:updated_time" content="2016-02-06T04:12:17.000Z">
+<meta property="og:description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_console-design-before-refactor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_zk-design-before-refactor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_deploy-before-refactor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_console-design-after-refactor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_zk-design-after-refactor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_deploy-after-refactor.png">
+<meta property="og:updated_time" content="2016-02-10T02:46:28.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="日志系统重构之多源聚合的采集器">
-<meta name="twitter:description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。
-重构之前当前的设计以日志类型为中心，一个日志类型对应一个独立的flume的配置模板。这个配置模板主要针对这个日志类型的日志文件名称、是否存在多行日志、日志首字符等固定属性。我将这个配置称为 采集模板配置。当然，光靠这些配置还不够，因为这些日志类型所对应的日志会存在于各个具体的主机节点以及可能不同的文件系统路径下，所以在">
+<meta name="twitter:description" content="最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -79,10 +82,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-日志系统重构之多源聚合的采集器" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-log-system-refactor-agent-with-multi-flow" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/02/05/日志系统重构之多源聚合的采集器/" class="article-date">
-  <time datetime="2016-02-05T07:27:47.000Z" itemprop="datePublished">2016-02-05</time>
+    <a href="/2016/02/10/log-system-refactor-agent-with-multi-flow/" class="article-date">
+  <time datetime="2016-02-10T01:27:47.000Z" itemprop="datePublished">2016-02-10</time>
 </a>
     
   </div>
@@ -103,48 +106,54 @@
       
         <!-- Table of Contents -->
         
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#重构之前"><span class="toc-number">1.</span> <span class="toc-text">重构之前</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#重构之后"><span class="toc-number">2.</span> <span class="toc-text">重构之后</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#总结"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li></ol>
+          </div>
+        
         <p>最近对日志系统的采集机制进行了重构，增强了对单一主机上多个日志源采集的便捷性。</p>
-<h1 id="重构之前">重构之前</h1><p>当前的设计以日志类型为中心，一个日志类型对应一个独立的flume的配置模板。这个配置模板主要针对这个日志类型的<code>日志文件名称</code>、<code>是否存在多行日志</code>、<code>日志首字符</code>等固定属性。我将这个配置称为 <strong>采集模板配置</strong>。当然，光靠这些配置还不够，因为这些日志类型所对应的日志会存在于各个具体的主机节点以及可能不同的文件系统路径下，所以在具体收集的时候还需要配置<code>日志文件路径</code>、<code>采集器元数据存储路径</code>等动态属性，我将这个配置称之为 <strong>采集定制</strong> 。</p>
-<p>所以在管控台中，采集的完整配置包含了 <strong>采集模板</strong> 和 <strong>采集定制</strong> 。</p>
-<p>这里管控台的设计完全没有按照flume里<code>source</code>、<code>channel</code>、<code>sink</code>区分开来。因为channel一般都是<code>memoryChannel</code>是固定在配置模板里的，而<code>sink</code>的配置是混合在 <strong>采集定制</strong> 模板里。</p>
-<p>图示一下就是下面这种模式：</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h1 id="重构之后">重构之后</h1><p>重构之后，以采集agent为中心。我们的目标是减少同一个物理主机上采集器的部署成本，也就是希望一个物理主机部署一个采集器，而这个采集器支持多个日志源的采集。因为一个采集器一般只对应一个配置文件，所以这个配置文件就要求能包含多个日志采集的定义，幸好flume当前的最新版本（1.6.0）能够支持一个配置文件配置多个流。</p>
-<p>那么管控台就需要重新设计，必须区分将flume的三个组件区分开来独立配置。所以，新规划的功能块有</p>
+<a id="more"></a>
+<h1 id="重构之前">重构之前</h1><p>重构之前的设计以日志类型为中心，一个日志类型对应一个独立的flume的配置模板，一个日志类型的一个日志源（具体到某个节点上特定的日志文件）对应一个flume配置文件（也即一个flume agent）。flume配置模板主要针对这个日志类型的<code>日志文件名称</code>、<code>是否存在多行日志</code>、<code>日志首字符</code>、<code>目标接收方有关的配置</code>等固定属性。光靠这些配置还不够，因为这些日志类型所对应的日志会存在于各个具体的主机节点以及可能不同的文件系统路径下，所以针对某个日志类型的日志源还需要配置<code>日志文件路径</code>、<code>日志文件名称的模式</code>、<code>采集器元数据存储路径</code>等动态属性。</p>
+<p>这里管控台的设计完全没有按照flume里<code>source</code>、<code>channel</code>、<code>sink</code>区分开来。<code>sink</code>的配置是混合在flume配置模板里。</p>
+<p>管控台的功能逻辑图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_console-design-before-refactor.png" alt="console-design-before-refactor"></p>
+<p>重构前zk Path设计：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_zk-design-before-refactor.png" alt="design-before-refactor"></p>
+<p>重构前采集器的物理部署图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_deploy-before-refactor.png" alt="deploy-before-refactor"></p>
+<h1 id="重构之后">重构之后</h1><p>我们的目标是减少同一个物理主机上采集器的部署成本，最好能一个物理主机部署一个采集器，而这个采集器支持多个日志源的采集。正好在当前版本的flume(v1.6.0)是支持 <strong><em><a href="https://flume.apache.org/FlumeUserGuide.html#adding-multiple-flows-in-an-agent" target="_blank" rel="external">一个agent里多个日志流</a></em></strong>。因此，在重构的时候，改为以agent为中心，并重新规划了管控台的功能：</p>
 <ul>
 <li>采集源模板</li>
 <li>采集器</li>
 <li>采集源</li>
 <li>采集槽</li>
 </ul>
-<p>图示一下重构之后的模式：</p>
-<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
-<h2 id="管控台设计">管控台设计</h2><h2 id="采集器部署">采集器部署</h2>
+<p>重构之后管控台的功能逻辑图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_console-design-after-refactor.png" alt="console-design-after-refactor"></p>
+<p>重构后的zk path设计：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_zk-design-after-refactor.png" alt="design-after-refactor"></p>
+<p>重构后的物理部署图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-refactor-agent-with-multi-flow_deploy-after-refactor.png" alt="deploy-after-refactor"></p>
+<h1 id="总结">总结</h1><p>其实不难看出，管控台的功能逻辑以生成flume配置文件为目标。所以设计的变更主要体现在管控台如何组织和管理这些元数据信息。</p>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/02/05/日志系统重构之多源聚合的采集器/" data-id="cikbw7c6u0019ugz2ccuho7wh" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/02/10/log-system-refactor-agent-with-multi-flow/" data-id="cikg8jgiz00192rz20055ypxn" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/flume/">flume</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/日志系统/">日志系统</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2016/02/07/collect-docker-container-log-with-flume/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          日志系统之基于flume收集docker容器日志
-        
-      </div>
-    </a>
   
-  
-    <a href="/2015/12/26/link-log-system-component-with-zookeeper/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/02/07/collect-docker-container-log-with-flume/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">日志系统之基于Zookeeper的分布式协同设计</div>
+      <div class="article-nav-title">日志系统之基于flume收集docker容器日志</div>
     </a>
   
 </nav>
@@ -155,7 +164,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-日志系统重构之多源聚合的采集器" data-title="日志系统重构之多源聚合的采集器" data-url="http://vinoyang.com/2016/02/05/日志系统重构之多源聚合的采集器/"></div>
+    <div class="ds-thread" data-thread-key="post-log-system-refactor-agent-with-multi-flow" data-title="日志系统重构之多源聚合的采集器" data-url="http://vinoyang.com/2016/02/10/log-system-refactor-agent-with-multi-flow/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -181,7 +190,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
     </div>
   </div>
 
@@ -190,7 +199,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tag Cloud</h3>
     <div class="widget tagcloud">
-      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 15px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 20px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 20px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 20px;">消息总线</a>
+      <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 13.33px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 16.67px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 16.67px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 20px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 16.67px;">消息总线</a>
     </div>
   </div>
 
@@ -211,11 +220,11 @@
       <ul>
         
           <li>
-            <a href="/2016/02/07/collect-docker-container-log-with-flume/">日志系统之基于flume收集docker容器日志</a>
+            <a href="/2016/02/10/log-system-refactor-agent-with-multi-flow/">日志系统重构之多源聚合的采集器</a>
           </li>
         
           <li>
-            <a href="/2016/02/05/日志系统重构之多源聚合的采集器/">日志系统重构之多源聚合的采集器</a>
+            <a href="/2016/02/07/collect-docker-container-log-with-flume/">日志系统之基于flume收集docker容器日志</a>
           </li>
         
           <li>
