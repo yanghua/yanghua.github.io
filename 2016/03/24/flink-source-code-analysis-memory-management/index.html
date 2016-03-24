@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink内存管理源码解读之基础数据结构 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="概述在分布式实时计算领域，如何让框架/引擎足够高效地在内存中存取、处理海量数据是一个非常棘手的问题。在应对这一问题上Flink无疑是做得非常杰出的，Flink的自主内存管理设计也许比它自身的知名度更高一些。正好最近在研读Flink的源码，所以开两篇文章来谈谈Flink的内存管理设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink内存管理源码解读之基础数据结构">
+<meta property="og:url" content="http://vinoyang.com/2016/03/24/flink-source-code-analysis-memory-management/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="概述在分布式实时计算领域，如何让框架/引擎足够高效地在内存中存取、处理海量数据是一个非常棘手的问题。在应对这一问题上Flink无疑是做得非常杰出的，Flink的自主内存管理设计也许比它自身的知名度更高一些。正好最近在研读Flink的源码，所以开两篇文章来谈谈Flink的内存管理设计。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_all-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_memorysegment-implement.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-all-fields.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-ctor.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-public-method.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-abstract-method.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegmentFactory-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_dataview-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-03-24T15:10:33.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink内存管理源码解读之基础数据结构">
+<meta name="twitter:description" content="概述在分布式实时计算领域，如何让框架/引擎足够高效地在内存中存取、处理海量数据是一个非常棘手的问题。在应对这一问题上Flink无疑是做得非常杰出的，Flink的自主内存管理设计也许比它自身的知名度更高一些。正好最近在研读Flink的源码，所以开两篇文章来谈谈Flink的内存管理设计。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-source-code-analysis-memory-management" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/03/24/flink-source-code-analysis-memory-management/" class="article-date">
+  <time datetime="2016-03-24T14:41:54.000Z" itemprop="datePublished">2016-03-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink内存管理源码解读之基础数据结构
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Flink抽象出的内存类型"><span class="toc-number">1.1.</span> <span class="toc-text">Flink抽象出的内存类型</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemorySegment"><span class="toc-number">1.2.</span> <span class="toc-text">MemorySegment</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HeapMemorySegment"><span class="toc-number">1.3.</span> <span class="toc-text">HeapMemorySegment</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HybridMemorySegment"><span class="toc-number">1.4.</span> <span class="toc-text">HybridMemorySegment</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MemorySegmentFactory"><span class="toc-number">1.5.</span> <span class="toc-text">MemorySegmentFactory</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#MemorySegmentFactory相关的类图"><span class="toc-number">1.5.1.</span> <span class="toc-text">MemorySegmentFactory相关的类图</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#view构建在MemorySegment之上的抽象"><span class="toc-number">1.5.2.</span> <span class="toc-text">view构建在MemorySegment之上的抽象</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#引用"><span class="toc-number">2.</span> <span class="toc-text">引用</span></a></li></ol>
+          </div>
+        
+        <h1 id="概述">概述</h1><p>在分布式实时计算领域，如何让框架/引擎足够高效地在内存中存取、处理海量数据是一个非常棘手的问题。在应对这一问题上Flink无疑是做得非常杰出的，Flink的自主内存管理设计也许比它自身的知名度更高一些。正好最近在研读Flink的源码，所以开两篇文章来谈谈Flink的内存管理设计。</p>
+<a id="more"></a>
+<p>Flink的内存管理的亮点体现在作为以Java为主的(部分功能用Scala实现，也是一种遵循JVM规范并依赖JVM解释执行的函数式编程语言)的程序却自主实现内存的管理而不完全依赖于JVM的内存管理机制。它的优势在于灵活、为大数据场景而生、避免（不受控的）频繁GC导致的性能波动，某种程度上跳出了JVM的限制，是一种思路上的开拓。</p>
+<p>基本上我们将Flink的内存设计分为两个部分（遵循package的划分方式）：</p>
+<ul>
+<li>基础数据结构（package:org.apache.flink.core.memory）</li>
+<li>内存管理机制(package:org.apache.flink.runtime.memory)</li>
+</ul>
+<p>我们将分开来进行讲解，本篇主要关注基本数据结构。内存管理机制请等待后续文章分析。</p>
+<p>下图是该package中所有类的关系图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_all-class-diagram.png" alt="all-class-diagram"></p>
+<p>其中：<code>MemorySegment</code>，<code>HeapMemorySegment</code>，<code>HybridMemorySegment</code>是最为关键的三个类，我们将重点分析。</p>
+<h2 id="Flink抽象出的内存类型">Flink抽象出的内存类型</h2><p>Flink将其管理的内存抽象为两种类型（主要的抽象依据内存的位置）：</p>
+<ul>
+<li>HEAP：JVM堆内存</li>
+<li>OFF_HEAP：非堆内存</li>
+</ul>
+<p>这在Flink中被定义为一个枚举类型：<code>MemoryType</code>。</p>
+<h2 id="MemorySegment">MemorySegment</h2><p>Flink所管理的内存被抽象为数据结构：<code>MemorySegment</code>。</p>
+<p>据此，Flink为它提供了两种实现：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_memorysegment-implement.png" alt="memorysegment-implement"></p>
+<ul>
+<li>HeapMemorySegment : 管理的内存还是JVM堆内存的一部分</li>
+<li>HybridMemorySegment : Hybrid(on-heap or off-heap)MemorySegment，内存可能为JVM堆内存，也可能不是。</li>
+</ul>
+<p>MemorySegment的相关字段：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-all-fields.png" alt="MemorySegment-all-fields"></p>
+<ul>
+<li>UNSAFE : 用来对堆/非堆内存进行操作，是JVM的非安全的API</li>
+<li>BYTE_ARRAY_BASE_OFFSET : 二进制字节数组的起始索引，相对于字节数组对象</li>
+<li>LITTLE_ENDIAN ： 布尔值，是否为小端对齐（涉及到字节序的问题）</li>
+<li>heapMemory : 如果为堆内存，则指向访问的内存的引用，否则若内存为非堆内存，则为null</li>
+<li>address : 字节数组对应的相对地址（若heapMemory为null，即可能为off-heap内存的绝对地址，后续会详解）</li>
+<li>addressLimit : 标识地址结束位置（address+size）</li>
+<li>size : 内存段的字节数</li>
+</ul>
+<p>其中，LITTLE_ENDIAN获取的是当前操作系统的字节顺序，它是布尔值，后续的很多put/get操作都需要先判断是bigedian（大端）还是littleedian（小端）。</p>
+<blockquote>
+<p>关于字节序的问题，如果不明白请自行Google</p>
+</blockquote>
+<p>进入代码主题，针对on-heap内存和off-heap内存提供了两个构造器：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-ctor.png" alt="MemorySegment-ctor"></p>
+<p>并且，提供了一大堆get/put方法，这些getXXX/putXXX大都直接或者间接调用了unsafe.getXXX/unsafe.putXXX。这些处理不同内存类型公共的方法在<code>MemorySegment</code>中实现。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-public-method.png" alt="MemorySegment-public-method"></p>
+<blockquote>
+<p>当然不止这么多，这只是部分。</p>
+</blockquote>
+<p>而特定的内存访问实现在两个各自类中。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegment-abstract-method.png" alt="MemorySegment-abstract-method"></p>
+<p>在MemorySegment类中还有三个值得关注的方法：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">void</span> <span class="title">copyTo</span><span class="params">(<span class="keyword">int</span> offset, MemorySegment <span class="keyword">target</span>, <span class="keyword">int</span> targetOffset, <span class="keyword">int</span> numBytes)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">byte</span>[] thisHeapRef = <span class="keyword">this</span>.heapMemory;</span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">byte</span>[] otherHeapRef = <span class="keyword">target</span>.heapMemory;</span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">long</span> thisPointer = <span class="keyword">this</span>.address + offset;</span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">long</span> otherPointer = <span class="keyword">target</span>.address + targetOffset;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ( (numBytes | offset | targetOffset) &gt;= <span class="number">0</span> &amp;&amp;</span><br><span class="line">			thisPointer &lt;= <span class="keyword">this</span>.addressLimit - numBytes &amp;&amp; otherPointer &lt;= <span class="keyword">target</span>.addressLimit - numBytes)</span><br><span class="line">	&#123;</span><br><span class="line">		UNSAFE.copyMemory(thisHeapRef, thisPointer, otherHeapRef, otherPointer, numBytes);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="keyword">else</span> <span class="title">if</span> <span class="params">(<span class="keyword">this</span>.address &gt; <span class="keyword">this</span>.addressLimit)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"this memory segment has been freed."</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="function"><span class="keyword">else</span> <span class="title">if</span> <span class="params">(<span class="keyword">target</span>.address &gt; <span class="keyword">target</span>.addressLimit)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"target memory segment has been freed."</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException(</span><br><span class="line">				String.format(<span class="string">"offset=%d, targetOffset=%d, numBytes=%d, address=%d, targetAddress=%d"</span>,</span><br><span class="line">				offset, targetOffset, numBytes, <span class="keyword">this</span>.address, <span class="keyword">target</span>.address));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这是一个批量拷贝方法，用于从当前memory segment的offset偏移量开始拷贝numBytes长度的字节到target memory segment中从targetOffset起始的地方。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> final <span class="keyword">int</span> <span class="title">compare</span><span class="params">(MemorySegment seg2, <span class="keyword">int</span> offset1, <span class="keyword">int</span> offset2, <span class="keyword">int</span> len)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">while</span> (len &gt;= <span class="number">8</span>) &#123;</span><br><span class="line">		<span class="keyword">long</span> l1 = <span class="keyword">this</span>.getLongBigEndian(offset1);</span><br><span class="line">		<span class="keyword">long</span> l2 = seg2.getLongBigEndian(offset2);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (l1 != l2) &#123;</span><br><span class="line">			<span class="keyword">return</span> (l1 &lt; l2) ^ (l1 &lt; <span class="number">0</span>) ^ (l2 &lt; <span class="number">0</span>) ? -<span class="number">1</span> : <span class="number">1</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		offset1 += <span class="number">8</span>;</span><br><span class="line">		offset2 += <span class="number">8</span>;</span><br><span class="line">		len -= <span class="number">8</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">while</span> (len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">int</span> b1 = <span class="keyword">this</span>.get(offset1) &amp; <span class="number">0xff</span>;</span><br><span class="line">		<span class="keyword">int</span> b2 = seg2.get(offset2) &amp; <span class="number">0xff</span>;</span><br><span class="line">		<span class="keyword">int</span> cmp = b1 - b2;</span><br><span class="line">		<span class="keyword">if</span> (cmp != <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> cmp;</span><br><span class="line">		&#125;</span><br><span class="line">		offset1++;</span><br><span class="line">		offset2++;</span><br><span class="line">		len--;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>自实现的比较方法，用于对当前memory segment偏移offset1长度为len的数据与seg2偏移起始位offset2长度为len的数据进行比较。</p>
+<p>这里有两个while循环：</p>
+<ul>
+<li><p>第一个while是逐字节比较，如果len的长度大于8就从各自的起始偏移量开始获取其数据的长整形表示进行对比，如果相等则各自后移8位(一个字节)，并且长度减8，以此循环往复。</p>
+</li>
+<li><p>第二个循环比较的是最后剩余不到一个字节(八个比特位)，因此是按位比较</p>
+</li>
+</ul>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">public</span> <span class="keyword">final</span> <span class="function"><span class="keyword">void</span> <span class="title">swapBytes</span><span class="params">(<span class="keyword">byte</span>[] tempBuffer, MemorySegment seg2, <span class="keyword">int</span> offset1, <span class="keyword">int</span> offset2, <span class="keyword">int</span> len)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> ( (offset1 | offset2 | len | (tempBuffer.length - len) ) &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">final</span> <span class="keyword">long</span> thisPos = <span class="keyword">this</span>.address + offset1;</span><br><span class="line">		<span class="keyword">final</span> <span class="keyword">long</span> otherPos = seg2.address + offset2;</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">if</span> (thisPos &lt;= <span class="keyword">this</span>.addressLimit - len &amp;&amp; otherPos &lt;= seg2.addressLimit - len) &#123;</span><br><span class="line">			<span class="comment">// this -&gt; temp buffer</span></span><br><span class="line">			UNSAFE.copyMemory(<span class="keyword">this</span>.heapMemory, thisPos, tempBuffer, BYTE_ARRAY_BASE_OFFSET, len);</span><br><span class="line"></span><br><span class="line">			<span class="comment">// other -&gt; this</span></span><br><span class="line">			UNSAFE.copyMemory(seg2.heapMemory, otherPos, <span class="keyword">this</span>.heapMemory, thisPos, len);</span><br><span class="line"></span><br><span class="line">			<span class="comment">// temp buffer -&gt; other</span></span><br><span class="line">			UNSAFE.copyMemory(tempBuffer, BYTE_ARRAY_BASE_OFFSET, seg2.heapMemory, otherPos, len);</span><br><span class="line">			<span class="keyword">return</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="function"><span class="keyword">else</span> <span class="title">if</span> <span class="params">(<span class="keyword">this</span>.address &gt; <span class="keyword">this</span>.addressLimit)</span> </span>&#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"this memory segment has been freed."</span>);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="function"><span class="keyword">else</span> <span class="title">if</span> <span class="params">(seg2.address &gt; seg2.addressLimit)</span> </span>&#123;</span><br><span class="line">			<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"other memory segment has been freed."</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// index is in fact invalid</span></span><br><span class="line">	<span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException(</span><br><span class="line">				String.format(<span class="string">"offset1=%d, offset2=%d, len=%d, bufferSize=%d, address1=%d, address2=%d"</span>,</span><br><span class="line">						offset1, offset2, len, tempBuffer.length, <span class="keyword">this</span>.address, seg2.address));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 这个方法用于对两个memory segment中的一段数据进行交换。除了一些边界值判断，就是一个借助于临时变量的数据交换，只不过用<code>unsafe.copyMemory</code>代替了赋值号而已。</p>
+<p> 下面我们将探讨Flink提供的对两种类型的内存管理：<strong>on-heap</strong> 以及 <strong>off-heap</strong>。</p>
+<h2 id="HeapMemorySegment">HeapMemorySegment</h2><p> 基于JVM堆内存(on-heap)实现的memory segment，这也是Flink最早的内存自管理机制。该类内部定义一个字节数组的引用指向该内存段，之前提到<code>MemorySegment</code>里的那些抽象方法在该类中的实现都基于该内部字节数组的引用进行操作的，以此来获得内建的而非额外的自实现检查（这些检查比如数组越界等）。这是什么意思呢？当你定义：</p>
+ <figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">byte</span>[] memory;</span><br></pre></td></tr></table></figure>
+<p> 该memory指向<code>MemorySegment</code>中的heapMemory时，实现类似如下这种方法时：</p>
+ <figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">public</span> <span class="keyword">final</span> <span class="keyword">byte</span> get(<span class="keyword">int</span> <span class="keyword">index</span>) &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="keyword">this</span>.memory[<span class="keyword">index</span>];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 你就可以利用JVM自身的机制来判断index是否在0到length - 1之间。而不用去结合address等属性来判断索引范围了，比如上面这个方法在<code>HybridMemorySegment</code>里是这么实现的：</p>
+ <figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">	<span class="keyword">public</span> <span class="keyword">byte</span> get(<span class="keyword">int</span> <span class="keyword">index</span>) &#123;</span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">long</span> pos = address + <span class="keyword">index</span>;</span><br><span class="line">	<span class="keyword">if</span> (<span class="keyword">index</span> &gt;= <span class="number">0</span> &amp;&amp; pos &lt; addressLimit) &#123;</span><br><span class="line">		<span class="keyword">return</span> UNSAFE.getByte(heapMemory, pos);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (address &gt; addressLimit) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"segment has been freed"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// index is in fact invalid</span></span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IndexOutOfBoundsException();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 这个实现必须这么自行check边界值。</p>
+<p> 因为是JVM的堆内存，所以很多方法的调用可以直接利用JDK自带的方法，比如数组拷贝：</p>
+ <figure class="highlight smali"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">@Override<span class="keyword"></span><br><span class="line">public</span><span class="keyword"> final</span> void<span class="function"> get(</span>int index, byte<span class="keyword">[</span>] dst,<span class="instruction"> int </span>offset,<span class="instruction"> int </span>length<span class="function">)</span> &#123;</span><br><span class="line">	//<span class="keyword"> system</span> arraycopy does the boundary checks anyways, no need to<span class="instruction"> check </span>extra</span><br><span class="line">	System.arraycopy(this.memory, index, dst, offset, length<span class="function">)</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">@Override<span class="keyword"></span><br><span class="line">public</span><span class="keyword"> final</span> void<span class="function"> put(</span>int index, byte<span class="keyword">[</span>] src,<span class="instruction"> int </span>offset,<span class="instruction"> int </span>length<span class="function">)</span> &#123;</span><br><span class="line">	//<span class="keyword"> system</span> arraycopy does the boundary checks anyways, no need to<span class="instruction"> check </span>extra</span><br><span class="line">	System.arraycopy(src, offset, this.memory, index, length<span class="function">)</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 其他方法的实现都很常规，没有太多值得提点的地方。</p>
+<h2 id="HybridMemorySegment">HybridMemorySegment</h2><p> 这是另一种内存管理实现：它既支持on-heap内存也支持off-heap内存。乍一看，似乎有些匪夷所思，因为已经有一个对on-heap的实现了，为什么还要搞一个Hybrid的，而不是off-heap的？ 而且在一个类中对两种不同的内存区域进行操作，也会显得混乱。</p>
+<p> 那么我们先来看看Flink是如何“优雅”地避免混乱的。这一切还要归功于JVM提供的非安全的操作类（unsafe）提供的一系列方法：</p>
+ <figure class="highlight stylus"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">unsafe.<span class="function"><span class="title">XXX</span><span class="params">(Object o, int offset/position, ...)</span></span></span><br></pre></td></tr></table></figure>
+<p> 这些方法有如下特点：<br> （1）如果对象o不为null，并且后面的地址或者位置是相对位置，那么会直接对当前对象（比如数组）的相对位置进行操作，既然这里对象不为null，那么这种情况自然满足on-heap的场景；<br> （2）如果对象o为null，并且后面的地址是某个内存块的绝对地址，那么这些方法的调用也相当于对该内存块进行操作。这里对象o为null，所操作的内存块不是JVM堆内存，这种情况满足了off-heap的场景。</p>
+<p>还记得我们在介绍<code>MemorySegment</code>类时，提到的两个属性：</p>
+<ul>
+<li>heapMemory</li>
+<li>address</li>
+</ul>
+<p>这两个属性组合就可以适配上面的两种场景了。而且，<code>MemorySegment</code>的一个构造参数：<strong>offHeapAddress</strong> ，已经基本指明了该构造器是专门针对off-heap的了。</p>
+<p><code>MemorySegment</code>给出了一些针对特定数据类型的公共实现，大部分也调用了unsafe的具有如上这种特性的方法，因此其实<code>MemorySegment</code>里已经具有 <strong>Hybrid</strong> 的意思了。</p>
+<p>问题来了，那么Flink是如何获得某个off-heap数据的内存地址呢？答案在如下代码段：</p>
+ <figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">	<span class="comment">/** The reflection fields with which we access the off-heap pointer from direct ByteBuffers */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Field ADDRESS_FIELD;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> &#123;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		ADDRESS_FIELD = java.nio.Buffer.<span class="keyword">class</span>.getDeclaredField(<span class="string">"address"</span>);</span><br><span class="line">		ADDRESS_FIELD.setAccessible(<span class="literal">true</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(</span><br><span class="line">				<span class="string">"Cannot initialize HybridMemorySegment: off-heap memory is incompatible with this JVM."</span>, t);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 通过反射Buffer类获得 <strong>address</strong> 属性的Field表示，然后：</p>
+ <figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">	<span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">long</span> <span class="title">getAddress</span>(<span class="params">ByteBuffer buffer</span>) </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (buffer == <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> NullPointerException(<span class="string">"buffer is null"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> (Long) ADDRESS_FIELD.<span class="keyword">get</span>(buffer);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Could not access direct byte buffer address."</span>, t);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p> 拿到一个buffer的off-heap的地址表示。</p>
+<p>虽然通过如上的<code>MemorySegment</code>的两个属性再加上unsafe相关方法的特殊性，HybridMemorySegment的实现已经很清晰，简洁。但它内部还维护了一个指向它管理的off-heap数据的引用：offHeapBuffer。一方面是为了hold住那段内存空间不被释放，另一方面是为了实现自身的一些方法。</p>
+<h2 id="MemorySegmentFactory">MemorySegmentFactory</h2><p><code>MemorySegmentFactory</code>是用来创建<code>MemorySegment</code>，而且Flink严重推荐使用它来创建<code>MemorySegment</code>的实例，而不是手动实例化。其目的是：<strong>为了让运行时只存在某一种MemorySegment的子类实现的实例</strong>，而不是<code>MemorySegment</code>的两个子类的实例都同时存在，因为这会让JIT有加载和选择上的开销，导致大幅降低性能。关于这一点，Flink官方博客专门开了一篇博文来解释他们的对比以及测试方案，请见最后的引用。</p>
+<h3 id="MemorySegmentFactory相关的类图">MemorySegmentFactory相关的类图</h3><p>如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_MemorySegmentFactory-class-diagram.png" alt="MemorySegmentFactory-class-diagram"></p>
+<p>显而易见，这是设计模式中的工厂方法模式。</p>
+<p><code>MemorySegmentFactory</code>有个内部接口类<code>Factory</code>，<code>MemorySegment</code>的两个实现类的内部类各自实现了该接口，并定义了各自<code>Factory</code>的实现。这块并没有特别的，只是为了防止外部直接实例化<code>HybridMemorySegmentFactory</code>和<code>HeapMemorySegmentFactory</code>，它们各自的构造器都被设置为 <strong><em>private</em></strong>。</p>
+<p><code>MemorySegmentFactory</code>类提供了跟<code>Factory</code>接口类似的方法，或者应该说包裹了一层用来指定<code>Factory</code>具体实例的逻辑（基本上每个方法都先调用了<code>ensureInitialized</code>方法）：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="function"><span class="keyword">void</span> <span class="title">ensureInitialized</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (factory == <span class="keyword">null</span>) &#123;</span><br><span class="line">		factory = HeapMemorySegment.FACTORY;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>从上面可以看出，<code>MemorySegmentFactory</code>默认使用的是<code>HeapMemorySegment</code>类的实例来实现<code>MemorySegment</code>。</p>
+<h3 id="view构建在MemorySegment之上的抽象">view构建在MemorySegment之上的抽象</h3><p>除了<code>MemorySegment</code>的相关实现，Flink的Core包还提供了建立在<code>MemorySegment</code>之上的更高的抽象：DataView（数据视图）。</p>
+<p>数据视图相关的类关系图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management_dataview-class-diagram.png" alt="dataview-class-diagram"></p>
+<p>有两个接口，分别为输出视图<code>DataOutputView</code>(数据写相关)，输入视图<code>DataInputView</code>(数据读相关)。两个接口下分别各有一个子接口提供基于position的seek动作（即指定位置的数据读写操作）。另外分别有两个实现类，它们各自包装了对应的Stream接口。这块也没什么特别的，不做过多说明。</p>
+<p>以上是对Flink自主管理内存的数据结构部分的实现解读。</p>
+<h1 id="引用">引用</h1><p>[1]<a href="https://flink.apache.org/news/2015/09/16/off-heap-memory.html" target="_blank" rel="external">https://flink.apache.org/news/2015/09/16/off-heap-memory.html</a></p>
+<hr>
+<p>关注Flink微信公众号获得更多Flink的专题解读</p>
+<ul>
+<li>微信搜索：Apache_Flink</li>
+<li>扫码关注：</li>
+</ul>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/03/24/flink-source-code-analysis-memory-management/" data-id="cim6f2hoa004l0rset7tzayx7" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/02/10/log-system-refactor-agent-with-multi-flow/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">日志系统重构之多源聚合的采集器</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-source-code-analysis-memory-management" data-title="Flink内存管理源码解读之基础数据结构" data-url="http://vinoyang.com/2016/03/24/flink-source-code-analysis-memory-management/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Flink/" style="font-size: 10px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 13.33px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 16.67px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 16.67px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 20px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 16.67px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/03/24/flink-source-code-analysis-memory-management/">Flink内存管理源码解读之基础数据结构</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/10/log-system-refactor-agent-with-multi-flow/">日志系统重构之多源聚合的采集器</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/07/collect-docker-container-log-with-flume/">日志系统之基于flume收集docker容器日志</a>
+          </li>
+        
+          <li>
+            <a href="/2015/12/26/link-log-system-component-with-zookeeper/">日志系统之基于Zookeeper的分布式协同设计</a>
+          </li>
+        
+          <li>
+            <a href="/2015/12/11/messagebus-refactor-model/">消息总线之模型重构</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
