@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink内存管理源码解读之内存管理器 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="回顾上一篇文章我们谈了Flink自主内存管理的一些基础的数据结构。那篇中主要讲了数据结构的定义，这篇我们来看看那些数据结构的使用，以及内存的管理设计。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink内存管理源码解读之内存管理器">
+<meta property="og:url" content="http://vinoyang.com/2016/04/06/flink-source-code-analysis-memory-management-manager/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="回顾上一篇文章我们谈了Flink自主内存管理的一些基础的数据结构。那篇中主要讲了数据结构的定义，这篇我们来看看那些数据结构的使用，以及内存的管理设计。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_all-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_page-and-non-page.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_allocated-segment.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-04-06T14:50:20.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink内存管理源码解读之内存管理器">
+<meta name="twitter:description" content="回顾上一篇文章我们谈了Flink自主内存管理的一些基础的数据结构。那篇中主要讲了数据结构的定义，这篇我们来看看那些数据结构的使用，以及内存的管理设计。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-source-code-analysis-memory-management-manager" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/04/06/flink-source-code-analysis-memory-management-manager/" class="article-date">
+  <time datetime="2016-04-06T14:41:54.000Z" itemprop="datePublished">2016-04-06</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink内存管理源码解读之内存管理器
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#回顾"><span class="toc-number">1.</span> <span class="toc-text">回顾</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#概述"><span class="toc-number">2.</span> <span class="toc-text">概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#MemoryManager"><span class="toc-number">2.1.</span> <span class="toc-text">MemoryManager</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#MemoryPool"><span class="toc-number">2.1.1.</span> <span class="toc-text">MemoryPool</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AbstractPagedXXXView"><span class="toc-number">2.2.</span> <span class="toc-text">AbstractPagedXXXView</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#总结"><span class="toc-number">3.</span> <span class="toc-text">总结</span></a></li></ol>
+          </div>
+        
+        <h1 id="回顾">回顾</h1><p>上一篇文章我们谈了Flink自主内存管理的一些<a href="http://vinoyang.com/2016/03/24/flink-source-code-analysis-memory-management/">基础的数据结构</a>。那篇中主要讲了数据结构的定义，这篇我们来看看那些数据结构的使用，以及内存的管理设计。</p>
+<a id="more"></a>
+<h1 id="概述">概述</h1><p>这篇文章我们主要探讨Flink的内存管理类<code>MemoryManager</code>涉及到对内存的分配、回收，以及针对预分配内存而提供的memory segment pool。还有支持跨越多个memory segment数据访问的page view。</p>
+<p>本文探讨的类主要位于pageckage : <strong>org.apache.flink.runtime.memory</strong>下。完整类图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_all-class-diagram.png" alt="flink-source-code-analysis-memory-management-1_all-class-diagram"></p>
+<h2 id="MemoryManager">MemoryManager</h2><p><code>MemoryManager</code> 作为Flink的内存管理器，承担着<code>MemorySegment</code>的分配、回收等职责。</p>
+<p>为了提升<code>MemorySegment</code>的复用能力，它提供了不同memory type的MemorySegment池的实现，它们是：</p>
+<ul>
+<li>HeapMemoryPool</li>
+<li>HybirdOffHeapMemoryPool</li>
+</ul>
+<p>首先，这里为了提升memory segment操作效率，<code>MemoryManager</code>鼓励长度相等的memory segment。由此引入了<strong>page</strong>的概念。其实page跟memory segment没有本质上的区别，只不过是为了体现memory segment被分配为均等大小的内存空间而引入的。可以将这个类比于操作系统的<strong><em>页式内存分配</em></strong>，page这里看着同等大小的block即可。<code>MemoryManager</code>提供的默认page size为32KB，并提供了自定义page size的下界值不得小于4KB。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** The default memory page size. Currently set to 32 KiBytes. */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> DEFAULT_PAGE_SIZE = <span class="number">32</span> * <span class="number">1024</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">/** The minimal memory page size. Currently set to 4 KiBytes. */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> final <span class="keyword">int</span> MIN_PAGE_SIZE = <span class="number">4</span> * <span class="number">1024</span>;</span><br></pre></td></tr></table></figure>
+<p><code>MemoryManager</code>允许自定义page size，它提供的构造器可以指定这个参数，一个<code>MemoryManager</code>应对一个page size，而且指定了就不允许改变。</p>
+<p>page化的segment跟非page化的segment：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_page-and-non-page.png" alt="flink-source-code-analysis-memory-management-1_page-and-non-page"></p>
+<p>将segment page化会给后面的跨多个segment的访问带来更高的效率。</p>
+<p><code>MemoryManager</code>这个类本身没有特别的地方，并可能会被跨线程共享。这时某些操作可能会牵扯到多线程的<strong>并发</strong>问题。因此，<code>MemoryManager</code>提供了一个对象作为锁，以在某些方法上进行同步操作。</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** The lock used on the shared structures. */</span></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">Object</span> lock = <span class="keyword">new</span> <span class="keyword">Object</span>();</span><br></pre></td></tr></table></figure>
+<p>两个构造器：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">MemoryManager</span><span class="params">(<span class="keyword">long</span> memorySize, <span class="keyword">int</span> numberOfSlots)</span> </span>&#123;</span><br></pre></td></tr></table></figure>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">MemoryManager</span><span class="params">(<span class="keyword">long</span> memorySize, <span class="keyword">int</span> numberOfSlots, <span class="keyword">int</span> pageSize, MemoryType memoryType, <span class="keyword">boolean</span> preAllocateMemory)</span> </span>&#123;</span><br></pre></td></tr></table></figure>
+<p>第一个构造器内部调用了第二个构造器，并用<code>DEFAULT_PAGE_SIZE</code>作为pageSize，<code>HEAP</code>作为memory type。</p>
+<p>需要提及一下的是，这里的参数<code>numberOfSlots</code> 是跟Flink的task manager相关，暂时不做过多介绍，等到我们讲解Flink runtime时再细说。</p>
+<p>第二个构造器的另一个参数<code>preAllocateMemory</code>，指定memory manager的内存分配策略是<strong>预分配</strong>还是<strong>按需分配</strong>。我们后面会看到，对于这两种策略，相关的内存申请和释放操作是不同的。</p>
+<p>第二个构造器内就已经根据memory type将特定的memory pool对象初始化好了：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">switch</span> (memoryType) &#123;</span><br><span class="line">	<span class="keyword">case</span> HEAP:</span><br><span class="line">		<span class="keyword">this</span>.memoryPool = <span class="keyword">new</span> HeapMemoryPool(memToAllocate, pageSize);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">case</span> OFF_HEAP:</span><br><span class="line">		<span class="keyword">this</span>.memoryPool = <span class="keyword">new</span> HybridOffHeapMemoryPool(memToAllocate, pageSize);</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IllegalArgumentException(<span class="string">"unrecognized memory type: "</span> + memoryType);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>通过定位到两个pool对象的构造器，可以看到在实例化构造器的时候就已经将需要预分配的内存分配到位了（当然，这里是针对<code>preAllocateMemory</code>为true的调用情景而言），因为如果该参数为false，那么pool构造器的<code>memToAllocate</code>将会被置为0。</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HeapMemoryPool</span><span class="params">(<span class="keyword">int</span> numInitialSegments, <span class="keyword">int</span> segmentSize)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">this</span>.availableMemory = <span class="keyword">new</span> ArrayDeque&lt;<span class="keyword">byte</span>[]&gt;(numInitialSegments);</span><br><span class="line">	<span class="keyword">this</span>.segmentSize = segmentSize;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numInitialSegments; i++) &#123;</span><br><span class="line">		<span class="keyword">this</span>.availableMemory.add(<span class="keyword">new</span> <span class="keyword">byte</span>[segmentSize]);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="title">HybridOffHeapMemoryPool</span><span class="params">(<span class="keyword">int</span> numInitialSegments, <span class="keyword">int</span> segmentSize)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">this</span>.availableMemory = <span class="keyword">new</span> ArrayDeque&lt;ByteBuffer&gt;(numInitialSegments);</span><br><span class="line">	<span class="keyword">this</span>.segmentSize = segmentSize;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numInitialSegments; i++) &#123;</span><br><span class="line">		<span class="keyword">this</span>.availableMemory.add(ByteBuffer.allocateDirect(segmentSize));</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>针对offheap的内存池对象，分配内存调用的是java SE的API</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="function">ByteBuffer <span class="title">allocateDirect</span><span class="params">(<span class="keyword">int</span> capacity)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>该API用于分配一个新的<code>direct byte buffer</code>，大小限制即为<code>capacity</code>，其他的一切都是不确定的（包括它内部是否是一个byte数组）。</p>
+<p><code>MemoryManager</code>并没有类似于<strong>open</strong>这样的方法，它的构造器已经包含了这些动作。但它有明确的shutdown方法，主要的作用是：释放内存，清空内存池。</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="comment">// -------------------- BEGIN CRITICAL SECTION -------------------</span></span><br><span class="line">	<span class="keyword">synchronized</span> (lock)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="keyword">if</span> (!isShutDown) &#123;</span><br><span class="line">			<span class="comment">// mark as shutdown and release memory</span></span><br><span class="line">			isShutDown = <span class="keyword">true</span>;</span><br><span class="line">			numNonAllocatedPages = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// go over all allocated segments and release them</span></span><br><span class="line">			<span class="keyword">for</span> (Set&lt;MemorySegment&gt; segments : allocatedSegments.values()) &#123;</span><br><span class="line">				<span class="keyword">for</span> (MemorySegment seg : segments) &#123;</span><br><span class="line">					seg.free();</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			</span><br><span class="line">			memoryPool.clear();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// -------------------- END CRITICAL SECTION -------------------</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>下面进入到allocate以及release方法，这里因为篇幅的关系，我们只关注核心逻辑。这两个方法都共同拥有一个参数<code>owner</code>，说白了就是一个映射关系，谁申请的memory segment，将会挂到谁的名下，释放的时候也从谁的名下删除。大致如下图所示：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-source-code-analysis-memory-management-1_allocated-segment.png" alt="flink-source-code-analysis-memory-management-1_allocated-segment"></p>
+<p>allocate:</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">synchronized</span> (lock)</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">	Set&lt;MemorySegment&gt; segmentsForOwner = allocatedSegments.<span class="built_in">get</span>(owner);</span><br><span class="line">	<span class="keyword">if</span> (segmentsForOwner == <span class="keyword">null</span>) &#123;</span><br><span class="line">		segmentsForOwner = <span class="keyword">new</span> HashSet&lt;MemorySegment&gt;(numPages);</span><br><span class="line">		allocatedSegments.put(owner, segmentsForOwner);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (isPreAllocated) &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="built_in">int</span> i = numPages; i &gt; <span class="number">0</span>; i--) &#123;</span><br><span class="line">			MemorySegment segment = memoryPool.requestSegmentFromPool(owner);</span><br><span class="line">			target.<span class="built_in">add</span>(segment);</span><br><span class="line">			segmentsForOwner.<span class="built_in">add</span>(segment);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="built_in">int</span> i = numPages; i &gt; <span class="number">0</span>; i--) &#123;</span><br><span class="line">			MemorySegment segment = memoryPool.allocateNewSegment(owner);</span><br><span class="line">			target.<span class="built_in">add</span>(segment);</span><br><span class="line">			segmentsForOwner.<span class="built_in">add</span>(segment);</span><br><span class="line">		&#125;</span><br><span class="line">		numNonAllocatedPages -= numPages;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的预防性检查就不看了，主要逻辑有三段。先获取该owner下的segment集合，如何不存在，则初始化；然后如果是预分配的模式，则直接从池里取出来，加入到当前owner申请的segment集合中；如果不是预分配模式，则立即分配。</p>
+<p>release分为单个memory segment释放以及多segment一起释放。</p>
+<p>先来看单个memory segment释放：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">synchronized (<span class="keyword">lock</span>)</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="comment">// remove the reference in the map for the owner</span></span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				Set&lt;MemorySegment&gt; segsForOwner = <span class="keyword">this</span>.allocatedSegments.<span class="keyword">get</span>(owner);</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> (segsForOwner != <span class="keyword">null</span>) &#123;</span><br><span class="line">					segsForOwner.remove(segment);</span><br><span class="line">					<span class="keyword">if</span> (segsForOwner.isEmpty()) &#123;</span><br><span class="line">						<span class="keyword">this</span>.allocatedSegments.remove(owner);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">if</span> (isPreAllocated) &#123;</span><br><span class="line">					<span class="comment">// release the memory in any case</span></span><br><span class="line">					memoryPool.returnSegmentToPool(segment);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span> &#123;</span><br><span class="line">					segment.free();</span><br><span class="line">					numNonAllocatedPages++;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">				<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(<span class="string">"Error removing book-keeping reference to allocated memory segment."</span>, t);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
+<p>基本和allocate是相反的逻辑，不过有一点要注意的是，如果当前释放的segment是segsForOwner集合中的最后一个，那么将segsForOwner也从allocatedSegments中移除。</p>
+<p>释放多个memory segment：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">synchronized (lock)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="comment">// since concurrent modifications to the collection</span></span><br><span class="line">	<span class="comment">// can disturb the release, we need to try potentially multiple times</span></span><br><span class="line">	boolean successfullyReleased = <span class="keyword">false</span>;</span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		<span class="keyword">final</span> <span class="built_in">Iterator</span>&lt;MemorySegment&gt; segmentsIterator = segments.iterator();</span><br><span class="line"></span><br><span class="line">		<span class="built_in">Object</span> lastOwner = <span class="keyword">null</span>;</span><br><span class="line">		<span class="built_in">Set</span>&lt;MemorySegment&gt; segsForOwner = <span class="keyword">null</span>;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="comment">// go over all segments</span></span><br><span class="line">			<span class="keyword">while</span> (segmentsIterator.hasNext()) &#123;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">final</span> MemorySegment seg = segmentsIterator.next();</span><br><span class="line">				<span class="keyword">if</span> (seg == <span class="keyword">null</span> || seg.isFreed()) &#123;</span><br><span class="line">					<span class="keyword">continue</span>;</span><br><span class="line">				&#125;</span><br><span class="line"></span><br><span class="line">				<span class="keyword">final</span> <span class="built_in">Object</span> owner = seg.getOwner();</span><br><span class="line"></span><br><span class="line">				<span class="keyword">try</span> &#123;</span><br><span class="line">					<span class="comment">// get the list of segments by this owner only if it is a different owner than for</span></span><br><span class="line">					<span class="comment">// the previous one (or it is the first segment)</span></span><br><span class="line">					<span class="keyword">if</span> (lastOwner != owner) &#123;</span><br><span class="line">						lastOwner = owner;</span><br><span class="line">						segsForOwner = <span class="keyword">this</span>.allocatedSegments.<span class="literal">get</span>(owner);</span><br><span class="line">					&#125;</span><br><span class="line"></span><br><span class="line">					<span class="comment">// remove the segment from the list</span></span><br><span class="line">					<span class="keyword">if</span> (segsForOwner != <span class="keyword">null</span>) &#123;</span><br><span class="line">						segsForOwner.remove(seg);</span><br><span class="line">						<span class="keyword">if</span> (segsForOwner.isEmpty()) &#123;</span><br><span class="line">							<span class="keyword">this</span>.allocatedSegments.remove(owner);</span><br><span class="line">						&#125;</span><br><span class="line">					&#125;</span><br><span class="line"></span><br><span class="line">					<span class="keyword">if</span> (isPreAllocated) &#123;</span><br><span class="line">						memoryPool.returnSegmentToPool(seg);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">else</span> &#123;</span><br><span class="line">						seg.free();</span><br><span class="line">						numNonAllocatedPages++;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">catch</span> (Throwable t) &#123;</span><br><span class="line">					<span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(</span><br><span class="line">							<span class="string">"Error removing book-keeping reference to allocated memory segment."</span>, t);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			segments.clear();</span><br><span class="line"></span><br><span class="line">			<span class="comment">// the only way to exit the loop</span></span><br><span class="line">			successfullyReleased = <span class="keyword">true</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">catch</span> (ConcurrentModificationException e) &#123;</span><br><span class="line">			<span class="comment">// this may happen in the case where an asynchronous</span></span><br><span class="line">			<span class="comment">// call releases the memory. fall through the loop and try again</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">while</span> (!successfullyReleased);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>可以看到，核心逻辑跟单个segment的释放并没有太大的不同，但最外层套了个do/while循环，用于在释放失败之后不断重试，直到释放成功为止。这里可能涉及到对正在释放的segments的并发修改产生<code>ConcurrentModificationException</code>异常而失败。</p>
+<p>还有一个基于owner的释放方法：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">releaseAll</span><span class="params">(Object owner)</span> </span>&#123;</span><br></pre></td></tr></table></figure>
+<p>逻辑也是大同小异，不再废话。</p>
+<p>以上，<code>MemoryManager</code>的绝大部分方法都介绍完毕，逻辑相对还是比较清晰的。下面简单介绍一下几个内部的Pool，上面也已经提过了。</p>
+<h3 id="MemoryPool">MemoryPool</h3><p><code>MemoryPool</code>是真正跟<code>MemorySegment</code>打交道的地方，涉及到申请、分配、回收等操作。它提供了两个实现类，两个pool的实现都采用JDK的<code>ArrayDeque</code>（双端队列）作为存储所有内存块引用的数据结构。</p>
+<p>对于内存块的类型，<code>HeapMemoryPool</code>所代表的on-heap内存使用<code>byte[]</code>表示，而<code>HybridOffHeapMemoryPool</code>所代表的<code>off-heap</code>内存使用<code>ByteBuffer</code>表示。</p>
+<blockquote>
+<p>注意这里的分类方式不同于我们讲基础数据结构时的<code>HeapMemorySegement</code>以及<code>HybirdMemorySegment</code>划分方式，这里为了表示内存块的引用，直接区分了on-heap和off-heap，没有所谓的hybird memory segment。</p>
+</blockquote>
+<p>关于pool对象，没有太多特别的，主要是三个接口方法：</p>
+<ul>
+<li>allocateNewSegment : 直接申请一个新的segment，该segment不属于pool</li>
+<li>requestSegmentFromPool : 从池里请求一个segment，调用<code>ArrayDeque</code>的remove（首元素出队）方法，获得一个内存块引用，并包装成segment</li>
+<li>returnSegementToPool : 调用<code>ArrayDeque</code>的add(入队到尾部)方法，添加内存块引用并调用<code>MemorySegment</code>的<code>free</code>方法释放该segement</li>
+</ul>
+<h2 id="AbstractPagedXXXView">AbstractPagedXXXView</h2><p>还记得我们在谈Flink内存管理基础数据结构时谈到<code>DataInputView</code>及<code>DataOutputView</code>。这个包就提供了基于page的对view的进一步实现（并非完整实现，从名字也能看出，它只是个抽象类）。</p>
+<p>说得更直白一点就是，它提供了跨越多个memory page的数据访问(input/output)视图。它包含了从page中读取/写入数据的解码/编码方法以及跨越page的边界检查（边界检查主要由实现类来完成）。</p>
+<p>说说两个View类都有的几个字段：</p>
+<ul>
+<li>currentSegment : 表示当前正在操作的memory segment</li>
+<li>headerLength : 每个memory segment前面有一段是头部，可能存储一些元数据信息，数据访问的时候需要跳过这个长度，要求这个pageview指代的所有memory segment的header length都相等</li>
+<li>positionInSegment : 类似于一个指针，指向某个segment的某个位置（相对segment的位置）</li>
+</ul>
+<p>AbstractPagedInputView</p>
+<ul>
+<li>limitInSegment : 指定跟下一个segment的界限值</li>
+</ul>
+<p>AbstractPagedOutputView</p>
+<ul>
+<li>segmentSize : 指定所有segment size的值，也即一个page view里所有的segment长度都是一样的。</li>
+</ul>
+<p>两个view类都有一些共同的方法，其中的一个是advance，它用于从当前segment切换到下一个segment。</p>
+<p>其他的一些方法都是数据输入/输出相关的特定方法。</p>
+<p>我们看一个最核心的方法，AbstractPagedOutputView的write方法：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">write</span><span class="params">(<span class="keyword">byte</span>[] b, <span class="keyword">int</span> off, <span class="keyword">int</span> len)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	<span class="keyword">int</span> remaining = <span class="keyword">this</span>.segmentSize - <span class="keyword">this</span>.positionInSegment;</span><br><span class="line">	<span class="keyword">if</span> (remaining &gt;= len) &#123;</span><br><span class="line">		<span class="keyword">this</span>.currentSegment.put(<span class="keyword">this</span>.positionInSegment, b, off, len);</span><br><span class="line">		<span class="keyword">this</span>.positionInSegment += len;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> (remaining == <span class="number">0</span>) &#123;</span><br><span class="line">			advance();</span><br><span class="line">			remaining = <span class="keyword">this</span>.segmentSize - <span class="keyword">this</span>.positionInSegment;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">			<span class="keyword">int</span> toPut = Math.min(remaining, len);</span><br><span class="line">			<span class="keyword">this</span>.currentSegment.put(<span class="keyword">this</span>.positionInSegment, b, off, toPut);</span><br><span class="line">			off += toPut;</span><br><span class="line">			len -= toPut;</span><br><span class="line">			</span><br><span class="line">			<span class="keyword">if</span> (len &gt; <span class="number">0</span>) &#123;</span><br><span class="line">				<span class="keyword">this</span>.positionInSegment = <span class="keyword">this</span>.segmentSize;</span><br><span class="line">				advance();</span><br><span class="line">				remaining = <span class="keyword">this</span>.segmentSize - <span class="keyword">this</span>.positionInSegment;	</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="keyword">this</span>.positionInSegment += toPut;</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这就是一个跨越多个segment的写数据的核心方法，我们大致分析一下逻辑。</p>
+<blockquote>
+<p>前提说明：<code>remaining</code>这个变量始终表示，<code>currentSegment</code>剩余的内存。</p>
+</blockquote>
+<p>首先，判断<code>remaining</code>跟len的大小关系，如果</p>
+<figure class="highlight fix"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="attribute">remaining &gt;</span>=<span class="string"> len</span></span><br></pre></td></tr></table></figure>
+<p>即剩余空间是足够写入len长度的数据的，那么就直接写入数据，将<code>positionInSegment</code>后移len长度</p>
+<p>否则，表明<code>currentSegment</code>剩余空间不够。首先判断一个临界点，如果没有剩余空间了：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">remaining == <span class="number">0</span></span><br></pre></td></tr></table></figure>
+<p>则直接切换到下一个segment，并重新计算<code>remaining</code>。然后进入一个循环：判断，切换segment，计算剩余空间，移动指针。大致是：</p>
+<p>在<code>remaining</code>和<code>len</code>之间取较小值，作为待写入的长度。然后将<code>toPut</code>长度的数据写入<code>currentSegemnt</code>。然后off指针后移toPut长度(注意，off是指向待写入数据b数组的)；同时写入的数据长度len减去已写入的toPut长度。</p>
+<p>接着判断，如果是<figure class="highlight"><figcaption><span>小于 ```len```:</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#10;</span><br></pre></td></tr></table></figure></p>
+<p>len &gt; 0<br><code>``
+那么说明还是要切换到下一个segment（</code>currentSegment<code>不够存）。然后重新计算新的</code>currentSegment`重新进入循环流程。</p>
+<p>否则，说明<code>remainng</code>大于<code>len</code>，说明数据已经足够存储了，则移动<code>positionInSegment</code>指针，然后跳出循环。</p>
+<p>那么<code>AbstractPagedInputView</code>的read方法也就不难理解了的。</p>
+<h1 id="总结">总结</h1><p>本文分析了Flink的内存管理机制。总得来说有几点是其核心思路：</p>
+<ul>
+<li>构建segment对象池（pool化），增强复用性，减少重复分配，回收的开销</li>
+<li>规范segment的大小（page化），提升操作效率</li>
+<li>抽象跨segment的访问复杂性（view化）</li>
+</ul>
+<hr>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/04/06/flink-source-code-analysis-memory-management-manager/" data-id="cimoz2003004o4yfyf4qa5yxx" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/03/24/flink-source-code-analysis-memory-management/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink内存管理源码解读之基础数据结构</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-source-code-analysis-memory-management-manager" data-title="Flink内存管理源码解读之内存管理器" data-url="http://vinoyang.com/2016/04/06/flink-source-code-analysis-memory-management-manager/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">4</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Flink/" style="font-size: 13.33px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 13.33px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 16.67px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 16.67px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 20px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 16.67px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/04/06/flink-source-code-analysis-memory-management-manager/">Flink内存管理源码解读之内存管理器</a>
+          </li>
+        
+          <li>
+            <a href="/2016/03/24/flink-source-code-analysis-memory-management/">Flink内存管理源码解读之基础数据结构</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/10/log-system-refactor-agent-with-multi-flow/">日志系统重构之多源聚合的采集器</a>
+          </li>
+        
+          <li>
+            <a href="/2016/02/07/collect-docker-container-log-with-flume/">日志系统之基于flume收集docker容器日志</a>
+          </li>
+        
+          <li>
+            <a href="/2015/12/26/link-log-system-component-with-zookeeper/">日志系统之基于Zookeeper的分布式协同设计</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
