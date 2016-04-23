@@ -7,28 +7,19 @@
   
   <title>日志系统之定时任务执行引擎 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。
-组件运行时监控从我之前分享的文章中不难看出我们日志系统的各个组件的选型：
-
-采集agent : Flume-NG">
+  <meta name="description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="日志系统之定时任务执行引擎">
 <meta property="og:url" content="http://vinoyang.com/2016/04/23/log-system-of-quartz/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。
-组件运行时监控从我之前分享的文章中不难看出我们日志系统的各个组件的选型：
-
-采集agent : Flume-NG">
+<meta property="og:description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-of-quartz_zabbix-java-gateway.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/log-system-of-quartz_quartz-zookeeper-topology.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/vinoyang_column_qrcode_large.jpg">
-<meta property="og:updated_time" content="2016-04-23T13:49:30.000Z">
+<meta property="og:updated_time" content="2016-04-23T14:06:05.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="日志系统之定时任务执行引擎">
-<meta name="twitter:description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。
-组件运行时监控从我之前分享的文章中不难看出我们日志系统的各个组件的选型：
-
-采集agent : Flume-NG">
+<meta name="twitter:description" content="概述最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -118,6 +109,7 @@
           </div>
         
         <h1 id="概述">概述</h1><p>最近这段时间在强化日志系统自身的稳定性和可靠性，一个稳定可靠的系统离不开监控，我们这里谈及的监控除了服务是否存活还有这些组件的核心metrics采集与抓取，为此我们将这些任务做成了定时任务来执行。由于大致的思路以及设计已经成型，所以今天来分享一下日志系统在定时任务这块的选型与设计。</p>
+<a id="more"></a>
 <h2 id="组件运行时监控">组件运行时监控</h2><p>从我之前分享的文章中不难看出我们日志系统的各个组件的选型：</p>
 <ul>
 <li>采集agent : Flume-NG</li>
@@ -193,7 +185,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/04/23/log-system-of-quartz/" data-id="cind7dhuf001f8ofy50h0z1vm" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/04/23/log-system-of-quartz/" data-id="cind7yg97001fe2fyqwst27gw" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/quartz/">quartz</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/日志系统/">日志系统</a></li></ul>
