@@ -5,14 +5,14 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Flink任务之间的数据交换机制 | yanghua</title>
+  <title>Flink中task之间的数据交换机制 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="Flink中的数据交换构建在如下两条设计原则之上：
 
 数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。
 数据交换的数据流（例如，在网络上最终传输的数据）被抽象成一个叫做IntermediateResult的概念，它是可插拔的。这意味着系统基于相同的实现逻辑可以既支持流数据，又支持批处理数据的传输。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Flink任务之间的数据交换机制">
+<meta property="og:title" content="Flink中task之间的数据交换机制">
 <meta property="og:url" content="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="Flink中的数据交换构建在如下两条设计原则之上：
@@ -24,9 +24,9 @@
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_controlflow.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_transfer.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
-<meta property="og:updated_time" content="2016-04-24T12:10:10.000Z">
+<meta property="og:updated_time" content="2016-04-24T12:22:54.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Flink任务之间的数据交换机制">
+<meta name="twitter:title" content="Flink中task之间的数据交换机制">
 <meta name="twitter:description" content="Flink中的数据交换构建在如下两条设计原则之上：
 
 数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。
@@ -104,7 +104,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Flink任务之间的数据交换机制
+      Flink中task之间的数据交换机制
     </h1>
   
 
@@ -157,7 +157,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/" data-id="cinejmmoy004wqyfy0eptr1vn" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/" data-id="cinejpqwd004wsvz2vk50zi01" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -182,7 +182,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-flink-data-exchange-between-tasks" data-title="Flink任务之间的数据交换机制" data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-data-exchange-between-tasks" data-title="Flink中task之间的数据交换机制" data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -238,7 +238,7 @@
       <ul>
         
           <li>
-            <a href="/2016/04/24/flink-data-exchange-between-tasks/">Flink任务之间的数据交换机制</a>
+            <a href="/2016/04/24/flink-data-exchange-between-tasks/">Flink中task之间的数据交换机制</a>
           </li>
         
           <li>
