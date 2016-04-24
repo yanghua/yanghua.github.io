@@ -5,21 +5,32 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>使用asp.netAjax控件PopupControlExtender与GridView联合显示详情列表 | yanghua</title>
+  <title>Flink任务之间的数据交换机制 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="众所周知，由社区开发的AjaxControlToolkit，为asp.net展现富客户端效果和提高web程序性能带来了很大的帮助。里面有大量的实现各种功能的控件可供直接使用。">
+  <meta name="description" content="Flink中的数据交换构建在如下两条设计原则之上：
+
+数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。
+数据交换的数据流（例如，在网络上最终传输的数据）被抽象成一个叫做IntermediateResult的概念，它是可插拔的。这意味着系统基于相同的实现逻辑可以既支持流数据，又支持批处理数据的传输。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="使用asp.netAjax控件PopupControlExtender与GridView联合显示详情列表">
-<meta property="og:url" content="http://vinoyang.com/2010/06/13/使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表/index.html">
+<meta property="og:title" content="Flink任务之间的数据交换机制">
+<meta property="og:url" content="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="众所周知，由社区开发的AjaxControlToolkit，为asp.net展现富客户端效果和提高web程序性能带来了很大的帮助。里面有大量的实现各种功能的控件可供直接使用。">
-<meta property="og:image" content="http://hi.csdn.net/attachment/201006/13/0_12764117352ABR.gif">
-<meta property="og:image" content="http://hi.csdn.net/attachment/201006/13/0_1276411889YXlv.gif">
-<meta property="og:image" content="http://hi.csdn.net/attachment/201006/13/0_1276412177ucRw.gif">
-<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta property="og:description" content="Flink中的数据交换构建在如下两条设计原则之上：
+
+数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。
+数据交换的数据流（例如，在网络上最终传输的数据）被抽象成一个叫做IntermediateResult的概念，它是可插拔的。这意味着系统基于相同的实现逻辑可以既支持流数据，又支持批处理数据的传输。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_jobmanager-taskmanagers.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_executiongraph.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_controlflow.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_transfer.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-04-24T12:10:10.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="使用asp.netAjax控件PopupControlExtender与GridView联合显示详情列表">
-<meta name="twitter:description" content="众所周知，由社区开发的AjaxControlToolkit，为asp.net展现富客户端效果和提高web程序性能带来了很大的帮助。里面有大量的实现各种功能的控件可供直接使用。">
+<meta name="twitter:title" content="Flink任务之间的数据交换机制">
+<meta name="twitter:description" content="Flink中的数据交换构建在如下两条设计原则之上：
+
+数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。
+数据交换的数据流（例如，在网络上最终传输的数据）被抽象成一个叫做IntermediateResult的概念，它是可插拔的。这意味着系统基于相同的实现逻辑可以既支持流数据，又支持批处理数据的传输。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -79,10 +90,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-data-exchange-between-tasks" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2010/06/13/使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表/" class="article-date">
-  <time datetime="2010-06-13T14:52:00.000Z" itemprop="datePublished">2010-06-13</time>
+    <a href="/2016/04/24/flink-data-exchange-between-tasks/" class="article-date">
+  <time datetime="2016-04-24T11:40:42.000Z" itemprop="datePublished">2016-04-24</time>
 </a>
     
   </div>
@@ -93,7 +104,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      使用asp.netAjax控件PopupControlExtender与GridView联合显示详情列表
+      Flink任务之间的数据交换机制
     </h1>
   
 
@@ -103,38 +114,64 @@
       
         <!-- Table of Contents -->
         
-        <div><br><br>众所周知，由社区开发的AjaxControlToolkit，为asp.net展现富客户端效果和提高web程序性能带来了很大的帮助。里面有大量的实现各种功能的控件可供直接使用。<br><br><a id="more"></a><br><br>&nbsp;<br><br>PopupControlExtender就是其中的一个。我们称呼其为“弹出控件”。它主要的功能是让asp.net控件打开一个弹出对话框，来显示其他额外的信息或选项。弹出控件可以包含任何内容。特别&#20540;得一提的是，弹出控件具备通过Web服务或页面方法取得数据的功能。<br><br>&nbsp;<br><br>根据PopupControlExtender的主要作用和其能取得页面数据的特性，下面我们用它来实现显示详情对话框的功能。（在这之前，我们通常的做法是使用一个Gridview&#43;一个FormView或一个GridView&#43;一个DetailsView）。现在我们只需要一个GridView即可。相关实现如下：<br><br><em> </em> <em><br><br>这里一个简单的示例是正在做的一个权限管理中的一个显示资源的页面：<br><br>.aspx:<br><br><pre style="border: 1px dotted #785;background: #f5f5f5;">&lt;%@ Page Language=&quot;C#&quot; AutoEventWireup=&quot;true&quot; CodeFile=&quot;Module.aspx.cs&quot; Inherits=&quot;Privilege_Module&quot; %&gt;<br><br>&lt;%@ Register Assembly=&quot;AjaxControlToolkit&quot; Namespace=&quot;AjaxControlToolkit&quot; TagPrefix=&quot;ajaxToolkit&quot; %&gt;<br>&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD XHTML 1.0 Transitional//EN&quot; &quot;<a href="http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd&quot;&amp;gt</a>;<br>&lt;html xmlns=&quot;<a href="http://www.w3.org/1999/xhtml&quot;&amp;gt" target="_blank" rel="external">http://www.w3.org/1999/xhtml&quot;&amp;gt</a>;<br>&lt;head runat=&quot;server&quot;&gt;<br>    &lt;title&gt;&lt;/title&gt;<br>    &lt;mce:style type=&quot;text/css&quot;&gt;&lt;!–<br>        .imgs<br>        {<br>            visibility: hidden;<br>        }<br>        table.result<br>        {<br>            font-family: 标楷体, 楷体;<br>            width: 800px;<br>        }<br>        td.result<br>        {<br>            border-bottom: 1px dotted #00f;<br>            padding: 4px 0px 4px 8px;<br>        }<br>        .col1<br>        {<br>            width: 100px;<br>            text-align: center;<br>        }<br>        .col2<br>        {<br>            width: 180px;<br>            text-align: center;<br>        }<br>        .col3<br>        {<br>            width: 50px;<br>            text-align: center;<br>        }<br>        .col4<br>        {<br>            text-align: right;<br>        }<br>        .col5<br>        {<br>            text-align: right;<br>        }<br>        .col6<br>        {<br>            text-align: right;<br>        }<br>        .col7<br>        {<br>            text-align: right;<br>        }<br><br>–&gt;&lt;/mce:style&gt;&lt;style type=&quot;text/css&quot; mce_bogus=&quot;1&quot;&gt;        .imgs<br>        {<br>            visibility: hidden;<br>        }<br>        table.result<br>        {<br>            font-family: 标楷体, 楷体;<br>            width: 800px;<br>        }<br>        td.result<br>        {<br>            border-bottom: 1px dotted #00f;<br>            padding: 4px 0px 4px 8px;<br>        }<br>        .col1<br>        {<br>            width: 100px;<br>            text-align: center;<br>        }<br>        .col2<br>        {<br>            width: 180px;<br>            text-align: center;<br>        }<br>        .col3<br>        {<br>            width: 50px;<br>            text-align: center;<br>        }<br>        .col4<br>        {<br>            text-align: right;<br>        }<br>        .col5<br>        {<br>            text-align: right;<br>        }<br>        .col6<br>        {<br>            text-align: right;<br>        }<br>        .col7<br>        {<br>            text-align: right;<br>        }<br>    &lt;/style&gt;<br>&lt;/head&gt;<br>&lt;body&gt;<br>    &lt;form id=&quot;form1&quot; runat=&quot;server&quot;&gt;<br>    &lt;ajaxToolkit:ToolkitScriptManager ID=&quot;ToolkitScriptManager1&quot; runat=&quot;server&quot;&gt;<br>    &lt;/ajaxToolkit:ToolkitScriptManager&gt;<br>    &lt;div&gt;<br>        &lt;asp:MultiView ID=&quot;mv_Module&quot; runat=&quot;server&quot; ActiveViewIndex=&quot;0&quot;&gt;<br>            &lt;asp:View ID=&quot;View1&quot; runat=&quot;server&quot;&gt;<br>                &lt;table width=&quot;100%&quot;&gt;<br>                    &lt;tr&gt;<br>                        &lt;td align=&quot;right&quot;&gt;<br>                            &lt;asp:Button ID=&quot;btnNew&quot; runat=&quot;server&quot; Text=&quot;新增&quot; Width=&quot;80px&quot; OnClick=&quot;btnNew_Click&quot; /&gt;<br>                        &lt;/td&gt;<br>                    &lt;/tr&gt;<br>                &lt;/table&gt;<br>                        &lt;asp:GridView ID=&quot;GridView1&quot; runat=&quot;server&quot; Width=&quot;100%&quot; AutoGenerateColumns=&quot;False&quot;<br>                            DataSourceID=&quot;lds_Module&quot; OnRowCommand=&quot;GridView1_RowCommand&quot; OnRowCreated=&quot;GridView1_RowCreated&quot;<br>                            DataKeyNames=&quot;moduleCode&quot;&gt;<br>                            &lt;Columns&gt;<br>                                &lt;asp:TemplateField&gt;<br>                                    &lt;ItemTemplate&gt;<br>                                        &lt;asp:Image ID=&quot;Image1&quot; runat=&quot;server&quot; ImageUrl=&quot;~/Magnifier.gif&quot; /&gt;<br>                                        &lt;ajaxToolkit:PopupControlExtender ID=&quot;PopupControlExtender1&quot; runat=&quot;server&quot; TargetControlID=&quot;Image1&quot;<br>                                            PopupControlID=&quot;Panel2&quot; Position=&quot;Right&quot; DynamicServiceMethod=&quot;GetDetials&quot; DynamicContextKey=’&lt;%# Eval(&quot;moduleCode&quot;) %&gt;’<br>                                            OffsetY=&quot;50&quot; DynamicControlID=&quot;Panel2&quot;&gt;<br>                                            &lt;Animations&gt;<br>                                                &lt;OnHide&gt;<br>                                                    &lt;Sequence&gt;<br>                                                        &lt;FadeOut duration=&quot;0.2&quot; fps=&quot;20&quot; minimumOpacity=&quot;0&quot; /&gt;<br>                                                        &lt;HideAction Visible=&quot;false&quot; /&gt;<br>                                                        &lt;StyleAction Attribute=&quot;display&quot; Value=&quot;none&quot;/&gt;<br>                                                    &lt;/Sequence&gt;<br>                                                &lt;/OnHide&gt;<br>                                                &lt;OnShow&gt;<br>                                                    &lt;Sequence&gt;<br>                                                        &lt;StyleAction Attribute=&quot;display&quot; Value=&quot;block&quot;/&gt;<br>                                                        &lt;HideAction Visible=&quot;true&quot; /&gt;<br>                                                        &lt;FadeIn duration=&quot;0.2&quot; fps=&quot;20&quot; /&gt;<br>                                                    &lt;/Sequence&gt;<br>                                                &lt;/OnShow&gt;<br>                                            &lt;/Animations&gt;<br>                                        &lt;/ajaxToolkit:PopupControlExtender&gt;<br>                                    &lt;/ItemTemplate&gt;<br>                                    &lt;ItemStyle HorizontalAlign=&quot;Center&quot; /&gt;<br>                                &lt;/asp:TemplateField&gt;<br>                                &lt;asp:BoundField DataField=&quot;moduleCode&quot; HeaderText=&quot;moduleCode&quot; ReadOnly=&quot;True&quot; SortExpression=&quot;moduleCode&quot; /&gt;<br>                                &lt;asp:BoundField DataField=&quot;name&quot; HeaderText=&quot;name&quot; ReadOnly=&quot;True&quot; SortExpression=&quot;name&quot; /&gt;<br>                                &lt;asp:CheckBoxField DataField=&quot;isMaster&quot; HeaderText=&quot;isMaster&quot; ReadOnly=&quot;True&quot; SortExpression=&quot;isMaster&quot; /&gt;<br>                                &lt;asp:TemplateField HeaderText=&quot;操作&quot;&gt;<br>                                    &lt;ItemTemplate&gt;<br>                                        &lt;asp:LinkButton ID=&quot;lbtnDetail&quot; runat=&quot;server&quot; CommandName=&quot;MyDetail&quot;&gt;详情&lt;/asp:LinkButton&gt;&nbsp;<br>                                        &lt;asp:LinkButton ID=&quot;lbtnModify&quot; runat=&quot;server&quot; CommandName=&quot;MyModify&quot;&gt;修改&lt;/asp:LinkButton&gt;&nbsp;<br>                                        &lt;asp:LinkButton ID=&quot;lbtnDelete&quot; runat=&quot;server&quot; CommandName=&quot;MyDelete&quot;&gt;删除&lt;/asp:LinkButton&gt;<br>                                    &lt;/ItemTemplate&gt;<br>                                &lt;/asp:TemplateField&gt;<br>                            &lt;/Columns&gt;<br>                        &lt;/asp:GridView&gt;<br>                &lt;asp:LinqDataSource ID=&quot;lds_Module&quot; runat=&quot;server&quot; ContextTypeName=&quot;DTMS.DTMS<em>PrivilegeDataContext&quot;<br>                    Select=&quot;new (moduleCode, name, linkUrl, isMaster, parentModule, moduleLevel, remark)&quot;<br>                    TableName=&quot;Module&quot;&gt;<br>                &lt;/asp:LinqDataSource&gt;<br>                &lt;asp:Panel ID=&quot;Panel2&quot; runat=&quot;server&quot; BorderStyle=&quot;Solid&quot; BorderColor=&quot;#060F40&quot; BorderWidth=&quot;2px&quot;<br>                    BackColor=&quot;#ffffcc&quot; ForeColor=&quot;#060F40&quot; Width=&quot;800px&quot;&gt;<br>                    kajsdhfkjasf&lt;/asp:Panel&gt;<br>            &lt;/asp:View&gt;</em></pre><br><br>&nbsp;<br><br>&nbsp;<br><br>几个关键的属性解释：<br><br>TargetControlID:要被弹出控件 扩转的控件ID；<br><br>&nbsp;<br><br>DynamicContextKey：要传递给Web服务或页面方法的任意字符串&#20540;，这里绑定给他资源的编号：moduleCode;<br><br>&nbsp;<br><br>DynamicControlID:<span style="color:#ff0000">需要执行了Web服务或页面方法后所回的结果的控件的ID</span>，比如上例，我们将该属性&#20540;设为Panel2，因为其根据moduleCode提取完成数据后，显示在表&#26684;中，而表&#26684;是嵌入在Panel2中的，所以Panel2是数据的接收者。<br><br>&nbsp;<br><br>DynamicServiceMethod：要调用的Web服务方法或页面方法。<br><br>如果使用的C#，此方法必须符合下列签名&#26684;式：<br><br>[System.Web.Services.WebMethod]<br><br>[System.Web.Script.Services.ScriptMethod]<br><br>public <span style="color:#ff0000">string</span> DynamicServiceMethod(<span style="color:#ff0000">string</span> contextKey) {….}<br><br>&nbsp;<br><br>如果使用的VB.net，此方法必须符合下列签名&#26684;式：<br><br>&lt;System.Web.Services.WebMethod&gt;</em><br><br>&lt;System.Web.Script.Services.ScriptMethod&gt;_<br><br>public Function DynamicServiceMethod(ByVal contextKey As <span style="color:#ff0000"><br>String</span>) As<span style="color:#ff0000"> String</span><br><br>&nbsp; …..<br><br>End Function<br><br>&nbsp;<br><br>备注：Web服务方法的名称不一定叫做：DynamicServiceMethod，您可以使用任意的名称作为此方法的名称，但请记住，<span style="color:#ff0000">参数的名称与类型以及返回&#20540;的类型，务必与上述&#26684;式完全相同</span>，其他相关属性，不作详细说明（都是易于理解的）<br><br>&nbsp;<br><br>&nbsp;<br><br>.cs:
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#数据交换的控制流"><span class="toc-number">1.</span> <span class="toc-text">数据交换的控制流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#字节缓冲区在两个task之间的传输"><span class="toc-number">2.</span> <span class="toc-text">字节缓冲区在两个task之间的传输</span></a></li></ol>
+          </div>
+        
+        <p>Flink中的数据交换构建在如下两条设计原则之上：</p>
+<ul>
+<li>数据交换的控制流（例如，为实例化交换而进行的消息传输）是接收端初始化的，这非常像最初的MapReduce。</li>
+<li>数据交换的数据流（例如，在网络上最终传输的数据）被抽象成一个叫做IntermediateResult的概念，它是可插拔的。这意味着系统基于相同的实现逻辑可以既支持流数据，又支持批处理数据的传输。</li>
+</ul>
+<a id="more"></a>
+<p>数据传输包含多个对象，它们是：</p>
+<ul>
+<li>JobManager master节点，用于响应任务调度、恢复、协作，以及通过ExecutionGraph数据结构来hold住job的整个图结构。</li>
+<li>TaskManager worker节点，一个TaskManager(TM)在多线程中并发执行多个task。每一个TM也包含一个CommunicationManager(CM - 任务之间共享)，以及一个MemoryManager(MM - 也在任务之间共享)。TM之间彼此可以进行数据交换通过标准的TCP连接，这些连接在需要通信时被创建。</li>
+</ul>
+<p>注意，在Flink中，是TaskManager而不是task在网络上交换数据。比如，处于同一个TM内的task，他们之间的数据交换是在一个网络连接（TaskManager创建并维护）上基于多路复用的。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_jobmanager-taskmanagers.png" alt="jobmanager-taskmanagers"></p>
+<p>ExecutionGraph: 执行图是一个包含job计算的“ground truth”的数据结构。它包含节点（ExecutionVertex，表示计算任务），以及中间结果（IntermediateResultPartition，表示任务产生的数据）。节点通过ExecutionEdge（EE）来连接到它们要消费的中间结果：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_executiongraph.png" alt="executiongraph"></p>
+<p>这些都是存活在JobManager中的逻辑数据结构。它们在TaskManager中存在运行时等价的数据结构，用来应对最终的数据处理。在运行时，IntermediateResultPartition的等价数据结构被称为ResultPartition。</p>
+<p>ResultPartition（RP）表示BufferWriter写入的<code>data chunk</code>。一个RP是ResultSubpartition（RS）的集合。这是为了区别被不同接收者定义的数据，例如针对一个reduce或一个join的分区shuffle的场景。</p>
+<p>ResultSubpartition（RS）表示一个operator创建的数据的一个分区，跟要传输的数据逻辑一起传输给接收operator。RS的特定的实现决定了最终的数据传输逻辑，它被设计为插件化的机制来满足系统各种各样的数据传输需求。例如，<code>PipelinedSubpartition</code>就是一种支持流数据交换的pipeline的实现。而<code>SpillableSubpartition</code>是一个支持批处理的块数据实现。</p>
+<p>InputGate: 在接收端，逻辑上等价于RP。它用于处理并收集来自上游的buffer中的数据。</p>
+<p>InputChannel: 在接收端，逻辑上等价于RS。用于接收某个特定的分区的数据。</p>
+<p>Buffer: 参见<a href="https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=53741525" target="_blank" rel="external">memory-management</a></p>
+<p>序列化器、反序列化器用于可靠得将类型化的数据转化为纯粹的二进制数据，处理跨buffer的数据。</p>
+<h2 id="数据交换的控制流">数据交换的控制流</h2><p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_controlflow.png" alt="controlflow"></p>
+<p>上图表示一个简单的map-reduce job并具有两个并行的task。我们有两个TaskManager，每个TaskManager都有两个task（一个map，一个reduce），这两个TaskManager运行在两个不同的节点上，有一个JobManager运行在第三方节点上。我们聚焦在task M1和R2之间的传输初始化。数据传输使用粗箭头表示，消息使用细箭头表示。首先，M1生产一个ResultPartition（RP1）（箭头1）。当RP对于消费端变得可访问（我们后面会讨论），它会通知JobManager（箭头2）。JobManager通知想要接收这个分区数据的接收者（task R1和R2）分区当前已经准备好了。如果接收者还没有被调度，这将会触发task的deployment（箭头3a,3b）。然后接收者将会向RP请求数据（箭头4a,4b）。这将会初始化任务之间的数据传输（5a,5b）,这个初始化要么是本地的(5a)，或者通过TaskManager的网络栈传输（5b）。这种机制给了RP在决定什么时候通知JobManager自己已经处于准备好状态的时机上拥有充分的自由度。例如，如果RP1希望在通知JM之前，等待数据完整地传输完（比如它将数据写到一个临时文件里），这种数据交换机制粗略来看等同于批处理数据交换，就像在Hadoop中实现的那样。而如果RP1一旦在其第一条记录准备好时就通知JobManager，那么我就拥有了一个流式的数据交换。</p>
+<h2 id="字节缓冲区在两个task之间的传输">字节缓冲区在两个task之间的传输</h2><p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_transfer.png" alt="transfer"></p>
+<p>上面这张图展示了一个更细节的过程，描述了数据从生产者传输到消费者的完整生命周期。最初，MapDriver生产数据记录（通过Collector收集），这些记录被传给RecordWriter对象。RecordWriter包含一组序列化器（RecordSerializer对象）。消费者task可能会消费这些数据。一个ChannelSelector选择一个或者多个序列化器来处理记录。如果记录在broadcast中，它们将被传递给每一个序列化器。如果记录是基于hash分区的，ChannelSelector将会计算记录的hash值，然后选择合适的序列化器。</p>
+<p>序列化器将数据记录序列化成二进制的表示形式。然后将它们放到大小合适的buffer中（记录也可以被切割到多个buffer中）。这些buffer首先会被传递给BufferWriter，然后被写到一个ResulePartition（RP）中。一个RP包含多个subpartition（ResultSubpartition - RS），用于为特定的消费者收集buffer数据。在上图中的这个buffer是为TaskManager2中的reducer定义的，然后被放到RS2中。既然首个buffer进来了，RS2就对消费者变成可访问的状态了（注意，这个行为实现了一个streaming shuffle），然后它通知JobManager。</p>
+<p>JobManager查找RS2的消费者，然后通知TaskManager 2一个数据块已经可以访问了。通知TM2的消息会被发送到InputChannel，该inputchannel被认为是接收这个buffer的，接着通知RS2可以初始化一个网络传输了。然后，RS2通过TM1的网络栈请求该buffer，然后双方基于netty准备进行数据传输。网络连接是在TaskManager（而非特定的task）之间长时间存在的。</p>
+<p>一旦buffer被TM2接收，它会穿过一个类似的对象栈，起始于InputChannel（接收端 等价于IRPQ）,进入InputGate（它包含多个IC），最终进入一个RecordDeserializer，它用于从buffer中还原成类型化的记录，然后将其传递给接收task，这个例子中是ReduceDriver。</p>
+<hr>
+<blockquote>
+<p>微信扫描关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
 
- <em> </em><br><br>导入Web服务的命名空间：<br><br><img src="http://hi.csdn.net/attachment/201006/13/0_12764117352ABR.gif" alt=""><br><br>&nbsp;<br><br><em> </em> <em><br><br>&nbsp;<br><br>为“放大镜”图片设置鼠标移入和鼠标移除属性<br><br>&nbsp;<br><br>&nbsp;<br><br><img src="http://hi.csdn.net/attachment/201006/13/0_1276411889YXlv.gif" alt="">
-
-</em> <em> </em><br><br>&nbsp;<br><br>WebServices方法，用来从后台获取数据：<br><br><pre style="border: 1px dotted #785;background: #f5f5f5;">[WebMethod(Description=&quot;返回详情列表&quot;)]<br>    public static string GetDetials(string contextKey)<br>    {<br>        try<br>        {<br>            int mid = Convert.ToInt32(contextKey);<br>            StringBuilder strHTML = new StringBuilder();<br>            strHTML.Append(&quot;&lt;table border=’1’ class=’result’&gt;&quot;);<br>            strHTML.Append(&quot;&lt;tr class=’result’&gt;&lt;td class=’col1’&gt;模块编号&lt;/td&gt;&lt;td class=’col2’&gt;模块名称&lt;/td&gt;&lt;td class=’col3’&gt;资源链接&lt;/td&gt;&lt;td class=’col4’&gt;是否首页&lt;/td&gt;&lt;td class=’col5’&gt;父模块编号&lt;/td&gt;&lt;td class=’col6’&gt;模块级别&lt;/td&gt;&lt;td class=’col7’&gt;备注&lt;/td&gt;&lt;/tr&gt;&quot;);<br>            DTMS.Module module = DTMS.BLL.PrivilegeManage_BLL.Module_BLL.GetModuleById(mid);<br>            strHTML.AppendFormat(&quot;&lt;tr class=’result’&gt;&lt;td class=’col1’&gt;{0}&lt;/td&gt;&lt;td class=’col2’&gt;{1}&lt;/td&gt;&lt;td class=’col3’&gt;{2}&lt;/td&gt;&lt;td class=’col4’&gt;{3}&lt;/td&gt;&lt;td class=’col5’&gt;{4}&lt;/td&gt;&lt;td class=’col6’&gt;{5}&lt;/td&gt;&lt;td class=’col7’&gt;{6}&lt;/td&gt;&lt;/tr&gt;&quot;,<br>                module.moduleCode, module.name, module.linkUrl, module.isMaster, module.parentModule, module.moduleLevel, module.remark);<br>            strHTML.Append(&quot;&lt;/table&gt;&quot;);<br>            return strHTML.ToString();<br>        }<br>        catch (Exception)<br>        {<br>            return &quot;&quot;;<br>        }<br>    }</pre><br><br>&nbsp;<br><br><em> </em> *<br><br>效果图如下：(放大镜图片是在GridView中的一个模板列中放置的，因为为其设置了鼠标移入移除属性，所以当鼠标移入编号为17的放大镜上时会调用以上GetDetails方法，取得详细数据呈现出来)<br><br><img src="http://hi.csdn.net/attachment/201006/13/0_1276412177ucRw.gif" alt=""><br><br>注意：如果不设置table的width和用于呈现的Panel2的width可能会显示不出详情，所以，务必设置其宽度。<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
-
-<!-- Baidu Button BEGIN -->
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/06/13/使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表/" data-id="cinej99v7002sm1z2925ifa50" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/" data-id="cinej99z2004wm1z2socax2ct" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2010/06/15/C-检测外键冲突的代码/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          C#检测外键冲突的代码
-        
-      </div>
-    </a>
   
-  
-    <a href="/2010/05/26/OA系统权限管理设计-转载/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/04/23/log-system-of-quartz/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">OA系统权限管理设计(转载)</div>
+      <div class="article-nav-title">日志系统之定时任务执行引擎</div>
     </a>
   
 </nav>
@@ -145,7 +182,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表" data-title="使用asp.netAjax控件PopupControlExtender与GridView联合显示详情列表" data-url="http://vinoyang.com/2010/06/13/使用asp-netAjax控件PopupControlExtender与GridView联合显示详情列表/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-data-exchange-between-tasks" data-title="Flink任务之间的数据交换机制" data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
