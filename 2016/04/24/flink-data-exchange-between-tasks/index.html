@@ -24,7 +24,7 @@
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_controlflow.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-data-exchange-between-tasks_transfer.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
-<meta property="og:updated_time" content="2016-04-24T12:22:54.000Z">
+<meta property="og:updated_time" content="2016-04-24T12:25:59.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink中task之间的数据交换机制">
 <meta name="twitter:description" content="Flink中的数据交换构建在如下两条设计原则之上：
@@ -148,6 +148,9 @@
 <p>序列化器将数据记录序列化成二进制的表示形式。然后将它们放到大小合适的buffer中（记录也可以被切割到多个buffer中）。这些buffer首先会被传递给BufferWriter，然后被写到一个ResulePartition（RP）中。一个RP包含多个subpartition（ResultSubpartition - RS），用于为特定的消费者收集buffer数据。在上图中的这个buffer是为TaskManager2中的reducer定义的，然后被放到RS2中。既然首个buffer进来了，RS2就对消费者变成可访问的状态了（注意，这个行为实现了一个streaming shuffle），然后它通知JobManager。</p>
 <p>JobManager查找RS2的消费者，然后通知TaskManager 2一个数据块已经可以访问了。通知TM2的消息会被发送到InputChannel，该inputchannel被认为是接收这个buffer的，接着通知RS2可以初始化一个网络传输了。然后，RS2通过TM1的网络栈请求该buffer，然后双方基于netty准备进行数据传输。网络连接是在TaskManager（而非特定的task）之间长时间存在的。</p>
 <p>一旦buffer被TM2接收，它会穿过一个类似的对象栈，起始于InputChannel（接收端 等价于IRPQ）,进入InputGate（它包含多个IC），最终进入一个RecordDeserializer，它用于从buffer中还原成类型化的记录，然后将其传递给接收task，这个例子中是ReduceDriver。</p>
+<blockquote>
+<p>本文翻译自：<a href="https://cwiki.apache.org/confluence/display/FLINK/Data+exchange+between+tasks" target="_blank" rel="external">https://cwiki.apache.org/confluence/display/FLINK/Data+exchange+between+tasks</a></p>
+</blockquote>
 <hr>
 <blockquote>
 <p>微信扫描关注公众号：Apache_Flink</p>
@@ -157,7 +160,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/" data-id="cinejpqwd004wsvz2vk50zi01" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/04/24/flink-data-exchange-between-tasks/" data-id="cinejtn0i004wudfyvgn5gbbo" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
