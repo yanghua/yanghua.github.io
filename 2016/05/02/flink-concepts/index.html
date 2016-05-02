@@ -23,7 +23,8 @@
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-concepts_event-ingestion-processing-time.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-concepts_state-partitioning.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-concepts_checkpoints.png">
-<meta property="og:updated_time" content="2016-05-02T14:18:23.000Z">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-05-02T14:29:58.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink中的一些核心概念">
 <meta name="twitter:description" content="在源码解读前我们有必要先了解一下Flink的一些基本的但却很关键的概念。这有助于帮助我们理解整个架构。在翻译文档的同时，对于有争议的或者不是非常适合用中文表达的地方，我尽量保留原始英文单词。">
@@ -124,8 +125,8 @@
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-concepts_program-dataflow.png" alt="flink-concepts_parallel-dataflow"></p>
 <h1 id="并行数据流">并行数据流</h1><p>程序在Flink内部的执行具有<code>并行</code>、<code>分布式</code>的特性。stream被分割成<code>stream partition</code>，operator被分割成<code>operator subtask</code>，这些operator subtasks在不同的线程、不同的物理机或不同的容器中彼此互不依赖得执行。</p>
 <p>一个特定operator的subtask的个数被称之为其<code>parallelism</code>(并行度)。一个stream的并行度总是等同于其<code>producing operator</code>的并行度。一个程序中，不同的operator可能具有不同的并行度。</p>
-<p>Stream在operator之间传输数据的形式可以是<strong>one-to-one</strong>(forwarding)的模式也可以是<strong>redistributing</strong>的模式。</p>
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-concepts_parallel-dataflow.png" alt="flink-concepts_parallel-dataflow"></p>
+<p>Stream在operator之间传输数据的形式可以是<strong>one-to-one</strong>(forwarding)的模式也可以是<strong>redistributing</strong>的模式。</p>
 <ul>
 <li>One-to-one : strem(比如在source和map operator之间)维护着分区以及元素的顺序。那意味着map operator的subtask看到的元素的个数以及顺序跟source operator的subtask生产的元素的个数、顺序相同。</li>
 <li>Redistributing : stream(map()跟keyBy/window之间或者keyBy/window跟sink之间)的分区会发生改变。每一个operator subtask依据所选择的transformation发送数据到不同的目标subtask。例如，keyBy() （基于hash码重分区），broadcast()或者rebalance()（随机redistribution）。在一个redistribution的交换中，只有每一个发送、接收task对的顺序才会被维持（比如map()的subtask和keyBy/window的subtask）。</li>
@@ -180,11 +181,19 @@
 <li>DataSet的有状态的operation API简单地使用<strong><em>in-memory/out-of-core</em></strong>的数据结构，而不是基于key/value的索引机制</li>
 <li>DataSet的API引进了独特的同步迭代机制（基于superstep），它仅在有界的流中存在。</li>
 </ul>
+<blockquote>
+<p>本文翻译自：<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.0/concepts/concepts.html" target="_blank" rel="external">https://ci.apache.org/projects/flink/flink-docs-release-1.0/concepts/concepts.html</a></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>微信扫描关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/05/02/flink-concepts/" data-id="cinq3ebjr004wkufy26jbpa9k" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/05/02/flink-concepts/" data-id="cinq3rz10004wnuz2mrd20iv8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
