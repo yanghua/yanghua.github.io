@@ -5,17 +5,19 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Archives: 2013/1 | yanghua</title>
+  <title>Apache Flink源码解析之stream-source | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="yanghua blog github">
-<meta property="og:type" content="website">
-<meta property="og:title" content="yanghua">
-<meta property="og:url" content="http://vinoyang.com/archives/2013/01/index.html">
+  <meta name="description" content="今天我们来解读一下Flink stream里的source模块。它是整个stream的入口，也是我们了解其流处理体系的入口。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink源码解析之stream-source">
+<meta property="og:url" content="http://vinoyang.com/2016/05/05/flink-stream-source/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="yanghua blog github">
+<meta property="og:description" content="今天我们来解读一下Flink stream里的source模块。它是整个stream的入口，也是我们了解其流处理体系的入口。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-05-05T14:56:13.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="yanghua">
-<meta name="twitter:description" content="yanghua blog github">
+<meta name="twitter:title" content="Apache Flink源码解析之stream-source">
+<meta name="twitter:description" content="今天我们来解读一下Flink stream里的source模块。它是整个stream的入口，也是我们了解其流处理体系的入口。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -75,39 +77,151 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2013" class="archive-year">2013</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2013/01/20/Nodejs中的控制流-theDoStyle-二/" class="archive-article-date">
-  <time datetime="2013-01-20T13:52:00.000Z" itemprop="datePublished">1月 20</time>
+        <section id="main"><article id="post-flink-stream-source" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/05/05/flink-stream-source/" class="article-date">
+  <time datetime="2016-05-05T14:51:59.000Z" itemprop="datePublished">2016-05-05</time>
 </a>
-      
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2013/01/20/Nodejs中的控制流-theDoStyle-二/">Nodejs中的控制流--theDoStyle(二)</a>
+    <h1 class="article-title" itemprop="name">
+      Apache Flink源码解析之stream-source
     </h1>
   
 
-    </header>
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#SourceFunction"><span class="toc-number">1.</span> <span class="toc-text">SourceFunction</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#SourceContext"><span class="toc-number">1.1.</span> <span class="toc-text">SourceContext</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#内置的SourceFunction实现"><span class="toc-number">2.</span> <span class="toc-text">内置的SourceFunction实现</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#RichSourceFunction"><span class="toc-number">2.1.</span> <span class="toc-text">RichSourceFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ParallelSourceFunction"><span class="toc-number">2.2.</span> <span class="toc-text">ParallelSourceFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FileMonitoringFunction"><span class="toc-number">2.3.</span> <span class="toc-text">FileMonitoringFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#SocketTextStreamFunction"><span class="toc-number">2.4.</span> <span class="toc-text">SocketTextStreamFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FromIteratorFunction"><span class="toc-number">2.5.</span> <span class="toc-text">FromIteratorFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FromElementsFunction"><span class="toc-number">2.6.</span> <span class="toc-text">FromElementsFunction</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#常见连接器中的Source"><span class="toc-number">3.</span> <span class="toc-text">常见连接器中的Source</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <p>今天我们来解读一下Flink stream里的<strong>source</strong>模块。它是整个stream的入口，也是我们了解其流处理体系的入口。</p>
+<a id="more"></a>
+<h1 id="SourceFunction">SourceFunction</h1><p>SourceFunction是所有stream source的根接口。</p>
+<p>它继承自一个标记接口（空接口）<code>Function</code>。</p>
+<p><code>SourceFunction</code>定义了两个接口方法：</p>
+<ul>
+<li>run ： 启动一个source，即对接一个外部数据源然后emit元素形成stream（大部分情况下会通过在该方法里运行一个while循环的形式来产生stream）。</li>
+<li>cancel ： 取消一个source，也即将run中的循环emit元素的行为终止。</li>
+</ul>
+<p>正常情况下，一个<code>SourceFunction</code>实现这两个接口方法就可以了。其实这两个接口方法也固化了一种实现<strong><em>模板</em></strong>。</p>
+<p>比如，实现一个XXXSourceFunction，那么大致的模板是这样的：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">boolean</span> isRunning = <span class="keyword">true</span>;</span><br><span class="line"></span><br><span class="line">	<span class="annotation">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">run</span><span class="params">(SourceContext&lt;T&gt; ctx)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		<span class="keyword">while</span> (isRunning &amp;&amp; otherCondition == <span class="keyword">true</span>) &#123;</span><br><span class="line">			ctx.collect(getElement());</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="annotation">@Override</span></span><br><span class="line">	<span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">cancel</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		isRunning = <span class="keyword">false</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="SourceContext">SourceContext</h2><p>Flink将Source的运行机制跟其如何emit元素进行了分离。具体如何emit元素，取决于另外一个独立的接口<code>SourceContext</code>。<code>SourceFunction</code>以内部接口的方式定义了该上下文接口对象，将具体的实现抛给具体的sourceFunction。该接口中定义了emit元素的接口方法：</p>
+<ul>
+<li>collect : 从source emit一个元素，该元素的时间戳被自动设置为本地时钟（<code>System#currentTimeMillis()</code>），这种由当前source自动追加的时间戳，在Flink里称之为<code>Ingress Time</code>（即摄入时间）。</li>
+<li>collectWithTimestamp : 根据用户提供的自定义的时间戳emit一个元素，这种被称之为<code>Event Time</code>（即用户自行设置的事件时间）。</li>
+<li>emitWatermark : 手动发射一个<code>Watermark</code>。</li>
+</ul>
+<p>这里有几个时间概念可参考我之前的文章：<a href="http://vinoyang.com/2016/05/02/flink-concepts/#时间">http://vinoyang.com/2016/05/02/flink-concepts/#时间</a></p>
+<blockquote>
+<p>Watermark：Flink用<code>Watermark</code>来对上面的<code>Event Time</code>类型的事件进行窗口处理。所谓的<code>Watermark</code>是一个时间基准。WaterMark包含一个时间戳，Flink使用<code>WaterMark</code>标记所有小于该时间戳的消息都已流入，Flink的数据源在确认所有小于某个时间戳的消息都已输出到Flink流处理系统后，会生成一个包含该时间戳的<code>WaterMark</code>，插入到消息流中输出到Flink流处理系统中，Flink操作符按照时间窗口缓存所有流入的消息，当operator处理到WaterMark时，它对所有小于该WaterMark时间戳的时间窗口数据进行处理并发送到下一个operator节点，然后也将WaterMark发送到下一个operator节点。</p>
+</blockquote>
+<h1 id="内置的SourceFunction实现">内置的SourceFunction实现</h1><h2 id="RichSourceFunction">RichSourceFunction</h2><p>一个抽象类，继承自<code>AbstractRichFunction</code>。为实现一个<strong>Rich</strong> SourceFunction提供基础能力（其实所谓的Rich，主要是提供某种范式或者模板帮助你完成一部分基础实现）。该类的子类有两个，不过他们仍然是抽象类，只是在此基础上提供了更具体的实现：</p>
+<ul>
+<li>MessageAcknowledgingSourceBase ：它针对的是数据源是消息队列的场景并且提供了基于ID的应答机制。</li>
+<li>MultipleIdsMessageAcknowledgingSourceBase ： 在<code>MessageAcknowledgingSourceBase</code>的基础上针对ID应答机制进行了更为细分的处理，支持两种ID应答模型：<code>session id</code>和<code>unique message id</code>。</li>
+</ul>
+<h2 id="ParallelSourceFunction">ParallelSourceFunction</h2><p>该接口只是个标记接口，用于标识继承该接口的Source都是并行执行的。其直接实现类是<code>RichParallelSourceFunction</code>，它是一个抽象类并继承自<code>AbstractRichFunction</code>（从名称可以看出，它应该兼具<code>rich</code>和<code>parallel</code>两个特性，这里的<strong>rich</strong>体现在它定义了<code>open</code>和<code>close</code>这两个方法）。</p>
+<p>继承<code>RichParallelSourceFunction</code>的那些SourceFunction意味着它们都是并行执行的并且可能有一些资源需要open/close，Flink提供了这么几个实现：</p>
+<ul>
+<li>FileSourceFunction ： 以文件为数据源的Source，它根据给定的<code>InputFormat</code>作为数据源记录的生产器(它可以接收一个file path来基于文件生产记录)，根据给定的<code>TypeInformation</code>来产生序列化器，再结合内部创建的<code>splitIterator</code>实现了一个基于文件的sourceFunction。</li>
+<li>ConnectorSource ： 抽象类，没有具体的实现。通过其构造器注入了一个属性<code>DeserializationSchema</code>，该属性是一个协议接口，用于定义如何将二进制数据反序列化为Java/Scala对象。</li>
+<li>StatefulSequenceSource ：有状态的序列Source。它接收<code>start</code>和<code>end</code>作为一个发射序列的区间，然后根据一定的算法算得需要发射的时间间隔，并保证区间内的元素送达具有<code>exactly once</code>的强一致性，具体的计算方式需要结合当前task的subtask的数量以及当前subtask在集合中的索引计算得出。</li>
+<li>FromSplittableIteratorFunction ：根据给定的<code>SplittableIterator</code>(它是一个全局的iterator)结合当前task运行时subtask的数量，以及该subtask在所有subtask中的序号计算出分区（partition）从而产生一个细分的<code>Iterator</code>。通过<code>Iterator</code>迭代来发射元素。</li>
+</ul>
+<h2 id="FileMonitoringFunction">FileMonitoringFunction</h2><p>该Source是以监控给定<code>path</code>位置的文件为手段，根据给定的<code>interval</code>作为时间间隔，emit的内容依赖监控文件的变。Flink为这种形式的Source提供了三种watchtype : </p>
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">public <span class="class"><span class="keyword">enum</span> <span class="title">WatchType</span> &#123;</span></span><br><span class="line">	<span class="constant">ONLY_NEW_FILES</span>, 				<span class="regexp">//</span>仅关注新文件产生</span><br><span class="line">	<span class="constant">REPROCESS_WITH_APPENDED</span>, 	<span class="regexp">//</span>当有文件产生变更，该文件的所有内容都需要被重新处理</span><br><span class="line">	<span class="constant">PROCESS_ONLY_APPENDED</span> 		/<span class="regexp">/当有文件产生变更，只有变更的内容需要被处理</span><br><span class="line">&#125;</span></span><br></pre></td></tr></table></figure>
+<p>该类型的Source始终发射的是一个三元组（Tuple3）,它包含三个元素：</p>
+<ul>
+<li>filePath : 标识文件路径</li>
+<li>offset : 偏移量</li>
+<li>fileSize : 文件大小</li>
+</ul>
+<p>watchtype的不同主要影响发射元素的内容。当WatchType的类型为<code>ONLY_NEW_FILES</code>或<code>REPROCESS_WITH_APPENDED</code>类型时，<code>offset</code>会被设置为0，<code>fileSize</code>被设置为-1。而WatchType类型为<code>PROCESS_ONLY_APPENDED</code>，则三个值都为其对应的真实值。</p>
+<h2 id="SocketTextStreamFunction">SocketTextStreamFunction</h2><p>根据给定的<code>hostname</code>和<code>port</code>，以socket的方式进行通信并获取数据，以<code>delimiter</code>参数给定的字符作为终止标识符。</p>
+<h2 id="FromIteratorFunction">FromIteratorFunction</h2><p>该Source接收一个迭代器，然后在发射循环体中，依次迭代发射数据。</p>
+<h2 id="FromElementsFunction">FromElementsFunction</h2><p>该Source接收一个元素迭代器（一组元素的集合），以Flink的类型序列化机制将其序列化为二进制数据，然后在发射元素的循环体中，进行反序列化为初始类型，再发射数据。</p>
+<blockquote>
+<p>这里先序列化为二进制，再从二进制反序列化为最初的对象类型。不是特别容易理解，乍一看多此一举，让人匪夷所思。其实，这么做是有原因的，是因为Flink的序列化机制是其自定义的，并且跟其自主管理内存紧密联系在一起（想了解其自主内存管理的可参看我之前的系列文章）。而自主内存管理又涉及到二进制数据的存储。<code>FromElementsFunction</code>支持从某个<code>check point</code>部分恢复，所以必须先还原其原先的存储位置（通过序列化），然后跳过不需要emit的元素，然后再发射需要发射的元素（将这些元素反序列化）。</p>
+</blockquote>
+<h1 id="常见连接器中的Source">常见连接器中的Source</h1><p>Flink自身提供了一些针对第三方主流开源系统的连接器支持，它们有：</p>
+<ul>
+<li>elasticsearch</li>
+<li>flume</li>
+<li>kafka(0.8/0.9版本)</li>
+<li>nifi</li>
+<li>rabbitmq</li>
+<li>twitter</li>
+</ul>
+<p>这些连接器有些可以同时作为<code>source</code>和<code>sink</code>。因为我们今天的主题是source，所以我们先来看看以上这些被支持的连接器它们的source都是继承自刚刚我们谈到的哪些接口或者类。</p>
+<ul>
+<li>kafka : RichParallelSourceFunction</li>
+<li>nifi : RichParallelSourceFunction</li>
+<li>rabbitmq : MultipleIdsMessageAcknowledgingSourceBase(因为rabbitmq具备非常成熟的ack机制，所以继承这个类是顺其自然的)</li>
+</ul>
+<h1 id="小结">小结</h1><p>这篇文章我们主要谈及了Flink的stream source相关的设计、实现。当然这个主题还没有完全谈完，还会有后续篇幅继续解读。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/05/05/flink-stream-source/" data-id="cinuf1tzk004pf4z2nxmmtn1f" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
   </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/05/02/flink-concepts/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink中的一些核心概念</div>
+    </a>
+  
+</nav>
+
+  
 </article>
-  
-  
-    </div></section>
-  
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-stream-source" data-title="Apache Flink源码解析之stream-source" data-url="http://vinoyang.com/2016/05/05/flink-stream-source/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
 </section>
         
           <aside id="sidebar">
