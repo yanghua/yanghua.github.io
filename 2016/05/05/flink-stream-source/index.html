@@ -13,8 +13,9 @@
 <meta property="og:url" content="http://vinoyang.com/2016/05/05/flink-stream-source/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="今天我们来解读一下Flink stream里的source模块。它是整个stream的入口，也是我们了解其流处理体系的入口。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-source_class-diagram.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
-<meta property="og:updated_time" content="2016-05-05T14:56:13.000Z">
+<meta property="og:updated_time" content="2016-05-05T15:05:58.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Apache Flink源码解析之stream-source">
 <meta name="twitter:description" content="今天我们来解读一下Flink stream里的source模块。它是整个stream的入口，也是我们了解其流处理体系的入口。">
@@ -128,7 +129,9 @@
 <blockquote>
 <p>Watermark：Flink用<code>Watermark</code>来对上面的<code>Event Time</code>类型的事件进行窗口处理。所谓的<code>Watermark</code>是一个时间基准。WaterMark包含一个时间戳，Flink使用<code>WaterMark</code>标记所有小于该时间戳的消息都已流入，Flink的数据源在确认所有小于某个时间戳的消息都已输出到Flink流处理系统后，会生成一个包含该时间戳的<code>WaterMark</code>，插入到消息流中输出到Flink流处理系统中，Flink操作符按照时间窗口缓存所有流入的消息，当operator处理到WaterMark时，它对所有小于该WaterMark时间戳的时间窗口数据进行处理并发送到下一个operator节点，然后也将WaterMark发送到下一个operator节点。</p>
 </blockquote>
-<h1 id="内置的SourceFunction实现">内置的SourceFunction实现</h1><h2 id="RichSourceFunction">RichSourceFunction</h2><p>一个抽象类，继承自<code>AbstractRichFunction</code>。为实现一个<strong>Rich</strong> SourceFunction提供基础能力（其实所谓的Rich，主要是提供某种范式或者模板帮助你完成一部分基础实现）。该类的子类有两个，不过他们仍然是抽象类，只是在此基础上提供了更具体的实现：</p>
+<h1 id="内置的SourceFunction实现">内置的SourceFunction实现</h1><p>source相关的完整类图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-source_class-diagram.png" alt="flink-stream-source_class-diagram"></p>
+<h2 id="RichSourceFunction">RichSourceFunction</h2><p>一个抽象类，继承自<code>AbstractRichFunction</code>。为实现一个<strong>Rich</strong> SourceFunction提供基础能力（其实所谓的Rich，主要是提供某种范式或者模板帮助你完成一部分基础实现）。该类的子类有两个，不过他们仍然是抽象类，只是在此基础上提供了更具体的实现：</p>
 <ul>
 <li>MessageAcknowledgingSourceBase ：它针对的是数据源是消息队列的场景并且提供了基于ID的应答机制。</li>
 <li>MultipleIdsMessageAcknowledgingSourceBase ： 在<code>MessageAcknowledgingSourceBase</code>的基础上针对ID应答机制进行了更为细分的处理，支持两种ID应答模型：<code>session id</code>和<code>unique message id</code>。</li>
@@ -181,7 +184,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/05/05/flink-stream-source/" data-id="cinuf1tzk004pf4z2nxmmtn1f" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/05/05/flink-stream-source/" data-id="cinufepv7004phhz2zdcw1gi3" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
