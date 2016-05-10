@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Apache Flink源码解析之stream-window | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="window（窗口）是Flink流处理中非常重要的概念，本篇我们来对窗口相关的概念以及关联的实现进行解析。本篇的内容主要集中在package org.apache.flink.streaming.api.windowing下。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink源码解析之stream-window">
+<meta property="og:url" content="http://vinoyang.com/2016/05/10/flink-stream-window/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="window（窗口）是Flink流处理中非常重要的概念，本篇我们来对窗口相关的概念以及关联的实现进行解析。本篇的内容主要集中在package org.apache.flink.streaming.api.windowing下。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window_window-assigner-all-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window_trigger-all-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-05-10T14:46:24.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Apache Flink源码解析之stream-window">
+<meta name="twitter:description" content="window（窗口）是Flink流处理中非常重要的概念，本篇我们来对窗口相关的概念以及关联的实现进行解析。本篇的内容主要集中在package org.apache.flink.streaming.api.windowing下。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-stream-window" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/05/10/flink-stream-window/" class="article-date">
+  <time datetime="2016-05-10T14:33:55.000Z" itemprop="datePublished">2016-05-10</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Apache Flink源码解析之stream-window
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Window"><span class="toc-number">1.</span> <span class="toc-text">Window</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#GlobalWindow"><span class="toc-number">1.1.</span> <span class="toc-text">GlobalWindow</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TimeWindow"><span class="toc-number">1.2.</span> <span class="toc-text">TimeWindow</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#WindowAssigner"><span class="toc-number">2.</span> <span class="toc-text">WindowAssigner</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#内置的WindowAssigner"><span class="toc-number">2.1.</span> <span class="toc-text">内置的WindowAssigner</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#GlobalWindows"><span class="toc-number">2.1.1.</span> <span class="toc-text">GlobalWindows</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TumblingEventTimeWindows"><span class="toc-number">2.1.2.</span> <span class="toc-text">TumblingEventTimeWindows</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#TumblingProcessingTimeWindows"><span class="toc-number">2.1.3.</span> <span class="toc-text">TumblingProcessingTimeWindows</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SlidingProcessingTimeWindows"><span class="toc-number">2.1.4.</span> <span class="toc-text">SlidingProcessingTimeWindows</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#SlidingEventTimeWindows"><span class="toc-number">2.1.5.</span> <span class="toc-text">SlidingEventTimeWindows</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#evictors"><span class="toc-number">3.</span> <span class="toc-text">evictors</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#内置的Evitor"><span class="toc-number">3.1.</span> <span class="toc-text">内置的Evitor</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#TimeEvitor"><span class="toc-number">3.1.1.</span> <span class="toc-text">TimeEvitor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CountEvictor"><span class="toc-number">3.1.2.</span> <span class="toc-text">CountEvictor</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DeltaEvictor"><span class="toc-number">3.1.3.</span> <span class="toc-text">DeltaEvictor</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Time"><span class="toc-number">4.</span> <span class="toc-text">Time</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Trigger"><span class="toc-number">5.</span> <span class="toc-text">Trigger</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#TriggerContext"><span class="toc-number">5.1.</span> <span class="toc-text">TriggerContext</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#TrigerResult"><span class="toc-number">5.2.</span> <span class="toc-text">TrigerResult</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#内置的Trigger"><span class="toc-number">5.3.</span> <span class="toc-text">内置的Trigger</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#EventTimeTrigger"><span class="toc-number">5.3.1.</span> <span class="toc-text">EventTimeTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ProcessingTimeTrigger"><span class="toc-number">5.3.2.</span> <span class="toc-text">ProcessingTimeTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ContinuousEventTimeTrigger"><span class="toc-number">5.3.3.</span> <span class="toc-text">ContinuousEventTimeTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ContinuousProcessingTimeTrigger"><span class="toc-number">5.3.4.</span> <span class="toc-text">ContinuousProcessingTimeTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#CountTrigger"><span class="toc-number">5.3.5.</span> <span class="toc-text">CountTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#PurgingTrigger"><span class="toc-number">5.3.6.</span> <span class="toc-text">PurgingTrigger</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DeltaTrigger"><span class="toc-number">5.3.7.</span> <span class="toc-text">DeltaTrigger</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">6.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <p>window（窗口）是Flink流处理中非常重要的概念，本篇我们来对窗口相关的概念以及关联的实现进行解析。本篇的内容主要集中在package <code>org.apache.flink.streaming.api.windowing</code>下。</p>
+<a id="more"></a>
+<h1 id="Window">Window</h1><p>一个<code>Window</code>代表有限对象的集合。一个窗口有一个最大的时间戳，该时间戳意味着在其代表的某时间点——所有应该进入这个窗口的元素都已经到达。</p>
+<p>Flink的根窗口对象是一个抽象类，只提供了一个抽象方法：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="function"><span class="keyword">long</span> <span class="title">maxTimestamp</span><span class="params">()</span></span>;</span><br></pre></td></tr></table></figure>
+<p>用于获取最大的时间戳。Flink提供了两个窗口的具体实现。在实现<code>Window</code>时，子类应该override <code>equals</code>和<code>hashCode</code>这两个方法，以使得在逻辑上两个相等的window被认为是同一个。</p>
+<h2 id="GlobalWindow">GlobalWindow</h2><p><code>GlobalWindow</code>是一个全局窗口，被实现为<strong>单例模式</strong>。其<code>maxTimestamp</code>被设置为<code>Long.MAX_VALUE</code>。</p>
+<p>该类内部有一个静态类定义了<code>GlobalWindow</code>的序列化器：<code>Serializer</code>。</p>
+<h2 id="TimeWindow">TimeWindow</h2><p><code>TimeWindow</code>表示一个时间间隔窗口，这体现在其构造器需要注入的两个属性：</p>
+<ul>
+<li>start : 时间间隔的起始</li>
+<li>end : 时间间隔的截止</li>
+</ul>
+<p><code>TimeWindow</code>表示的时间间隔为[start, end)。其<code>maxTimestamp</code>的实现为：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">maxTimestamp</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> end - <span class="number">1</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>其equals的实现中，除了常规比较（比较引用，比较Class的实例），还会比较<code>start</code>,<code>end</code>这两个属性。</p>
+<p><code>TimeWindow</code>也在内部实现了序列化器，该序列化器主要针对<code>start</code>和<code>end</code>两个属性。</p>
+<h1 id="WindowAssigner">WindowAssigner</h1><p>元素的窗口分配器。用于将元素分配给一个或者多个窗口。该抽象类定义了三个抽象方法：</p>
+<ul>
+<li>assignWindows ：将某个带有时间戳<code>timestamp</code>的元素<code>element</code>分配给一个或多个窗口，并返回窗口集合</li>
+<li>getDefaultTrigger ：返回跟<code>WindowAssigner</code>关联的默认触发器</li>
+<li>getWindowSerializer ：返回<code>WindowAssigner</code>分配的窗口的序列化器</li>
+</ul>
+<h2 id="内置的WindowAssigner">内置的WindowAssigner</h2><p>整个类型继承图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window_window-assigner-all-class-diagram.png" alt="flink-stream-window_window-assigner-all-class-diagram"></p>
+<p>下面会谈到很多基于时间的窗口，这里有两个概念，分别是<code>时间类型</code>和<code>窗口类型</code>：</p>
+<p>时间类型：</p>
+<ul>
+<li>eventTime ：用户赋予的自定义的时间戳（事件时间戳）</li>
+<li>processingTime ： 执行当前task的subtask主机的本地时间戳（系统时间戳）</li>
+</ul>
+<p>窗口类型：</p>
+<ul>
+<li>Sliding：滑动窗口，可能会重叠（某个元素可能会身处多个窗口中）</li>
+<li>Tumbling：非重叠窗口（在<code>assignWindows</code>方法中返回的一般都是<code>Collections.singletonList()</code>）</li>
+</ul>
+<h3 id="GlobalWindows">GlobalWindows</h3><p>该分配器对应于窗口<code>GlobalWindow</code>，它将所有的元素分配给同一个<code>GlobalWindow</code>（本质上而言，<code>GlobalWindow</code>也只有一个实例）。跟<code>GlobalWindow</code>的实现方式一样，<code>GlobalWindows</code>也被实现为单例模式。</p>
+<p>方法实现：</p>
+<ul>
+<li>assignWindows ：方法的实现即返回存放<code>GlobalWindow</code>单实例的集合对象</li>
+<li>getDefaultTrigger ：的实现是返回一个不做任何动作的<code>NerverTrigger</code></li>
+</ul>
+<h3 id="TumblingEventTimeWindows">TumblingEventTimeWindows</h3><p>依据给定的窗口大小，结合event-time，返回存储<code>TimeWindow</code>单实例的集合。<code>getDefaultTrigger</code>方法返回<code>EventTimeTrigger</code>类型的实例。</p>
+<h3 id="TumblingProcessingTimeWindows">TumblingProcessingTimeWindows</h3><p>依据给定窗口的大小，结合processing-time，返回存储<code>TimeWindow</code>单实例的集合。需要注意的是，这里依据的是运行当前任务所在主机的本地时间戳。<code>getDefaultTrigger</code>方法返回的是<code>ProcessingTimeTrigger</code>类型的实例。</p>
+<h3 id="SlidingProcessingTimeWindows">SlidingProcessingTimeWindows</h3><p>Sliding窗口不同于Tumbling窗口，它除了指定窗口的大小，还要指定一个<code>滑动</code>值，即<code>slide</code>。所谓的滑动窗口可以这么理解，比如：一分钟里每十秒钟。这里一分钟是窗口大小，每十秒即为滑动值。</p>
+<p>在Sliding窗口中，<code>assignWindows</code>方法返回的就不再是单个窗口了，而是窗口的集合。首先计算出窗口的个数：<code>size/slide</code>，然后循环初始化给定的<code>size</code>内不同<code>slide</code>的窗口对象。</p>
+<h3 id="SlidingEventTimeWindows">SlidingEventTimeWindows</h3><p>类似<code>SlidingProcessingTimeWindows</code>只不过窗口的<code>start</code>参数的计算方式依赖于系统时间戳。</p>
+<h1 id="evictors">evictors</h1><blockquote>
+<p>evitor : 中文译为驱逐者；顾名思义其用于剔除窗口中的某些元素</p>
+</blockquote>
+<p>它剔除元素的时机是：在触发器触发<strong>之后</strong>，在窗口被处理(apply windowFunction)<strong>之前</strong></p>
+<p>该接口只定义了一个方法：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">int</span> evict(<span class="built_in">Iterable</span>&lt;StreamRecord&lt;T&gt;&gt; elements, <span class="built_in">int</span> size, W <span class="built_in">window</span>);</span><br></pre></td></tr></table></figure>
+<p>接口的返回值即表示要剔除元素的个数。</p>
+<h2 id="内置的Evitor">内置的Evitor</h2><p>Flink内置实现了三个<code>Evitor</code>：</p>
+<ul>
+<li>TimeEvitor</li>
+<li>CountEvitor</li>
+<li>DeltaEvitor</li>
+</ul>
+<h3 id="TimeEvitor">TimeEvitor</h3><p>这个Evitor基于给定的保留时间(keep time)作为剔除规则，大致的实现如下：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">int</span> evict(Iterable&lt;StreamRecord&lt;<span class="keyword">Object</span>&gt;&gt; elements, <span class="built_in">int</span> <span class="built_in">size</span>, W window) &#123;</span><br><span class="line">	<span class="built_in">int</span> toEvict = <span class="number">0</span>;</span><br><span class="line">	<span class="keyword">long</span> currentTime = Iterables.getLast(elements).getTimestamp();</span><br><span class="line">	<span class="keyword">long</span> evictCutoff = currentTime - windowSize;</span><br><span class="line">	<span class="keyword">for</span> (StreamRecord&lt;<span class="keyword">Object</span>&gt; record: elements) &#123;</span><br><span class="line">		<span class="keyword">if</span> (record.getTimestamp() &gt; evictCutoff) &#123;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		toEvict++;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> toEvict;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>大致的逻辑是，先取出最后一个元素的时间戳作为“当前”时间，然后减去期望中的“窗口大小”，得到一个基准时间戳（只需要比基准时间戳大的元素）。</p>
+<p>然后从第一个元素开始循环比较每一个元素，如果比基准时间戳小，则累加剔除统计数，一旦发现某个元素的时间戳大于基准时间戳，则直接跳出循环，不再累加了（因为本地窗口中元素是基于时间有序的，这一点由Flink运行时来保证，如果从某个元素开始其时间戳大于基准时间戳，则后续的所有元素都满足这一条件，因此也就没必要再循环下去了）。</p>
+<h3 id="CountEvictor">CountEvictor</h3><p>基于容量的Evictor，它通过比对<code>evict</code>方法的第二个参数<code>size</code>来判断应该剔除多少个元素。具体的实现：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="built_in">int</span> evict(Iterable&lt;StreamRecord&lt;<span class="keyword">Object</span>&gt;&gt; elements, <span class="built_in">int</span> <span class="built_in">size</span>, W window) &#123;</span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">size</span> &gt; maxCount) &#123;</span><br><span class="line">		<span class="keyword">return</span> (<span class="built_in">int</span>) (<span class="built_in">size</span> - maxCount);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="DeltaEvictor">DeltaEvictor</h3><p>基于给定的阈值<code>threshold</code>和<code>deltaFunction</code>来进行判断。也是拿当前元素跟最后一个元素一起计算delta跟阈值做对比。</p>
+<h1 id="Time">Time</h1><p>Flink中仅有一个类<code>Time</code>来定义窗口的时间间隔。该时间默认指执行环境下的时间。创建一个<code>Time</code>对象，需要两个参数：</p>
+<ul>
+<li>size : 时间间隔的大小（数值）</li>
+<li>unit : <code>TimeUnit</code>的实例，表示时间间隔的单位</li>
+</ul>
+<p>该类提供的很多静态方法提供对不同unit的设置。</p>
+<h1 id="Trigger">Trigger</h1><p>Trigger(触发器)用于决定某个窗口的元素集合什么时候触发计算以及结果什么时候被emit。</p>
+<p>以粗粒度来看，Flink主要提供了三种形式的触发方式：</p>
+<ul>
+<li>按元素</li>
+<li>按系统时间</li>
+<li>按事件时间</li>
+</ul>
+<p>这体现为Trigger的三个主要的抽象方法：</p>
+<ul>
+<li>onElement ：针对每个元素触发，这主要针对于那些基于元素的触发器，比如后面我们将看到的<code>CountTrigger</code></li>
+<li>onProcessingTime ：被<strong>processing-time</strong>（Flink系统时间时间戳）定时器触发</li>
+<li>onEventTime ：被<strong>event-time</strong>（事件时间戳）定时器触发</li>
+</ul>
+<p>以上这些方法中都有一个共同的参数：<code>TriggerContext</code>。</p>
+<h2 id="TriggerContext">TriggerContext</h2><p>顾名思义，它提供触发器执行时的上下文信息，但它只是<code>Trigger</code>的内部接口：</p>
+<ul>
+<li>getCurrentWatermark ：返回当前的<code>watermark</code></li>
+<li>registerProcessingTimeTimer ：注册一个系统时间的定时器，触发<code>onProcessingTime</code></li>
+<li>registerEventTimeTimer ：注册一个事件时间的定时器，触发<code>onEventTime</code></li>
+<li>deleteProcessingTimeTimer ：删除系统时间的定时器</li>
+<li>deleteEventTimeTimer ：删除事件时间的定时器</li>
+<li>getPartitionedState ：用于失败恢复的获取状态的接口</li>
+</ul>
+<p>其中，registerXXX/deleteXXX模式对主要针对上面两种基于<strong>时间</strong>的触发器。而最后一个方法<code>getKeyValueState</code>也是非常重要的，因为它用于获取窗口相关的状态，比如后面谈到的一些触发器是依赖于一些上下文状态的，那些状态的获取就是依靠这个方法。</p>
+<h2 id="TrigerResult">TrigerResult</h2><p><code>Trigger</code>中定义的三个触发方法被调用后，最终要返回一个结果以决定触发之后产生的行为（比如是调用<strong><em>window function</em></strong>还是将窗口丢弃），这个定义触发器触发结果行为是通过<code>TriggerResult</code>来表达的。它是一个枚举类型，有这么几个枚举值：</p>
+<ul>
+<li>FIRE ：window将会被应用window Function进行计算，然后将结果emit出去，但元素并没有被清洗，仍然在window中</li>
+<li>PURGE ：清除window中的元素</li>
+<li><code>FIRE_AND_PURGE</code> ：同时具备<code>FIRE</code>和<code>PURGE</code>两种属性产生的行为</li>
+<li>CONTINUE ：不做任何操作</li>
+</ul>
+<h2 id="内置的Trigger">内置的Trigger</h2><p>Flink内置实现了很多触发器，完整的类图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window_trigger-all-class-diagram.png" alt="flink-stream-window_trigger-all-class-diagram"></p>
+<p>这些触发器都具有一些共性，这里一并说明：</p>
+<ul>
+<li>由于Flink在<code>Trigger</code>中已事先将各种触发器类型的回调封装为不同的方法（onXXX），所以后续各种不同的触发器类型的核心逻辑将主要在其特定相关的onXXX方法中，而无关的onXXX方法将直接返回<code>TriggerResult.CONTINUE</code>（<strong><em>其实个人认为这种设计方式有欠妥当，因为不利于扩展</em></strong>）</li>
+<li>因为有不少触发类型依赖于上下文的某些状态值（比如下文典型的ContinuousXXXTrigger），这些状态值将通过<code>TriggerContext</code>的<code>getPartitionedState</code>方法进行存取</li>
+</ul>
+<h3 id="EventTimeTrigger">EventTimeTrigger</h3><p>基于事件时间的触发器，对应<code>onEventTime</code></p>
+<h3 id="ProcessingTimeTrigger">ProcessingTimeTrigger</h3><p>基于当前系统时间的触发器，对应<code>onProcessingTime</code></p>
+<h3 id="ContinuousEventTimeTrigger">ContinuousEventTimeTrigger</h3><p>该触发器是基于事件时间的按照指定时间间隔持续触发的触发器，它的首次触发取决于<code>Watermark</code>。首次触发的判断位于<code>onElement</code>中，它注册下一次（也是首次）触发eventTime 定时器的时机，然后将其<code>first</code>状态标识为false。具体实现如下：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TriggerResult onElement(Object element, <span class="keyword">long</span> timestamp, W window, TriggerContext ctx) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line"></span><br><span class="line">	ValueState&lt;<span class="keyword">Boolean</span>&gt; first = ctx.getPartitionedState(stateDesc);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (first.value()) &#123;</span><br><span class="line">		<span class="keyword">long</span> start = timestamp - (timestamp % interval);</span><br><span class="line">		<span class="keyword">long</span> nextFireTimestamp = start + interval;</span><br><span class="line"></span><br><span class="line">		ctx.registerEventTimeTimer(nextFireTimestamp);</span><br><span class="line"></span><br><span class="line">		first.update(<span class="keyword">false</span>);</span><br><span class="line">		<span class="keyword">return</span> TriggerResult.<span class="keyword">CONTINUE</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> TriggerResult.<span class="keyword">CONTINUE</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>持续的触发依赖于在<code>onEventTime</code>中不断注册下一次触发的定时器：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function">TriggerResult <span class="title">onEventTime</span><span class="params">(<span class="keyword">long</span> time, W window, TriggerContext ctx)</span> </span>&#123;</span><br><span class="line">	ctx.registerEventTimeTimer(time + interval);</span><br><span class="line">	<span class="keyword">return</span> TriggerResult.FIRE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="ContinuousProcessingTimeTrigger">ContinuousProcessingTimeTrigger</h3><p>基于系统时间的按照指定时间间隔持续触发的触发器，它也是基于保存的状态值<code>fire-timestamp</code>来判断是否需要触发，不过它的循环注册过程是在<code>onElement</code>中。</p>
+<h3 id="CountTrigger">CountTrigger</h3><p>基于一个给定的累加值触发，由于累加值不是基于时间而是基于元素的，所有其触发机制实现在<code>onElement</code>中，逻辑很简单，先累加如果大于给定的阈值则触发：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> TriggerResult onElement(Object element, <span class="keyword">long</span> timestamp, W window, TriggerContext ctx) <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">	ValueState&lt;<span class="keyword">Long</span>&gt; <span class="keyword">count</span> = ctx.getPartitionedState(stateDesc);</span><br><span class="line">	<span class="keyword">long</span> currentCount = <span class="keyword">count</span>.value() + <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">count</span>.update(currentCount);</span><br><span class="line">	<span class="keyword">if</span> (currentCount &gt;= maxCount) &#123;</span><br><span class="line">		<span class="keyword">count</span>.update(<span class="number">0</span>L);</span><br><span class="line">		<span class="keyword">return</span> TriggerResult.FIRE;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> TriggerResult.<span class="keyword">CONTINUE</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="PurgingTrigger">PurgingTrigger</h3><p>该触发器类似于一个包装器，用于将任何给定的触发器转变成<strong><em>purging</em></strong>触发器。它的实现机制是，它接收一个trigger实例，然后在各个onXXX回调上执行该实例的相应的onXXX并获得<code>TriggerResult</code>的实例，进行相应的判断，最后返回<code>FIRE_AND_PURGE</code>枚举值。</p>
+<h3 id="DeltaTrigger">DeltaTrigger</h3><p>基于<code>DeltaFunction</code>和一个给定的阈值触发，该触发器在最后一个到达元素和当前元素之间计算一个delta值跟给定的阈值比较，如果高于给定的阈值，则触发。因为是基于元素的，所以主要逻辑实现在<code>onElement</code>中。</p>
+<h1 id="小结">小结</h1><p>本篇还是侧重于分析跟窗口有关的概念，就目前来看它们并没有太多的关联性，这一点我们在后续会剖析它们如何关联起来实现完整的窗口机制的。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/05/10/flink-stream-window/" data-id="cio1jy8hg004pj3z2eitaaqpg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/05/07/flink-stream-sink/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Apache Flink源码解析之stream-sink</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-stream-window" data-title="Apache Flink源码解析之stream-window" data-url="http://vinoyang.com/2016/05/10/flink-stream-window/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">9</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/05/10/flink-stream-window/">Apache Flink源码解析之stream-window</a>
+          </li>
+        
+          <li>
+            <a href="/2016/05/07/flink-stream-sink/">Apache Flink源码解析之stream-sink</a>
+          </li>
+        
+          <li>
+            <a href="/2016/05/05/flink-stream-source/">Apache Flink源码解析之stream-source</a>
+          </li>
+        
+          <li>
+            <a href="/2016/05/02/flink-concepts/">Flink中的一些核心概念</a>
+          </li>
+        
+          <li>
+            <a href="/2016/04/24/flink-data-exchange-between-tasks/">Flink中task之间的数据交换机制</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
