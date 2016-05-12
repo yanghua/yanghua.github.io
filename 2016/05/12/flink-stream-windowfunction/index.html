@@ -5,17 +5,20 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>yanghua</title>
+  <title>Apache Flink源码解析之stream-windowfunction | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="yanghua blog github">
-<meta property="og:type" content="website">
-<meta property="og:title" content="yanghua">
-<meta property="og:url" content="http://vinoyang.com/page/4/index.html">
+  <meta name="description" content="Window也即窗口，是Flink流处理的特性之一。前一篇文章我们谈到了Winodw的相关概念及其实现。窗口的目的是将无界的流转换为有界的元素集合，但这还不是最终的目的，最终的目的是在这有限的集合上apply(应用)某种函数，这就是我们本篇要谈的主题——WindowFunction（窗口函数）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink源码解析之stream-windowfunction">
+<meta property="og:url" content="http://vinoyang.com/2016/05/12/flink-stream-windowfunction/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="yanghua blog github">
+<meta property="og:description" content="Window也即窗口，是Flink流处理的特性之一。前一篇文章我们谈到了Winodw的相关概念及其实现。窗口的目的是将无界的流转换为有界的元素集合，但这还不是最终的目的，最终的目的是在这有限的集合上apply(应用)某种函数，这就是我们本篇要谈的主题——WindowFunction（窗口函数）。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window-function_all-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:updated_time" content="2016-05-12T14:45:41.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="yanghua">
-<meta name="twitter:description" content="yanghua blog github">
+<meta name="twitter:title" content="Apache Flink源码解析之stream-windowfunction">
+<meta name="twitter:description" content="Window也即窗口，是Flink流处理的特性之一。前一篇文章我们谈到了Winodw的相关概念及其实现。窗口的目的是将无界的流转换为有界的元素集合，但这还不是最终的目的，最终的目的是在这有限的集合上apply(应用)某种函数，这就是我们本篇要谈的主题——WindowFunction（窗口函数）。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -75,12 +78,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-    <article id="post-再谈消息总线客户端的多线程实现" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-stream-windowfunction" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2015/03/22/再谈消息总线客户端的多线程实现/" class="article-date">
-  <time datetime="2015-03-22T08:21:00.000Z" itemprop="datePublished">2015-03-22</time>
+    <a href="/2016/05/12/flink-stream-windowfunction/" class="article-date">
+  <time datetime="2016-05-12T14:43:04.000Z" itemprop="datePublished">2016-05-12</time>
 </a>
     
   </div>
@@ -90,8 +91,8 @@
       <header class="article-header">
         
   
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/03/22/再谈消息总线客户端的多线程实现/">再谈消息总线客户端的多线程实现</a>
+    <h1 class="article-title" itemprop="name">
+      Apache Flink源码解析之stream-windowfunction
     </h1>
   
 
@@ -99,399 +100,113 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <div><br><br>上次我谈了最近在写的一个<a href="https://github.com/yanghua/banyan"><strong>基于RabbitMQ的消息总线</strong></a>的客户端在面对并发问题时的<a href="http://blog.csdn.net/yanghua_kobe/article/details/44132993"><strong>一些思考以及最终的实现方案</strong></a>。那是一种简单并且不容易产生并发问题的方案，如果你看过那篇文章，我曾在最终的实现方案之后给出了其利弊分析。<br><br>
+        <!-- Table of Contents -->
         
-          <p class="article-more-link">
-            <a href="/2015/03/22/再谈消息总线客户端的多线程实现/#more">Read More</a>
-          </p>
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#AllWindowFunction"><span class="toc-number">1.</span> <span class="toc-text">AllWindowFunction</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#RichAllWindowFunction"><span class="toc-number">1.1.</span> <span class="toc-text">RichAllWindowFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ReduceIterableAllWindowFunction"><span class="toc-number">1.2.</span> <span class="toc-text">ReduceIterableAllWindowFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ReduceApplyAllWindowFunction"><span class="toc-number">1.3.</span> <span class="toc-text">ReduceApplyAllWindowFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#PassThroughAllWindowFunction"><span class="toc-number">1.4.</span> <span class="toc-text">PassThroughAllWindowFunction</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#FoldApplyAllWindowFunction"><span class="toc-number">1.5.</span> <span class="toc-text">FoldApplyAllWindowFunction</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#WindowFunction"><span class="toc-number">2.</span> <span class="toc-text">WindowFunction</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">3.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
         
+        <p><code>Window</code>也即窗口，是Flink流处理的特性之一。前一篇文章我们谈到了<code>Winodw</code>的相关概念及其实现。窗口的目的是将无界的流转换为有界的元素集合，但这还不是最终的目的，最终的目的是在这有限的集合上<strong>apply</strong>(应用)某种函数，这就是我们本篇要谈的主题——<code>WindowFunction</code>（窗口函数）。</p>
+<a id="more"></a>
+<p>那么窗口函数会在什么时候被应用呢？还记得上篇文章我们谈到了触发器<code>Trigger</code>，在触发器触发后会返回<code>TriggerResult</code>这个枚举类型的其中一个枚举值。当返回的是<code>FIRE</code>或者<code>FIRE_AND_PURGE</code>时，窗口函数就会在窗口上应用。</p>
+<p>Flink中将窗口函数分为两种：</p>
+<ul>
+<li>AllWindowFunction : 针对全局的不基于某个key进行分组的window的窗口函数的实现</li>
+<li>WindowFunction : 针对基于某个key进行分组的window的窗口函数的实现</li>
+</ul>
+<p>它们在类型继承体系中分属两个不同的体系：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-window-function_all-class-diagram.png" alt="flink-stream-window-function_all-class-diagram"></p>
+<p>但可以看到，针对这两个体系几乎都提供了相同功能的窗口函数的实现。</p>
+<h1 id="AllWindowFunction">AllWindowFunction</h1><p>所有不基于某个key进行分组的window的窗口函数的实现的基类。该接口是个泛型接口，需要指定三个泛型参数：</p>
+<ul>
+<li>IN ：input数据的类型</li>
+<li>OUT ：output对象的类型</li>
+<li>W : 继承自<code>Window</code>，表示需要在其上应用该操作的<code>Window</code>的类型</li>
+</ul>
+<p>该接口只有一个接口方法：</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">void apply(W <span class="keyword">window</span>, Iterable&lt;<span class="keyword">IN</span>&gt; values, Collector&lt;<span class="keyword">OUT</span>&gt; <span class="keyword">out</span>) throws Exception;</span><br></pre></td></tr></table></figure>
+<p>该方法用于在<code>window</code>上的元素集合<code>values</code>进行计算，然后<code>out</code>出0个或多个值。</p>
+<h2 id="RichAllWindowFunction">RichAllWindowFunction</h2><p>抽象类，继承<code>AbstractRichFunction</code>以提供<strong>rich</strong> 的AllWindowFunction（<code>AbstractRichFunction</code>提供了open/close方法对以及获得运行时上下文对象的手段）。我们在之前解析<code>SourceFunction</code>和<code>SinkFunction</code>时多次看到这种实现模式。这里该类不提供任何实现。</p>
+<h2 id="ReduceIterableAllWindowFunction">ReduceIterableAllWindowFunction</h2><p><code>ReduceIterableAllWindowFunction</code>用于对其窗口内的所有元素迭代应用<code>reduce</code>操作并合并为一个元素，然后再发射出去。它接收<code>ReduceFunction</code>的实例，以提供reduce函数。</p>
+<p>该类apply方法实现如下：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">apply</span>(<span class="params">W window, Iterable&lt;T&gt; input, Collector&lt;T&gt; <span class="keyword">out</span></span>) throws Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">	T curr = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">for</span> (T val: input) &#123;</span><br><span class="line">		<span class="keyword">if</span> (curr == <span class="keyword">null</span>) &#123;</span><br><span class="line">			curr = val;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			curr = reduceFunction.reduce(curr, val);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">out</span>.collect(curr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>reduceFunction#reduce</code>方法，用于将第一个参数和第二个参数进行合并为一个元素。</p>
+<h2 id="ReduceApplyAllWindowFunction">ReduceApplyAllWindowFunction</h2><p><code>ReduceApplyAllWindowFunction</code>用于对窗口内的所有元素进行<strong>reduce</strong>操作后再进行调用<strong>apply</strong>。其构造器接收两个参数：</p>
+<ul>
+<li>reduceFunction ： 提供reduce操作的<code>ReduceFunction</code></li>
+<li>windowFunction ： 提供apply操作的<code>AllWindowFunction</code>，该参数用于对window中元素进行reduce之后产生的单个元素再进行最终的apply操作。</li>
+</ul>
+<p>该类的apply实现如下：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">apply</span>(<span class="params">W window, Iterable&lt;T&gt; input, Collector&lt;R&gt; <span class="keyword">out</span></span>) throws Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">		T curr = <span class="keyword">null</span>;</span><br><span class="line">		<span class="keyword">for</span> (T val: input) &#123;</span><br><span class="line">			<span class="keyword">if</span> (curr == <span class="keyword">null</span>) &#123;</span><br><span class="line">				curr = val;</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				curr = reduceFunction.reduce(curr, val);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		windowFunction.apply(window, Collections.singletonList(curr), <span class="keyword">out</span>);</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="PassThroughAllWindowFunction">PassThroughAllWindowFunction</h2><p><code>PassThroughAllWindowFunction</code>该类仅仅提供<strong><em>passthrough</em></strong>功能，也即直接通过发射器将窗口内的元素迭代发射出去，除此之外不进行任何操作。</p>
+<h2 id="FoldApplyAllWindowFunction">FoldApplyAllWindowFunction</h2><p><code>FoldApplyAllWindowFunction</code>用于对窗口中的数据先进行<strong>fold</strong>操作，得到一个最终合并的元素，再进行<strong>apply</strong>操作。因此它需要如下三个参数：</p>
+<ul>
+<li>initialValue ： 应用<code>foldFunction</code>的初始值</li>
+<li>foldFunction ：执行fold操作</li>
+<li>windowFunction ：对fold之后的最终值应用apply操作</li>
+</ul>
+<p>该类继承自<code>WrappingFunction</code>。<code>WrappingFunction</code>类似于一个包装器，包装传进来的某个<code>Function</code>，给一些模式化方法(open/close)提供了一些便捷处理。</p>
+<p>这里有一点需要区分一下，因为<code>ReduceFunction</code>和<code>FoldFuction</code>都具有将一组元素合并为单个元素的功能，所以他们看起来非常相似。不过他们还是有区别的，其中的一个区别就是，<code>FoldFunction</code>在进行fold操作的时候，还会进行潜在的类型转换。看下面的示例：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ReduceFunction&lt;Integer&gt; &#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> Integer <span class="title">reduce</span><span class="params">(Integer a, Integer b)</span> </span>&#123; <span class="keyword">return</span> a + b; &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>] -&gt; reduce()  means: ((((<span class="number">1</span> + <span class="number">2</span>) + <span class="number">3</span>) + <span class="number">4</span>) + <span class="number">5</span>) = <span class="number">15</span></span><br></pre></td></tr></table></figure>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">FoldFunction&lt;String, Integer&gt; &#123;</span><br><span class="line"></span><br><span class="line">  <span class="function"><span class="keyword">public</span> String <span class="title">fold</span><span class="params">(String current, Integer i)</span> </span>&#123; <span class="keyword">return</span> current +</span><br><span class="line">String.valueOf(i); &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>] -&gt; fold(<span class="string">"start-"</span>)  means: (((((<span class="string">"start-"</span> + <span class="number">1</span>) + <span class="number">2</span>) + <span class="number">3</span>) + <span class="number">4</span>)</span><br><span class="line">+ <span class="number">5</span>) = <span class="string">"start-12345"</span> (as a String)</span><br></pre></td></tr></table></figure>
+<h1 id="WindowFunction">WindowFunction</h1><p>这是Flink的另一个基于key进行分组的<code>WindowFunction</code>。因此跟<code>AllWindowFunction</code>主要的不同的是，其泛型参数多了一个<code>KEY</code>，表示进行分组的key的类型。</p>
+<p>同时其接口方法中也相应多了一个参数：</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">void apply(KEY key, W <span class="keyword">window</span>, Iterable&lt;<span class="keyword">IN</span>&gt; <span class="keyword">input</span>, Collector&lt;<span class="keyword">OUT</span>&gt; <span class="keyword">out</span>) throws Exception;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>具体的实现跟<code>AllWindowFunction</code>的实现大同小异，不再多谈。</p>
+</blockquote>
+<h1 id="小结">小结</h1><p>本篇主要剖析了Flink提供的两种不同的窗口函数<code>AllWindowFunction</code>以及<code>WindowFunction</code>。并对Flink针对<code>AllWindowFunction</code>的实现进行了解读。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/03/22/再谈消息总线客户端的多线程实现/" data-id="cio4eqzdy002hpvz2soex1ja6" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/05/12/flink-stream-windowfunction/" data-id="cio4eqzj7004ppvz2dmvrykce" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/05/10/flink-stream-window/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Apache Flink源码解析之stream-window</div>
+    </a>
+  
+</nav>
+
   
 </article>
 
 
-  
-    <article id="post-谈消息总线的路由模型" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/03/19/谈消息总线的路由模型/" class="article-date">
-  <time datetime="2015-03-18T22:16:00.000Z" itemprop="datePublished">2015-03-19</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/03/19/谈消息总线的路由模型/">谈消息总线的路由模型</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>最近在写一个<a href="https://github.com/yanghua/banyan"><strong>基于RabbitMQ的消息总线</strong></a>。虽然RabbitMQ提供了plugin的机制可以实现对其进行扩展，但是由于对erlang语言不熟，考虑到上手成本高，因此放弃实现plugin，转而基于Smart client + 树形拓扑路由的模型。当然这也大大降低了我们实现功能的灵活性，后面我会找个时间开篇新文章，谈谈Smart Client的限制。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/03/19/谈消息总线的路由模型/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/03/19/谈消息总线的路由模型/" data-id="cio4eqz8q0005pvz2rlm00wuf" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-谈消息总线客户端的多线程实现" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/03/09/谈消息总线客户端的多线程实现/" class="article-date">
-  <time datetime="2015-03-08T16:05:00.000Z" itemprop="datePublished">2015-03-09</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/03/09/谈消息总线客户端的多线程实现/">谈消息总线客户端的多线程实现</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>最近在实现一个<a href="https://github.com/yanghua/banyan">基于RabbitMQ的消息总线</a>。因为它提供了Client（客户端），这里就牵扯到凡是技术组件的client都无法回避的并发问题。本文借实现消息总线的client谈谈在实现过程中的想法以及最终的处理方式，当然这些都不仅仅适用于消息总线的client，其他通用组件的client也同样适用。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/03/09/谈消息总线客户端的多线程实现/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/03/09/谈消息总线客户端的多线程实现/" data-id="cio4eqz8s0006pvz2wiuysq8a" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-再谈pipeline-filter模式" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/02/23/再谈pipeline-filter模式/" class="article-date">
-  <time datetime="2015-02-22T20:42:00.000Z" itemprop="datePublished">2015-02-23</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/02/23/再谈pipeline-filter模式/">再谈pipeline-filter模式</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>本文结合最近我正在实现的一个<a href="https://github.com/yanghua/banyan">基于RabbitMQ的消息总线</a>上所走的弯路来谈谈设计层面上的责任链模式以及架构层面上的pipeline-filter模式。写这篇文章的另一个目的是为了纠正我之前针对pipeline-filter模式写的一篇博文：<a href="http://blog.csdn.net/yanghua_kobe/article/details/40648773"><span style="color:#ff0000;">《pipeline-filter模式变体之尾循环》</span></a>，如果你想看看我之前为什么要那么做，你可以先看看那篇文章，不过无论看不看都不影响这篇文章的行文。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/02/23/再谈pipeline-filter模式/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/02/23/再谈pipeline-filter模式/" data-id="cio4eqze0002ipvz2623v9keh" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-消息总线VS消息队列" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/02/19/消息总线VS消息队列/" class="article-date">
-  <time datetime="2015-02-18T17:22:00.000Z" itemprop="datePublished">2015-02-19</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/02/19/消息总线VS消息队列/">消息总线VS消息队列</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>前段时间实现了一个<a href="https://github.com/yanghua/banyan">基于RabbitMQ的消息总线</a>，实现的过程中自己也在不断得思考、总结以及修正。需要考虑各个维度：效率、性能、网络、吞吐量、甚至需要自己去设想API可能的使用场景、模式。不过能有一件事情，自己愿意去做，在走路、吃饭、坐公交的时候都在思考如何去改进它，然后在实践的过程中，促使去思考并挖掘自己知识面的空白，也是一件让人开心的事情。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/02/19/消息总线VS消息队列/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/02/19/消息总线VS消息队列/" data-id="cio4eqzao000zpvz212850c7u" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-串讲ApacheOFBiz技术架构" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/02/18/串讲ApacheOFBiz技术架构/" class="article-date">
-  <time datetime="2015-02-17T22:24:00.000Z" itemprop="datePublished">2015-02-18</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/02/18/串讲ApacheOFBiz技术架构/">串讲ApacheOFBiz技术架构</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>从决定读ApacheOFBiz源码到现在不知不觉一年就过去了。这一年因为各种原因，导致源码读得断断续续。其实最大的问题还是因为无法深刻得理解里面的一些东西，导致热情骤减。直到最近，公司在开发的一个“应用快速开发平台”引发了我的一些思考，所以决定再把源码拿出来重新阅读。到最近对其架构设计近乎迷恋。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/02/18/串讲ApacheOFBiz技术架构/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/02/18/串讲ApacheOFBiz技术架构/" data-id="cio4eqzg60032pvz2jf2tiuht" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-ApacheOFBiz源码解读之MVC模型" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/02/01/ApacheOFBiz源码解读之MVC模型/" class="article-date">
-  <time datetime="2015-02-01T13:54:00.000Z" itemprop="datePublished">2015-02-01</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/02/01/ApacheOFBiz源码解读之MVC模型/">ApacheOFBiz源码解读之MVC模型</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>这篇文章我们来共同探讨一下Apache OFBiz的MVC模型的实现机制。<br><br># 简介<br><br>对于Model-View-Controller的概念此处就不做过多介绍了。如果有想了解的请移步：<a href="https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller">维基百科</a>。这里我只引用维基百科上关于该item的一张图片，来简单展示一下，这三个component之间的交互机制：<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/02/01/ApacheOFBiz源码解读之MVC模型/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/02/01/ApacheOFBiz源码解读之MVC模型/" data-id="cio4eqzlp005opvz2iydvc1hd" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-health4j—Java项目的全面体检工具" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2015/01/27/health4j—Java项目的全面体检工具/" class="article-date">
-  <time datetime="2015-01-26T19:03:00.000Z" itemprop="datePublished">2015-01-27</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2015/01/27/health4j—Java项目的全面体检工具/">health4j—Java项目的全面体检工具</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>最近利用业余时间写了一个Java代码静态分析工具的聚合器。集成了三种主流的静态分析工具：<a href="http://pmd.sourceforge.net/">pmd</a>，<a href="http://checkstyle.sourceforge.net/">checkstyle</a>，<a href="http://findbugs.sourceforge.net/">findbugs</a>。可以用这三种工具提供的几千种规则集，来给你的项目进行全面体检，同时附带了归纳整理并提供邮件通知。代码开源在<a href="https://github.com/yanghua/health4j">github</a>上，取名为<strong>health4j</strong>。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2015/01/27/health4j—Java项目的全面体检工具/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/01/27/health4j—Java项目的全面体检工具/" data-id="cio4eqzhf003spvz2susss6rx" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-谈ApacheOFbiz会员模块表结构设计" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2014/12/08/谈ApacheOFbiz会员模块表结构设计/" class="article-date">
-  <time datetime="2014-12-07T20:04:00.000Z" itemprop="datePublished">2014-12-08</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2014/12/08/谈ApacheOFbiz会员模块表结构设计/">谈ApacheOFbiz会员模块表结构设计</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>数据库表的结构设计可谓是ofbiz除技术框架之外，另一个非常值得学习的方向。这篇文章我们来谈谈ofbiz对电子商务会员表的设计。<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2014/12/08/谈ApacheOFbiz会员模块表结构设计/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2014/12/08/谈ApacheOFbiz会员模块表结构设计/" data-id="cio4eqz8v0007pvz29hbxpylc" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-pipeline-filter模式变体之尾循环" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2014/10/31/pipeline-filter模式变体之尾循环/" class="article-date">
-  <time datetime="2014-10-31T15:09:00.000Z" itemprop="datePublished">2014-10-31</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2014/10/31/pipeline-filter模式变体之尾循环/">pipeline-filter模式变体之尾循环</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>注：这篇文章的设计存在一些问题，或者说不够优雅。关于原因，请移步本人另一篇文章：<a href="http://blog.csdn.net/yanghua_kobe/article/details/43908659">《再谈pipeline-filter模式》</a><br><br>
-        
-          <p class="article-more-link">
-            <a href="/2014/10/31/pipeline-filter模式变体之尾循环/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2014/10/31/pipeline-filter模式变体之尾循环/" data-id="cio4eqzgr003lpvz2vnpsyirx" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-  
-    <nav id="page-nav">
-      <a class="extend prev" rel="prev" href="/page/3/">&laquo; Prev</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><span class="page-number current">4</span><a class="page-number" href="/page/5/">5</a><a class="page-number" href="/page/6/">6</a><span class="space">&hellip;</span><a class="page-number" href="/page/16/">16</a><a class="extend next" rel="next" href="/page/5/">Next &raquo;</a>
-    </nav>
-  
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-stream-windowfunction" data-title="Apache Flink源码解析之stream-windowfunction" data-url="http://vinoyang.com/2016/05/12/flink-stream-windowfunction/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
 </section>
         
           <aside id="sidebar">
