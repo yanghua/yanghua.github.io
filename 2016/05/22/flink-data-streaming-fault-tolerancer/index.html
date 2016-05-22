@@ -5,17 +5,24 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Archives: 2013/2 | yanghua</title>
+  <title>Apache Flink数据流的Fault Tolerance机制 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="yanghua blog github">
-<meta property="og:type" content="website">
-<meta property="og:title" content="yanghua">
-<meta property="og:url" content="http://vinoyang.com/archives/2013/02/index.html">
+  <meta name="description" content="简介Apache Flink提供了一个失败恢复机制来使得数据流应用可以持续得恢复状态。这个机制可以保证即使线上环境的失败，程序的状态也将能保证数据流达到exactly once的一致性。注意这里也可以选择降级到保证at least once的一致性级别。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink数据流的Fault Tolerance机制">
+<meta property="og:url" content="http://vinoyang.com/2016/05/22/flink-data-streaming-fault-tolerancer/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="yanghua blog github">
+<meta property="og:description" content="简介Apache Flink提供了一个失败恢复机制来使得数据流应用可以持续得恢复状态。这个机制可以保证即使线上环境的失败，程序的状态也将能保证数据流达到exactly once的一致性。注意这里也可以选择降级到保证at least once的一致性级别。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_checkpointing-1.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_checkpointing-2.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-05-22T12:38:15.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="yanghua">
-<meta name="twitter:description" content="yanghua blog github">
+<meta name="twitter:title" content="Apache Flink数据流的Fault Tolerance机制">
+<meta name="twitter:description" content="简介Apache Flink提供了一个失败恢复机制来使得数据流应用可以持续得恢复状态。这个机制可以保证即使线上环境的失败，程序的状态也将能保证数据流达到exactly once的一致性。注意这里也可以选择降级到保证at least once的一致性级别。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -75,58 +82,134 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2013" class="archive-year">2013</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2013/02/15/Python脚本实现Mac开机自动语音播报天气/" class="archive-article-date">
-  <time datetime="2013-02-15T15:42:00.000Z" itemprop="datePublished">2月 15</time>
+        <section id="main"><article id="post-flink-data-streaming-fault-tolerancer" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/05/22/flink-data-streaming-fault-tolerancer/" class="article-date">
+  <time datetime="2016-05-22T12:28:15.000Z" itemprop="datePublished">2016-05-22</time>
 </a>
-      
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2013/02/15/Python脚本实现Mac开机自动语音播报天气/">Python脚本实现Mac开机自动语音播报天气</a>
+    <h1 class="article-title" itemprop="name">
+      Apache Flink数据流的Fault Tolerance机制
     </h1>
   
 
-    </header>
-  </div>
-</article>
-  
+      </header>
     
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2013/02/08/Python实现对电脑的全程监控/" class="archive-article-date">
-  <time datetime="2013-02-07T22:21:00.000Z" itemprop="datePublished">2月 8</time>
-</a>
+    <div class="article-entry" itemprop="articleBody">
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2013/02/08/Python实现对电脑的全程监控/">Python实现对电脑的全程监控</a>
-    </h1>
-  
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#检查点"><span class="toc-number">1.1.</span> <span class="toc-text">检查点</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#屏障"><span class="toc-number">1.2.</span> <span class="toc-text">屏障</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#状态"><span class="toc-number">1.3.</span> <span class="toc-text">状态</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#恰好一次VS至少一次"><span class="toc-number">1.4.</span> <span class="toc-text">恰好一次VS至少一次</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#恢复"><span class="toc-number">1.5.</span> <span class="toc-text">恢复</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="简介">简介</h1><p>Apache Flink提供了一个失败恢复机制来使得数据流应用可以持续得恢复状态。这个机制可以保证即使线上环境的失败，程序的状态也将能保证数据流达到<strong>exactly once</strong>的一致性。注意这里也可以选择降级到保证<strong>at least once</strong>的一致性级别。</p>
+<a id="more"></a>
+<p>失败恢复机制持续地构建分布式流式数据的快照。对于那些只有少量状态的流处理应用，这些快照都是非常轻量级的并且可以以非常频繁的频率来构建快照而不需要太多地考虑性能问题。而流应用的状态被存储在一个可配置的持久化存储（比如master节点或者HDFS）。</p>
+<p>在程序失败的情况下（比如由于机器、网络或者软件失败），Flink将停止分布式流处理。系统将重启<code>operator</code>并且将他们重置为最新成功了的<strong>检查点</strong>。输入流会被重置为状态快照点。任何被重启的并发数据流处理的记录，可以得到的保证是：他们不可能是检查点之前的记录。</p>
+<p>注意：对于该机制，为了达到完整的保证，数据流source（例如message queue或者message broker）需要具备回退到最近定义的还原点的能力。Apache Kafka具备这样的能力并且Flink的Kafka连接器利用了这个能力。</p>
+<p>因为Flink的检查点是通过分布式快照实现的，所以这里我们对快照和检查点不进行区分。</p>
+<h2 id="检查点">检查点</h2><p>Flink的失败恢复机制最核心的部分是持续得构建分布式流处理和<code>operator</code>状态的快照。这些快照可以看作持续的检查点，如果发生失败的情况，系统可以从这些点进行恢复。Flink构建这些快照的机制可以被描述成<a href="http://arxiv.org/abs/1506.08603" target="_blank" rel="external">分布式数据流的轻量级异步快照</a>。它已经被实现为标准的<a href="http://research.microsoft.com/en-us/um/people/lamport/pubs/chandy.pdf" target="_blank" rel="external"><code>Chandy-Lamport</code></a>算法了，并用来实现分布式快照，而且几乎是为Flink的执行模型量身定做的。</p>
+<h2 id="屏障">屏障</h2><blockquote>
+<p>Barriers：此处统一称为屏障也可称之为栅栏</p>
+</blockquote>
+<p>在Flink的分布式快照机制中有一个核心的元素是流<strong>屏障</strong>。屏障作为数据流的一部分随着记录被注入到数据流中。屏障永远不会<strong><em>赶超</em></strong>通常的流记录，它会严格遵循顺序。屏障将数据流中的记录隔离成一系列的记录集合，并将一些集合中的数据加入到当前的快照中，而另一些数据加入到下一个快照中。每一个屏障携带着快照的ID，快照记录着ID并且将其放在快照数据的前面。屏障不会中断流处理，因此非常轻量级。来自不同快照的多个屏障可能同时出现在流中，这意味着多个快照可能并发地发生。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png" alt="flink-stream-fault-tolerance_stream-barriers"></p>
+<p>在<code>stream source</code>中，流屏障被注入到并发数据流中。快照n被注入屏障的点（简称为Sn），是在<code>source stream</code>中的数据已被纳入该快照后的位置。例如，在Apache Kafka中，该位置将会是<code>partition</code>中最后一条记录的<code>offset</code>。这个Sn的位置将被报告给<strong><em>检查点协调器</em></strong>（<code>Flink JobManager</code>）。</p>
+<p>屏障接下来会流向下游。当一个中间的<code>operator</code>从所有它的输入流中接收到一个来自快照n的屏障，它自身发射一个针对快照n的屏障到所有它的输出流。一旦一个<code>sink operator</code>（流DAG的终点）从它所有的输入流中接收到屏障n，它将会像检查点协调器应答快照n。在所有的sink应答该快照后，它才被认为是完成了。</p>
+<p>当快照n完成后，可以认为在Sn之前的记录没有必要再从<code>source</code>中流入，因为这些记录已经穿过了整个数据流的处理拓扑。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png" alt="flink-stream-fault-tolerance_stream-aligning"></p>
+<p>那些不止一个输入流的的<code>operator</code>需要在快照屏障上<strong>对齐</strong>(align)输入流。上面的插图说明了这一点：</p>
+<ul>
+<li>一旦<code>operator</code>从外来流中收到快照屏障n，它就不能处理该流中更多的记录直到它从其他输入中接收到屏障n。否则，会混合属于快照n以及快照n+1的记录</li>
+<li>汇报过屏障n的流会被临时搁置到一边，从这些流中继续接收到的记录并没有被处理，而是被放进一个输入缓冲区中</li>
+<li>一旦最后一个流接收到屏障n，<code>operator</code>发射所有待处理的需要流出的记录，然后发射快照n屏障本身</li>
+<li>此后，<code>operator</code>恢复从所有输入流的记录的处理，在处理来自流的记录之前先处理来自输入缓冲区的记录</li>
+</ul>
+<h2 id="状态">状态</h2><p>无论<code>operator</code>包含任何形式的状态，这些状态必须是快照的一部分。<code>operator</code>状态有不同的形式：</p>
+<ul>
+<li>用户定义的状态：这种类型的状态通过<code>transformation</code>函数（比如<code>map()</code>或者<code>filter()</code>）直接创建和修改。用户定义的状态可以是一个简单的变量或者跟某个函数关联的key/value状态。</li>
+<li>系统状态：这种状态通常关系到数据缓冲区，它们是<code>operator</code>计算逻辑的一部分。这种状态的一个典型的例子是<code>window buffers</code>，在它内部，系统为其收集（以及聚合）记录直到窗口被计算。</li>
+</ul>
+<p><code>operator</code>在从它们的所有输入流中收到所有的快照屏障时，在发射屏障到它们的输出流之前会对状态做快照。在那个点，所有在屏障之前的记录的状态更新必须完成，并且在屏障之后依赖于记录的更新不会被接收。因为快照的状态有可能会非常大，它们被存储在可配置的状态终端上。默认存储的位置是<code>JobManager</code>的内存，但为了严谨，应该配置一个分布式的可靠的存储层（比如HDFS）。在状态被存储之后，<code>operator</code>会应答检查点，发射快照屏障到输出流并继续处理流程。</p>
+<p>现在快照的结果包含：</p>
+<ul>
+<li>对每个并行流的数据源而言，快照开始时的偏移量或者位置</li>
+<li>对每个<code>operator</code>而言，一个指针指向存储在快照中的状态部分</li>
+</ul>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_checkpointing-1.png" alt="flink-stream-fault-tolerance_checkpointing-1"></p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_checkpointing-2.png" alt="flink-stream-fault-tolerance_checkpointing-2"></p>
+<h2 id="恰好一次VS至少一次">恰好一次VS至少一次</h2><p><strong>对齐</strong>步骤可能会增加流处理的延迟。通常这个额外的延迟被控制在毫秒级，但我们也看到一些场景下，延迟显著增加。对于那些要求针对所有记录的处理始终保持低延迟的应用（比如几毫秒），Flink提供了一个开关（选项）可以在检查点中跳过流对齐。检查点快照仍然被构建，一旦<code>operator</code>从每个输入流收到检查点屏障。</p>
+<p>当<strong>对齐</strong>操作被跳过，<code>operator</code>持续处理所有的输入，甚至在检查点n的一些检查点屏障到达之后。这种情况下，<code>operator</code>在对检查点n进行状态快照之前也可能同时会处理属于检查点n+1的元素。因此，在恢复时，这些记录可能会导致重复，因为它们可能会既包含在针对检查点n的快照中，又将包含在检查点n之后被重放的部分数据中。</p>
+<p>注意：对齐仅仅发生在<code>operator</code>有多个前置<code>operator</code>（join）以及<code>operator</code>有多个发送者（在一个流被<code>repartitioning/shuffle</code>之后）。正因为如此，令人尴尬的是，在数据流中仅仅只有一个并行的流操作（<code>map()</code>,<code>flatMap()</code>,<code>filter()</code>…）时，即便在<strong>至少一次</strong>的模式下也能提供<strong>恰巧一次</strong>的一致性保证。</p>
+<h2 id="恢复">恢复</h2><p>在这个机制下的恢复是很简单的：如果产生了失败，Flink选择最近完成的检查点K。然后系统重放整个分布式的数据流，然后给予每个<code>operator</code>他们在检查点k快照中的状态。数据源被设置为从位置Sk开始重新读取流。例如在Apache Kafka中，那意味着告诉消费者从偏移量Sk开始重新消费。</p>
+<p>如果状态被增量地快照，<code>operator</code>从最新的完整快照中读取状态然后在状态上应用一系列的增量快照更新。</p>
+<blockquote>
+<p>本文翻译自：<a href="https://ci.apache.org/projects/flink/flink-docs-master/internals/stream_checkpointing.html" target="_blank" rel="external">https://ci.apache.org/projects/flink/flink-docs-master/internals/stream_checkpointing.html</a></p>
+</blockquote>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-    </header>
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/05/22/flink-data-streaming-fault-tolerancer/" data-id="cioikl9pp0052gyz2sdcn3fmn" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
   </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/05/21/flink-stream-operator/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Apache Flink源码解析之stream-operator</div>
+    </a>
+  
+</nav>
+
+  
 </article>
-  
-  
-    </div></section>
-  
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-data-streaming-fault-tolerancer" data-title="Apache Flink数据流的Fault Tolerance机制" data-url="http://vinoyang.com/2016/05/22/flink-data-streaming-fault-tolerancer/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
 </section>
         
           <aside id="sidebar">
