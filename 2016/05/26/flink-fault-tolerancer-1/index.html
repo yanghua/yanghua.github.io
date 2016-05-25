@@ -5,19 +5,19 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Apache Flink-fault-tolerance源码剖析一 | yanghua</title>
+  <title>Apache Flink fault tolerance源码剖析(一) | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="因某些童鞋的建议，从这篇文章开始结合源码谈谈Flink Fault Tolerance相关的话题。上篇官方介绍的翻译是理解这个话题的前提，所以如果你想更深入得了解Flink Fault Tolerance的机制，推荐先读一下前篇文章理解它的实现原理。当然原理归原理，原理体现在代码实现里并不是想象中的那么直观。这里的源码剖析也是我学习以及理解的过程。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Apache Flink-fault-tolerance源码剖析一">
+<meta property="og:title" content="Apache Flink fault tolerance源码剖析(一)">
 <meta property="og:url" content="http://vinoyang.com/2016/05/26/flink-fault-tolerancer-1/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="因某些童鞋的建议，从这篇文章开始结合源码谈谈Flink Fault Tolerance相关的话题。上篇官方介绍的翻译是理解这个话题的前提，所以如果你想更深入得了解Flink Fault Tolerance的机制，推荐先读一下前篇文章理解它的实现原理。当然原理归原理，原理体现在代码实现里并不是想象中的那么直观。这里的源码剖析也是我学习以及理解的过程。">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-05-25T22:50:40.000Z">
+<meta property="og:updated_time" content="2016-05-25T23:00:17.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Apache Flink-fault-tolerance源码剖析一">
+<meta name="twitter:title" content="Apache Flink fault tolerance源码剖析(一)">
 <meta name="twitter:description" content="因某些童鞋的建议，从这篇文章开始结合源码谈谈Flink Fault Tolerance相关的话题。上篇官方介绍的翻译是理解这个话题的前提，所以如果你想更深入得了解Flink Fault Tolerance的机制，推荐先读一下前篇文章理解它的实现原理。当然原理归原理，原理体现在代码实现里并不是想象中的那么直观。这里的源码剖析也是我学习以及理解的过程。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -92,7 +92,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Apache Flink-fault-tolerance源码剖析一
+      Apache Flink fault tolerance源码剖析(一)
     </h1>
   
 
@@ -249,7 +249,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/05/26/flink-fault-tolerancer-1/" data-id="ciongsisp005eqcz23hmsxrl0" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/05/26/flink-fault-tolerancer-1/" data-id="cionh4wtx005evmz22h3phweb" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -274,7 +274,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-flink-fault-tolerancer-1" data-title="Apache Flink-fault-tolerance源码剖析一" data-url="http://vinoyang.com/2016/05/26/flink-fault-tolerancer-1/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-fault-tolerancer-1" data-title="Apache Flink fault tolerance源码剖析(一)" data-url="http://vinoyang.com/2016/05/26/flink-fault-tolerancer-1/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -330,7 +330,7 @@
       <ul>
         
           <li>
-            <a href="/2016/05/26/flink-fault-tolerancer-1/">Apache Flink-fault-tolerance源码剖析一</a>
+            <a href="/2016/05/26/flink-fault-tolerancer-1/">Apache Flink fault tolerance源码剖析(一)</a>
           </li>
         
           <li>
