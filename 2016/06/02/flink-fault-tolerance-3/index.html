@@ -13,9 +13,10 @@
 <meta property="og:url" content="http://vinoyang.com/2016/06/02/flink-fault-tolerance-3/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="上一篇文章我们探讨了基于定时任务的周期性检查点触发机制以及基于Akka的actor模型的消息驱动协同机制。这篇文章我们将探讨Zookeeper在Flink的Fault Tolerance中所起到的作用。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-3-overview.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-06-02T14:32:15.000Z">
+<meta property="og:updated_time" content="2016-06-02T14:57:03.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Apache Flink fault tolerance源码剖析(三)">
 <meta name="twitter:description" content="上一篇文章我们探讨了基于定时任务的周期性检查点触发机制以及基于Akka的actor模型的消息驱动协同机制。这篇文章我们将探讨Zookeeper在Flink的Fault Tolerance中所起到的作用。">
@@ -113,6 +114,11 @@
 <blockquote>
 <p>因为Zookeeper在Flink里存在多种应用场景，本篇我们还是将重心放在<code>Fault Tolerance</code>上，即讲解Zookeeper在检查点的恢复机制上发挥的作用。</p>
 </blockquote>
+<p>如果用一幅图表示快照机制(检查点)大致的流程可见下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-3-overview.png" alt="flink-fault-tolerance-3-overview"></p>
+<blockquote>
+<p>跟本文相关的主要有4，5，6三步</p>
+</blockquote>
 <h1 id="两种恢复模式">两种恢复模式</h1><p>因为跟本文切实相关，所以先介绍一下<code>JobManager</code>的<code>RecoveryMode</code>（恢复模式）。<code>RecoveryMode</code>作为一个枚举类型，它有两个枚举值：</p>
 <ul>
 <li>STANDALONE</li>
@@ -196,7 +202,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/02/flink-fault-tolerance-3/" data-id="cioyeig5k005gmtz2gcrva5h7" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/02/flink-fault-tolerance-3/" data-id="cioyfeboe005gryz27ywd4skj" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
