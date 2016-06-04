@@ -5,13 +5,13 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Flink-fault-tolerance源码剖析四 | yanghua</title>
+  <title>Apache Flink fault tolerance源码剖析(四) | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <meta name="description" content="上篇文章我们探讨了Zookeeper在Flink的fault tolerance中发挥的作用（存储/恢复已完成的检查点以及检查点编号生成器）。
 这篇文章会谈论一种特殊的检查点，Flink将之命名为——Savepoint(保存点)。
 因为保存点只不过是一种特殊的检查点，所以在Flink中并没有太多代码实现。但作为一个特性，值得花费一个篇幅来介绍。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Flink-fault-tolerance源码剖析四">
+<meta property="og:title" content="Apache Flink fault tolerance源码剖析(四)">
 <meta property="og:url" content="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="上篇文章我们探讨了Zookeeper在Flink的fault tolerance中发挥的作用（存储/恢复已完成的检查点以及检查点编号生成器）。
@@ -20,9 +20,9 @@
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-4_savepoint-and-checkpoint.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-06-04T08:41:29.000Z">
+<meta property="og:updated_time" content="2016-06-04T08:46:38.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Flink-fault-tolerance源码剖析四">
+<meta name="twitter:title" content="Apache Flink fault tolerance源码剖析(四)">
 <meta name="twitter:description" content="上篇文章我们探讨了Zookeeper在Flink的fault tolerance中发挥的作用（存储/恢复已完成的检查点以及检查点编号生成器）。
 这篇文章会谈论一种特殊的检查点，Flink将之命名为——Savepoint(保存点)。
 因为保存点只不过是一种特殊的检查点，所以在Flink中并没有太多代码实现。但作为一个特性，值得花费一个篇幅来介绍。">
@@ -99,7 +99,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Flink-fault-tolerance源码剖析四
+      Apache Flink fault tolerance源码剖析(四)
     </h1>
   
 
@@ -192,7 +192,7 @@ savepoints.<span class="keyword">state</span>.backend.fs.dir: hdfs:///flink/save
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/" data-id="cip0wuusr005ef1z249mye0jz" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/" data-id="cip0x1gcm005eigz2lzujcg1x" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -217,7 +217,7 @@ savepoints.<span class="keyword">state</span>.backend.fs.dir: hdfs:///flink/save
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-flink-fault-tolerance-4" data-title="Flink-fault-tolerance源码剖析四" data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-fault-tolerance-4" data-title="Apache Flink fault tolerance源码剖析(四)" data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -273,7 +273,7 @@ savepoints.<span class="keyword">state</span>.backend.fs.dir: hdfs:///flink/save
       <ul>
         
           <li>
-            <a href="/2016/06/04/flink-fault-tolerance-4/">Flink-fault-tolerance源码剖析四</a>
+            <a href="/2016/06/04/flink-fault-tolerance-4/">Apache Flink fault tolerance源码剖析(四)</a>
           </li>
         
           <li>
