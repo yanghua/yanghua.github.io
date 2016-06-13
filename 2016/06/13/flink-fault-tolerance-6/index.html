@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Apache Flink fault tolerance源码剖析(六) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="上篇文章我们分析了基于检查点的用户状态的保存机制——状态终端。这篇文章我们来分析barrier（中文常译为栅栏或者屏障，为了避免引入名称争议，此处仍用英文表示）。检查点的barrier是提供exactly once一致性保证的主要保证机制。这篇文章我们会就此展开分析。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink fault tolerance源码剖析(六)">
+<meta property="og:url" content="http://vinoyang.com/2016/06/13/flink-fault-tolerance-6/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="上篇文章我们分析了基于检查点的用户状态的保存机制——状态终端。这篇文章我们来分析barrier（中文常译为栅栏或者屏障，为了避免引入名称争议，此处仍用英文表示）。检查点的barrier是提供exactly once一致性保证的主要保证机制。这篇文章我们会就此展开分析。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-06-13T14:11:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Apache Flink fault tolerance源码剖析(六)">
+<meta name="twitter:description" content="上篇文章我们分析了基于检查点的用户状态的保存机制——状态终端。这篇文章我们来分析barrier（中文常译为栅栏或者屏障，为了避免引入名称争议，此处仍用英文表示）。检查点的barrier是提供exactly once一致性保证的主要保证机制。这篇文章我们会就此展开分析。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-fault-tolerance-6" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/06/13/flink-fault-tolerance-6/" class="article-date">
+  <time datetime="2016-06-13T14:07:04.000Z" itemprop="datePublished">2016-06-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Apache Flink fault tolerance源码剖析(六)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#一致性保证"><span class="toc-number">1.</span> <span class="toc-text">一致性保证</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#EXACTLY_ONCE"><span class="toc-number">1.1.</span> <span class="toc-text">EXACTLY_ONCE</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AT_LEAST_ONCE"><span class="toc-number">1.2.</span> <span class="toc-text">AT_LEAST_ONCE</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#barrier定义"><span class="toc-number">2.</span> <span class="toc-text">barrier定义</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#barrier处理器"><span class="toc-number">3.</span> <span class="toc-text">barrier处理器</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#BarrierBuffer"><span class="toc-number">3.1.</span> <span class="toc-text">BarrierBuffer</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#getNextNonBlocked"><span class="toc-number">3.1.1.</span> <span class="toc-text">getNextNonBlocked</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#processBarrier"><span class="toc-number">3.1.2.</span> <span class="toc-text">processBarrier</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#onBarrier"><span class="toc-number">3.1.3.</span> <span class="toc-text">onBarrier</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#releaseBlocks"><span class="toc-number">3.1.4.</span> <span class="toc-text">releaseBlocks</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#BarrierTracker"><span class="toc-number">3.2.</span> <span class="toc-text">BarrierTracker</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#getNextNonBlocked-1"><span class="toc-number">3.2.1.</span> <span class="toc-text">getNextNonBlocked</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#processBarrier-1"><span class="toc-number">3.2.2.</span> <span class="toc-text">processBarrier</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <p>上篇文章我们分析了基于检查点的用户状态的保存机制——状态终端。这篇文章我们来分析<strong>barrier</strong>（中文常译为栅栏或者屏障，为了避免引入名称争议，此处仍用英文表示）。检查点的<code>barrier</code>是提供<code>exactly once</code>一致性保证的主要保证机制。这篇文章我们会就此展开分析。</p>
+<a id="more"></a>
+<blockquote>
+<p>这篇文章我们侧重于核心代码分析，原理我们在这个系列的第一篇文章《Flink数据流的Fault Tolerance机制》</p>
+</blockquote>
+<h1 id="一致性保证">一致性保证</h1><p>Flink的一致性保证也依赖于检查点机制。在利用检查点进行恢复时，数据流会进行<strong>重放</strong>（<code>replay</code>）。对于有状态的<code>operation</code>以及<code>function</code>，Flink定义了检查点支持的两种模式（<code>CheckpointingMode</code>）：</p>
+<ul>
+<li>EXACTLY_ONCE</li>
+<li>AT_LEAST_ONCE</li>
+</ul>
+<p>在定义该枚举时，还对这两个枚举值进行了详细的解释：</p>
+<h2 id="EXACTLY_ONCE">EXACTLY_ONCE</h2><p>这种模式意味着系统将以如下语义对<code>operator</code>和<code>udf</code>(<code>user defined function</code>)进行快照：在恢复时，每条记录将在<code>operator</code>状态中只被<strong>重现/重放</strong>一次。</p>
+<p>例如，如果有一个用户在一个流中应用统计元素个数的函数，该统计结果将总是跟流中的元素的真实个数一致，不管是失败还是恢复。</p>
+<p>需要注意的是，这并不意味着每个数据<strong>流过</strong><code>streaming data flow</code>仅仅一次。它表示的是在恢复进行时，<code>operators/functions</code>的状态被恢复（通过检查点关联的状态），使得被恢复的数据流在其状态最后一次修改之后（最新的检查点）被恰好获取一次。</p>
+<p>并且，这里的<code>EXACTLY_ONCE</code>模式也并不保证Flink在跟外部系统交互时的行为也满足<code>EXACTLY_ONCE</code>的一致性保证（Flink只保证自己的<code>operator</code>以及<code>function</code>的状态）。虽然，通常要求在两个系统之间都达到一致性保证，但我们可以通过实现连接器来达到这样的要求（比如Apache Kafka的<code>offset</code>可以实现这个需求）。</p>
+<p>这种模式可以支撑高吞吐，取决于数据流图以及操作，这种模式可能会增加记录处理的延迟，因为<code>operator</code>需要<strong>对齐</strong>他们的输入流，来保证创建一个一致的快照点。对于没有进行重新分区的简单数据流，这些延迟的增加是可以忽略不计的，而对于进行了重新分区的简单数据流，延迟的平均值很小，但最慢的记录通常有一个明显的延迟。</p>
+<h2 id="AT_LEAST_ONCE">AT_LEAST_ONCE</h2><p>这个模式意味着系统将以一种更简单地方式来对<code>operator</code>和<code>udf</code>的状态进行快照：在失败后进行恢复时，在<code>operator</code>的状态中，一些记录可能会被重放多次。</p>
+<p>例如，如果有一个用户函数用来统计流中的元素个数，在失败后恢复时，统计值将等于或者大于流中元素的真实值。</p>
+<p>这种模式对延迟产生的影响很小，通常应用于接收低延迟并且容忍重复消息的场景。</p>
+<h1 id="barrier定义">barrier定义</h1><p><code>checkpoint barriers</code>用来在流拓扑中对齐检查点。</p>
+<p>单个数据流视角，<code>barrier</code>示意：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png" alt="flink-stream-fault-tolerance_stream-barriers"></p>
+<p>分布式多<code>input channel</code>视角，<code>barrier</code>示意图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png" alt="flink-stream-fault-tolerance_stream-aligning"></p>
+<blockquote>
+<p>该图演示的是多barrier aligning（对齐），但只有<code>EXACTLY_ONCE</code>一致性时才会要求这一点</p>
+</blockquote>
+<p><code>JobManager</code>将指示<code>source</code>发射<code>barriers</code>。当某个<code>operator</code>从其输入中接收到一个<code>CheckpointBarrier</code>，它将会意识到当前正处于前一个检查点和后一个检查点之间。一旦某<code>operator</code>从它的所有<code>input channel</code>中接收到<code>checkpoint barrier</code>。那么它将意识到该检查点已经完成了。它可以触发<code>operator</code>特殊的检查点行为并将该<code>barrier</code>广播给下游的<code>operator</code>。</p>
+<p><code>checkpoint barrier</code>的ID是严格单调增长的。</p>
+<p><code>CheckpointBarrier</code>在Flink中被看做一个运行时事件（继承自<code>RuntimeEvent</code>类）以区分普通的数据流数据（<code>buffer</code>），Flink中的运行时事件必须支持序列化并且可以在<code>TaskManager</code>之间互相通信。<code>CheckpointBarrier</code>只有两个属性：<code>id</code>以及<code>timestamp</code>。</p>
+<h1 id="barrier处理器">barrier处理器</h1><p><code>CheckpointBarrierHandler</code>定义了响应来自<code>input channel</code>中的<code>barrier</code>的处理机制，它是提供一致性保证的核心。</p>
+<p>Flink给出了两个实现，分别是：<strong>元素阻塞缓存机制</strong>以及<strong>barrier跟踪机制</strong>。</p>
+<p>两个关键接口方法：</p>
+<ul>
+<li>getNextNonBlocked ：返回<code>operator</code>可能消费的下一个<code>BufferOrEvent</code>。这个调用会导致<strong>阻塞</strong>直到获取到下一个<code>BufferOrEvent</code>，如果流已经完成，那么就返回<code>null</code>。</li>
+<li>registerCheckpointEventHandler ： 注册一个事件回调，用来在检查点成功完成时执行。</li>
+</ul>
+<h2 id="BarrierBuffer">BarrierBuffer</h2><p><code>BarrierBuffer</code>用于提供<code>EXACTLY_ONCE</code>一致性保证，其行为是：它将以<code>barrier</code>阻塞输入直到所有的输入都接收到基于某个检查点的<code>barrier</code>，也就是上面所说的<strong>对齐</strong>。</p>
+<p>为了避免背压输入流（这可能导致分布式的死锁），<code>BarrierBuffer</code>将从被阻塞的<code>channel</code>中持续地接收<code>buffer</code>并在内部存储它们，直到阻塞被解除。</p>
+<h3 id="getNextNonBlocked">getNextNonBlocked</h3><p><code>getNextNonBlocked</code>方法用于获取待<code>operator</code>处理的下一条（<strong>非阻塞</strong>）的记录。该方法以多种机制阻塞当前调用上下文，直到获取到下一个非阻塞的记录。</p>
+<blockquote>
+<p>这里理解这个非阻塞非常重要，两种类型的记录是所谓的非阻塞的记录，一种是来自于上流未被标记为<code>blocked channel</code>输出的数据记录；另一种是，从已被阻塞了的缓冲区队列中激活了的缓冲区中提取出的数据记录。</p>
+</blockquote>
+<p>这里以多种机制相结合来造成对当前调用的阻塞，直到获取到满足上面提及的非阻塞的记录，多种机制分别是：</p>
+<ul>
+<li>while(true)重复调用</li>
+<li>inputGate.getNextBufferOrEvent方法本身的阻塞调用</li>
+<li>以及递归调用当前方法</li>
+</ul>
+<blockquote>
+<p>还需要理解这里的返回值<code>BufferOrEvent</code>，因为<code>barrier</code>混入在数据流中，所以获取到的数据可能是正常的数据流<code>Buffer</code>，也可能是某种特殊的<code>Event</code>，比如这里的<code>barrier</code></p>
+</blockquote>
+<p> 分析一下<code>getNextNonBlocked</code>方法的实现</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> BufferOrEvent getNextNonBlocked() <span class="keyword">throws</span> IOException, InterruptedException &#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">		<span class="comment">// process buffered BufferOrEvents before grabbing new ones</span></span><br><span class="line">		<span class="comment">//获得下一个待缓存的buffer或者barrier事件</span></span><br><span class="line">		BufferOrEvent <span class="keyword">next</span>;</span><br><span class="line">		<span class="comment">//如果当前的缓冲区为null，则从输入端获得</span></span><br><span class="line">		<span class="keyword">if</span> (currentBuffered == <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">next</span> = inputGate.getNextBufferOrEvent();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//如果缓冲区不为空，则从缓冲区中获得数据</span></span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">next</span> = currentBuffered.getNext();</span><br><span class="line">			<span class="comment">//如果获得的数据为null，则表示缓冲区中已经没有更多地数据了</span></span><br><span class="line">			<span class="keyword">if</span> (<span class="keyword">next</span> == <span class="keyword">null</span>) &#123;</span><br><span class="line">				<span class="comment">//清空当前缓冲区，获取已经新的缓冲区并打开它</span></span><br><span class="line">				completeBufferedSequence();</span><br><span class="line">				<span class="comment">//递归调用，处理下一条数据</span></span><br><span class="line">				<span class="keyword">return</span> getNextNonBlocked();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		</span><br><span class="line">		<span class="comment">//获取到一条记录，不为null</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">next</span> != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="comment">//如果获取到得记录所在的channel已经处于阻塞状态，则该记录会被加入缓冲区</span></span><br><span class="line">			<span class="keyword">if</span> (isBlocked(<span class="keyword">next</span>.getChannelIndex())) &#123;</span><br><span class="line">				<span class="comment">// if the channel is blocked we, we just store the BufferOrEvent</span></span><br><span class="line">				bufferSpiller.add(<span class="keyword">next</span>);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">//如果该记录是一个正常的记录，而不是一个barrier(事件)，则直接返回</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">next</span>.isBuffer()) &#123;</span><br><span class="line">				<span class="keyword">return</span> <span class="keyword">next</span>;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">//如果是一个barrier</span></span><br><span class="line">			<span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">next</span>.getEvent().getClass() == CheckpointBarrier.<span class="keyword">class</span>) &#123;</span><br><span class="line">				<span class="comment">//并且当前流还未处于结束状态，则处理该barrier</span></span><br><span class="line">				<span class="keyword">if</span> (!endOfStream) &#123;</span><br><span class="line">					<span class="comment">// process barriers only if there is a chance of the checkpoint completing</span></span><br><span class="line">					processBarrier((CheckpointBarrier) <span class="keyword">next</span>.getEvent(), <span class="keyword">next</span>.getChannelIndex());</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="comment">//如果它是一个事件，表示当前已到达分区末尾</span></span><br><span class="line">				<span class="keyword">if</span> (<span class="keyword">next</span>.getEvent().getClass() == EndOfPartitionEvent.<span class="keyword">class</span>) &#123;</span><br><span class="line">					<span class="comment">//以关闭的channel计数器加一</span></span><br><span class="line">					numClosedChannels++;</span><br><span class="line">					<span class="comment">// no chance to complete this checkpoint</span></span><br><span class="line">					<span class="comment">//此时已经没有机会完成该检查点，则解除阻塞</span></span><br><span class="line">					releaseBlocks();</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="comment">//返回该事件</span></span><br><span class="line">				<span class="keyword">return</span> <span class="keyword">next</span>;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//next 为null 同时流结束标识为false</span></span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (!endOfStream) &#123;</span><br><span class="line">			<span class="comment">// end of stream. we feed the data that is still buffered</span></span><br><span class="line">			<span class="comment">//置流结束标识为true</span></span><br><span class="line">			endOfStream = <span class="keyword">true</span>;</span><br><span class="line">			<span class="comment">//解除阻塞，这种情况下我们会看到，缓冲区的数据会被加入队列，并等待处理</span></span><br><span class="line">			releaseBlocks();</span><br><span class="line">			<span class="comment">//继续获取下一个待处理的记录</span></span><br><span class="line">			<span class="keyword">return</span> getNextNonBlocked();</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="processBarrier">processBarrier</h3><p>该方法用于处理<code>barrier</code>，也是分析的重点。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//获取接收到得barrier的ID</span></span><br><span class="line"><span class="comment">//接收到的barrier数目 &gt; 0 ，说明当前正在处理某个检查点的过程中</span></span><br><span class="line"><span class="keyword">if</span> numBarriersReceived &gt; <span class="number">0</span> </span><br><span class="line">	<span class="comment">//当前检查点的某个后续的barrierId</span></span><br><span class="line">	<span class="keyword">if</span> barrierId == currentCheckpointId	       </span><br><span class="line">		<span class="comment">//处理barrier</span></span><br><span class="line">		onBarrier(channelIndex);</span><br><span class="line">	<span class="comment">//barrierId &gt; 当前检查点Id</span></span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> barrierId &gt; currentCheckpointId    </span><br><span class="line">		<span class="comment">//当前的检查点已经没有机会完成了，则解除阻塞</span></span><br><span class="line">		releaseBlocks();				</span><br><span class="line">		<span class="comment">//跳过当前检查点，直接进入该barrier对应的检查点</span></span><br><span class="line">		currentCheckpointId = barrierId;	 </span><br><span class="line">		<span class="comment">//处理barrier     </span></span><br><span class="line">		onBarrier(channelIndex);</span><br><span class="line">	<span class="keyword">else</span></span><br><span class="line">		<span class="comment">//忽略终止的检查点的barrier，barrierId &lt; currentCheckpointId</span></span><br><span class="line">		<span class="keyword">return</span>;						</span><br><span class="line"><span class="comment">//接收到的barrier数目等于0且barrierId &gt; currentCheckpointId</span></span><br><span class="line"><span class="keyword">else</span> <span class="keyword">if</span> (barrierId &gt; currentCheckpointId)     </span><br><span class="line">	<span class="comment">//说明这是一个新检查点的初始barrier</span></span><br><span class="line">	currentCheckpointId = barrierId;</span><br><span class="line">	onBarrier(channelIndex);</span><br><span class="line"><span class="comment">//忽略之前（跳过的）检查点的未处理的barrier</span></span><br><span class="line"><span class="keyword">else</span>									</span><br><span class="line">	<span class="keyword">return</span>;</span><br></pre></td></tr></table></figure>
+<p>另一段处理接收到所有<code>barrier</code>的逻辑：</p>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//接收到barriers的数目 + 关闭的channel的数目 = 输入channel的总数目</span></span><br><span class="line"><span class="keyword">if</span> (numBarriersReceived + numClosedChannels == totalNumberOfInputChannels)</span><br><span class="line">	<span class="comment">//触发检查点处理器回调事件</span></span><br><span class="line">	checkpointHandler.onEvent(receivedBarrier);</span><br><span class="line">	releaseBlocks();			<span class="comment">//解除阻塞</span></span><br></pre></td></tr></table></figure>
+<h3 id="onBarrier">onBarrier</h3><p>将<code>barrier</code>关联的<code>channel</code>标识为阻塞状态同时将<code>barrier</code>计数器加一。代码：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">void</span> <span class="title">onBarrier</span><span class="params">(<span class="keyword">int</span> channelIndex)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (!blockedChannels[channelIndex]) &#123;</span><br><span class="line">		blockedChannels[channelIndex] = <span class="keyword">true</span>;</span><br><span class="line">		numBarriersReceived++;</span><br><span class="line">		</span><br><span class="line">		<span class="keyword">if</span> (LOG.isDebugEnabled()) &#123;</span><br><span class="line">			LOG.debug(<span class="string">"Received barrier from channel "</span> + channelIndex);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Stream corrupt: Repeated barrier for same checkpoint and input stream"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="releaseBlocks">releaseBlocks</h3><p>解除所有<code>channel</code>的阻塞，并确保刚刚写入的数据（<code>buffer</code>）被消费。</p>
+<p>首先是重置状态标识：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; blockedChannels.length; i++) &#123;</span><br><span class="line">	<span class="comment">////将所有channel的阻塞标识置为false</span></span><br><span class="line">	blockedChannels[i] = <span class="literal">false</span>;		</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">////将接收到的barrier累加值重置为0</span></span><br><span class="line">numBarriersReceived = <span class="number">0</span>;</span><br></pre></td></tr></table></figure>
+<p>接下来，</p>
+<figure class="highlight fsharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//如果当前的缓冲区中的数据为空</span></span><br><span class="line"><span class="keyword">if</span> (currentBuffered == <span class="keyword">null</span>) &#123;</span><br><span class="line">	<span class="comment">// common case: no more buffered data</span></span><br><span class="line">	<span class="comment">//初始化新的缓冲区读写器</span></span><br><span class="line">	currentBuffered = bufferSpiller.rollOver();</span><br><span class="line">	<span class="comment">//打开缓冲区读写器</span></span><br><span class="line">	<span class="keyword">if</span> (currentBuffered != <span class="keyword">null</span>) &#123;</span><br><span class="line">		currentBuffered.<span class="keyword">open</span>();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">else</span> &#123;</span><br><span class="line">	<span class="comment">// uncommon case: buffered data pending</span></span><br><span class="line">	<span class="comment">// push back the pending data, if we have any</span></span><br><span class="line">			</span><br><span class="line">	<span class="comment">// since we did not fully drain the previous sequence, we need to allocate a new buffer for this one</span></span><br><span class="line">	<span class="comment">//缓冲区中还有数据，则初始化一块新的存储空间来存储新的缓冲数据</span></span><br><span class="line">	BufferSpiller.SpilledBufferOrEventSequence bufferedNow = bufferSpiller.rollOverWithNewBuffer();</span><br><span class="line">	<span class="keyword">if</span> (bufferedNow != <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="comment">//打开新的缓冲区读写器</span></span><br><span class="line">		bufferedNow.<span class="keyword">open</span>();</span><br><span class="line">		<span class="comment">//将当前没有处理完的数据加入队列中</span></span><br><span class="line">		queuedBuffered.addFirst(currentBuffered);</span><br><span class="line">		<span class="comment">//将新开辟的缓冲区读写器置为新的当前缓冲区</span></span><br><span class="line">		currentBuffered = bufferedNow;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="BarrierTracker">BarrierTracker</h2><p><code>BarrierTracker</code>会对各个<code>input channel</code>接收到的检查点的<code>barrier</code>进行跟踪。一旦它观察到某个检查点的所有<code>barrier</code>都已经到达，它将会通知监听器检查点已完成，以触发相应地回调处理。</p>
+<p>不像<code>BarrierBuffer</code>，<code>BarrierTracker</code>不阻塞已经发送了<code>barrier</code>的<code>input channel</code>，所以它不能提供<code>exactly-once</code>的一致性保证。但是它可以提供<code>at least once</code>的一致性保证。</p>
+<blockquote>
+<p>这里不阻塞<code>input channel</code>，也就说明不采用对齐机制，因此本检查点的数据会及时被处理，并且因此下一个检查点的数据可能会在该检查点还没有完成时就已经到来。所以，在恢复时只能提供<code>AT_LEAST_ONCE</code>保证。</p>
+</blockquote>
+<h3 id="getNextNonBlocked-1">getNextNonBlocked</h3><p>还是来重点观察<code>getNextNonBlocked</code>方法：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> BufferOrEvent getNextNonBlocked() <span class="keyword">throws</span> IOException, InterruptedException &#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</span><br><span class="line">		<span class="comment">//从输入中获得数据，该操作将导致阻塞，直到获得一条记录</span></span><br><span class="line">		BufferOrEvent <span class="keyword">next</span> = inputGate.getNextBufferOrEvent();</span><br><span class="line">		<span class="comment">//null表示没有数据了</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">next</span> == <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//这是跟BarrierBuffer的关键差别，只要它不是一个barrier，就直接返回</span></span><br><span class="line">		<span class="comment">//不管BufferOrEvent对应的channel是否已处于阻塞状态，这里不存在缓存数据的做法，直接返回</span></span><br><span class="line">		<span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">next</span>.isBuffer() || <span class="keyword">next</span>.getEvent().getClass() != CheckpointBarrier.<span class="keyword">class</span>) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">next</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">//如果是barrier，则进入barrier的处理逻辑</span></span><br><span class="line">			processBarrier((CheckpointBarrier) <span class="keyword">next</span>.getEvent());</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="processBarrier-1">processBarrier</h3><p>处理<code>barrier</code>依赖于一个内部数据结构<code>CheckpointBarrierCount</code>，该类用来对某个检查点的<code>barrier</code>做统计。</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> processBarrier(CheckpointBarrier receivedBarrier) &#123;</span><br><span class="line">	<span class="comment">// fast path for single channel trackers</span></span><br><span class="line">	<span class="comment">//首先判断特殊情况：当前operator是否只有一个input channel</span></span><br><span class="line">	<span class="comment">//如果是，那么就省略了统计的步骤，直接触发barrier handler回调</span></span><br><span class="line">	<span class="keyword">if</span> (totalNumberOfInputChannels == <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (checkpointHandler != <span class="keyword">null</span>) &#123;</span><br><span class="line">			checkpointHandler.onEvent(receivedBarrier);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// general path for multiple input channels</span></span><br><span class="line">	<span class="comment">//判断通常状态：当前operator存在多个input channel</span></span><br><span class="line">	<span class="keyword">final</span> <span class="keyword">long</span> barrierId = receivedBarrier.getId();</span><br><span class="line"></span><br><span class="line">	<span class="comment">// find the checkpoint barrier in the queue of bending barriers</span></span><br><span class="line">	<span class="comment">//所有未完成的检查点都存储在一个队列里，需要找到当前barrier对应的检查点</span></span><br><span class="line">	CheckpointBarrierCount cbc = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">int</span> pos = <span class="number">0</span>;				<span class="comment">//对应的检查点在队列中对应的位置</span></span><br><span class="line">	</span><br><span class="line">	<span class="keyword">for</span> (CheckpointBarrierCount <span class="keyword">next</span> : pendingCheckpoints) &#123;</span><br><span class="line">		<span class="comment">//如果找到则跳出循环</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">next</span>.checkpointId == barrierId) &#123;</span><br><span class="line">			cbc = <span class="keyword">next</span>;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">//没找到位置加一</span></span><br><span class="line">		pos++;</span><br><span class="line">	&#125;</span><br><span class="line">	</span><br><span class="line">	<span class="comment">//最终找到了对应的未完成的检查点</span></span><br><span class="line">	<span class="keyword">if</span> (cbc != <span class="keyword">null</span>) &#123;</span><br><span class="line">		<span class="comment">// add one to the count to that barrier and check for completion</span></span><br><span class="line">		<span class="comment">//将barrier计数器加一</span></span><br><span class="line">		<span class="keyword">int</span> numBarriersNew = cbc.incrementBarrierCount();</span><br><span class="line">		<span class="comment">//如果barrier计数器等于input channel的总数</span></span><br><span class="line">		<span class="keyword">if</span> (numBarriersNew == totalNumberOfInputChannels) &#123;</span><br><span class="line">			<span class="comment">// checkpoint can be triggered</span></span><br><span class="line">			<span class="comment">// first, remove this checkpoint and all all prior pending</span></span><br><span class="line">			<span class="comment">// checkpoints (which are now subsumed)</span></span><br><span class="line">			<span class="comment">//移除pos之前的所有检查点（检查点在队列中得先后顺序跟检查点的时序是一致的）</span></span><br><span class="line">			<span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt;= pos; i++) &#123;</span><br><span class="line">				pendingCheckpoints.pollFirst();</span><br><span class="line">			&#125;</span><br><span class="line">			</span><br><span class="line">			<span class="comment">// notify the listener</span></span><br><span class="line">			<span class="comment">//触发检查点处理器事件</span></span><br><span class="line">			<span class="keyword">if</span> (checkpointHandler != <span class="keyword">null</span>) &#123;</span><br><span class="line">				checkpointHandler.onEvent(receivedBarrier);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">//如果没有找到对应的检查点，则说明该barrier有可能是新检查点的第一个barrier</span></span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// first barrier for that checkpoint ID</span></span><br><span class="line">		<span class="comment">// add it only if it is newer than the latest checkpoint.</span></span><br><span class="line">		<span class="comment">// if it is not newer than the latest checkpoint ID, then there cannot be a</span></span><br><span class="line">		<span class="comment">// successful checkpoint for that ID anyways</span></span><br><span class="line">		<span class="comment">//如果是比当前最新的检查点编号还大，则说明是新检查点</span></span><br><span class="line">		<span class="keyword">if</span> (barrierId &gt; latestPendingCheckpointID) &#123;</span><br><span class="line">			latestPendingCheckpointID = barrierId;</span><br><span class="line">			<span class="comment">//添加进队列到末尾</span></span><br><span class="line">			pendingCheckpoints.addLast(<span class="keyword">new</span> CheckpointBarrierCount(barrierId));</span><br><span class="line">			</span><br><span class="line">			<span class="comment">// make sure we do not track too many checkpoints</span></span><br><span class="line">			<span class="comment">//如果超出阈值，则移除最老的检查点</span></span><br><span class="line">			<span class="keyword">if</span> (pendingCheckpoints.<span class="keyword">size</span>() &gt; MAX_CHECKPOINTS_TO_TRACK) &#123;</span><br><span class="line">				pendingCheckpoints.pollFirst();</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h1 id="小结">小结</h1><p>本篇文章剖析了Flink在<code>fault tolerance</code>时采用<code>checkpoint barrier</code>来实现多种一致性保证机制的核心代码进行了分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/06/13/flink-fault-tolerance-6/" data-id="cipe3j9gh005grrz2fz1e1afy" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/06/07/flink-fault-tolerance-5/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Apache Flink fault tolerance源码剖析(五)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-fault-tolerance-6" data-title="Apache Flink fault tolerance源码剖析(六)" data-url="http://vinoyang.com/2016/06/13/flink-fault-tolerance-6/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">19</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/06/13/flink-fault-tolerance-6/">Apache Flink fault tolerance源码剖析(六)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/07/flink-fault-tolerance-5/">Apache Flink fault tolerance源码剖析(五)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/04/flink-fault-tolerance-4/">Apache Flink fault tolerance源码剖析(四)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/02/flink-fault-tolerance-3/">Apache Flink fault tolerance源码剖析(三)</a>
+          </li>
+        
+          <li>
+            <a href="/2016/05/29/flink-fault-tolerancer-2/">Apache Flink fault tolerance源码剖析(二)</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
