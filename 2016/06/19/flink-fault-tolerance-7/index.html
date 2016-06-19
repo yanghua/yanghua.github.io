@@ -5,19 +5,31 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>消息总线扩展之主动转发 | yanghua</title>
+  <title>Apache Flink fault tolerance源码剖析完结篇 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="# 问题简述消息总线目前为Java编程语言提供了SDK，同时针对其他语言提供了一个称之为httpBridge的http代理。这基本可以满足大部分主流编程语言对消息总线的使用需求，但这也仅仅是对技术层面上的需求的满足。在业务层面上，尤其是面对老的业务系统的适配一直都是个难题，这篇文章谈谈面对一个在线上运行的业务系统，如何使得引入消息总线的总体成本尽可能得低。">
+  <meta name="description" content="这篇文章是对Flinkfault tolerance的一个总结。虽然还有些细节没有涉及到，但是基本的实现要点在这个系列中都已提及。
+回顾这个系列，每篇文章都至少涉及一个知识点。我们来挨个总结一下。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="消息总线扩展之主动转发">
-<meta property="og:url" content="http://vinoyang.com/2015/05/15/消息总线扩展之主动转发/index.html">
+<meta property="og:title" content="Apache Flink fault tolerance源码剖析完结篇">
+<meta property="og:url" content="http://vinoyang.com/2016/06/19/flink-fault-tolerance-7/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="# 问题简述消息总线目前为Java编程语言提供了SDK，同时针对其他语言提供了一个称之为httpBridge的http代理。这基本可以满足大部分主流编程语言对消息总线的使用需求，但这也仅仅是对技术层面上的需求的满足。在业务层面上，尤其是面对老的业务系统的适配一直都是个难题，这篇文章谈谈面对一个在线上运行的业务系统，如何使得引入消息总线的总体成本尽可能得低。">
-<meta property="og:image" content="http://img.blog.csdn.net/20150514215808119?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast">
-<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta property="og:description" content="这篇文章是对Flinkfault tolerance的一个总结。虽然还有些细节没有涉及到，但是基本的实现要点在这个系列中都已提及。
+回顾这个系列，每篇文章都至少涉及一个知识点。我们来挨个总结一下。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-3-overview.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-4_savepoint-and-checkpoint.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-1.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-2.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-3.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-4.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-06-19T13:43:57.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="消息总线扩展之主动转发">
-<meta name="twitter:description" content="# 问题简述消息总线目前为Java编程语言提供了SDK，同时针对其他语言提供了一个称之为httpBridge的http代理。这基本可以满足大部分主流编程语言对消息总线的使用需求，但这也仅仅是对技术层面上的需求的满足。在业务层面上，尤其是面对老的业务系统的适配一直都是个难题，这篇文章谈谈面对一个在线上运行的业务系统，如何使得引入消息总线的总体成本尽可能得低。">
+<meta name="twitter:title" content="Apache Flink fault tolerance源码剖析完结篇">
+<meta name="twitter:description" content="这篇文章是对Flinkfault tolerance的一个总结。虽然还有些细节没有涉及到，但是基本的实现要点在这个系列中都已提及。
+回顾这个系列，每篇文章都至少涉及一个知识点。我们来挨个总结一下。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -77,10 +89,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-消息总线扩展之主动转发" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-fault-tolerance-7" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2015/05/15/消息总线扩展之主动转发/" class="article-date">
-  <time datetime="2015-05-14T22:06:00.000Z" itemprop="datePublished">2015-05-15</time>
+    <a href="/2016/06/19/flink-fault-tolerance-7/" class="article-date">
+  <time datetime="2016-06-19T13:42:15.000Z" itemprop="datePublished">2016-06-19</time>
 </a>
     
   </div>
@@ -91,7 +103,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      消息总线扩展之主动转发
+      Apache Flink fault tolerance源码剖析完结篇
     </h1>
   
 
@@ -101,42 +113,113 @@
       
         <!-- Table of Contents -->
         
-        <div><br><br># 问题简述<br><br>消息总线目前为Java编程语言提供了SDK，同时针对其他语言提供了一个称之为httpBridge的http代理。这基本可以满足大部分主流编程语言对消息总线的使用需求，但这也仅仅是对技术层面上的需求的满足。在业务层面上，尤其是面对老的业务系统的适配一直都是个难题，这篇文章谈谈面对一个在线上运行的业务系统，如何使得引入消息总线的总体成本尽可能得低。<br><br><a id="more"></a><br><br>就消息总线的两种使用方式而言，无论是SDK的方式还是httpBridge的方式，都需要往第三方系统引入对消息总线的依赖，这些依赖包括但不仅限于：SDK（jar）本身的依赖、API调用接口的依赖以及了解、熟悉或学习的成本。我们说尽量将总体成本降到最低，其实这些依赖就是所谓的成本，当然还有维护的成本等（当你对原有系统引入新的技术组件，就必须接受引进新Bug的风险）。<br><br># 依赖转移<br><br>上面谈到了依赖，第三方对消息总线的依赖，我们想看看能否对这种现状进行“依赖转移”。这个思维的变换对程序员来说是比较容易过渡的，作为Java程序员重度依赖的框架——Spring，主要就是用来针对性得处理类似问题（当然在Spring里称之为Ioc即控制反转）。<br><br>要想进行依赖转移，我们首先需要清楚第三方为什么会对消息总线产生依赖性？因为消息总线只是个中间件。它不知道通信双方的消息内容以及通信时机（生产、消费的时机，有可能会存在触发条件）。因此第三方如果想通过消息总线跟其他组件通信，它们必须主动调用消息总线来生产消息或者消费消息。<br><br>通过上面的分析，我们知道第三方组件对消息总线的依赖性是因为它们必须主动跟消息总线交互。就消费而言，假设消费的时机没那么重要（只要我关注的队列里有消息，我就可以消费掉），那么我们是否可以让消息总线主动把消息推送给我？<br><br>这里有两个在表达上很类似，其实差别很大的问题，必须首先澄清一下：<br><br>1.  第三方接收消息总线主动推送的消息<br><br>2.  第三方以推送的模型从消息总线上消费消息<div>第一个问题的主要想表达的意思是：第三方系统不主动与消息总线或其他任何组件连接，就能接收到消息；<br></div><div>第二个问题的主要想表达的意思是：通过消息总线消费消息的Push模型（另一个模型是pull），这只是消费机制，这样的机制建立在主动调用消息总线接口的前提下。<br></div>
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#恢复机制实现"><span class="toc-number">1.</span> <span class="toc-text">恢复机制实现</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#检查点触发机制"><span class="toc-number">2.</span> <span class="toc-text">检查点触发机制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Akka消息驱动的协调机制"><span class="toc-number">3.</span> <span class="toc-text">基于Akka消息驱动的协调机制</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Zookeeper的高可用"><span class="toc-number">4.</span> <span class="toc-text">基于Zookeeper的高可用</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#保存点"><span class="toc-number">5.</span> <span class="toc-text">保存点</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#状态终端"><span class="toc-number">6.</span> <span class="toc-text">状态终端</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#基于Barrier机制的一致性保证"><span class="toc-number">7.</span> <span class="toc-text">基于Barrier机制的一致性保证</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#完整的检查点流程示例"><span class="toc-number">8.</span> <span class="toc-text">完整的检查点流程示例</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">9.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <p>这篇文章是对Flink<code>fault tolerance</code>的一个总结。虽然还有些细节没有涉及到，但是基本的实现要点在这个系列中都已提及。</p>
+<p>回顾这个系列，每篇文章都至少涉及一个知识点。我们来挨个总结一下。</p>
+<a id="more"></a>
+<h1 id="恢复机制实现">恢复机制实现</h1><p>Flink中通常需要进行状态恢复的对象是<code>operator</code>以及<code>function</code>。它们通过不同的方式来达到状态快照以及状态恢复的能力。其中<code>function</code>通过实现<code>Checkpointed</code>的接口，而<code>operator</code>通过实现<code>StreamOpeator</code>接口。这两个接口的行为是类似的。</p>
+<p>当然对于数据源组件而言（<code>SourceFunction</code>），要想使得Flink具备完整的失败恢复能力，需要外部数据提供者具备重新消费数据的能力（<code>Apache Kafka</code>提供的<code>message offset</code>机制具备这样的能力，Flink的<code>kafka-connector</code>也利用了这一点来实现数据源的失败恢复，具体的实现见<code>FlinkKafkaConsumerBase</code>）。</p>
+<h1 id="检查点触发机制">检查点触发机制</h1><p>检查点根据状态的不同，分为：</p>
+<ul>
+<li>PendingCheckpoint：正在处理的检查点</li>
+<li>CompletedCheckpoint：完成了的检查点</li>
+</ul>
+<p><code>PendingCheckpoint</code>表示一个检查点已经被创建，但还没有得到所有该应答的<code>task</code>的应答。一旦所有的<code>task</code>都给予应答，那么它将会被转化为一个<code>CompletedCheckpoint</code>。</p>
+<p>检查点的触发机制是基于时间的周期性触发。触发检查点的驱动者是<code>JobManager</code>，而检查点的执行者则是<code>TaskManager</code>。</p>
+<p>检查点的触发需要满足很多条件，比如需要所有的<code>task</code>都具备触发检查点的条件等等，检查点才能被触发执行，如果检查点定时任务在执行时遇到上一次正在执行的任务还没有完成，那么当前定时任务将先“入队”，等待上一次任务完成。</p>
+<h1 id="基于Akka消息驱动的协调机制">基于Akka消息驱动的协调机制</h1><p>Flink运行时的控制中心是<code>JobManager</code>，检查点的触发由<code>JobManager</code>发起，真正的检查点的执行者为<code>TaskManager</code>。Flink的<code>JobManager</code>以及<code>TaskManager</code>之间利用Akka进行消息通信。因此，检查点的协调机制也基于Akka之上（通过消息来驱动），Flink定义了多个不同的消息对象来驱动检查点执行，比如<code>DeclineCheckpoint</code>，<code>TriggerCheckpoint</code>，<code>AcknowledgeCheckpoint</code>等。</p>
+<h1 id="基于Zookeeper的高可用">基于Zookeeper的高可用</h1><p>Flink提供了两种恢复模式<code>RecoverMode</code>：</p>
+<ul>
+<li>STANDALONE</li>
+<li>ZOOKEEPER</li>
+</ul>
+<p><code>STANDALONE</code>表示不对<code>JobManager</code>的失败进行恢复。而<code>ZOOKEEPER</code>表示<code>JobManager</code>将基于Zookeeper实现HA（高可用）。</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-3-overview.png" alt="flink-fault-tolerance-3-overview"></p>
+<p>作为Flink高可用的实现机制，Zookeeper被用来生成<code>原子的</code>&amp;<code>单调递增</code>的检查点ID，并存储已完成的检查点。</p>
+<p>而检查点ID生成器以及已完成的检查点的存储合起来被称之为<strong>检查点恢复服务</strong>。</p>
+<h1 id="保存点">保存点</h1><p>所谓的<strong>保存点</strong>，其实是用户人为触发的一种特殊的<strong>检查点</strong>。其本质就是检查点，但它相比检查点有两点不同：</p>
+<ul>
+<li>用户自行触发</li>
+<li>当有新的已完成的检查点产生的时候，不会自动失效</li>
+</ul>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-4_savepoint-and-checkpoint.png" alt="flink-fault-tolerance-4_savepoint-and-checkpoint"></p>
+<p>保存点是用户人为触发的，如何触发呢？这依赖于Flink提供的<code>client</code>，用户可以通过<code>client</code>（CLI）来触发一个保存点。用户执行触发保存点操作后，<code>client</code>会通过<code>akka</code>给<code>JobManager</code>发一个消息，<code>JobManager</code>接着通知各<code>TaskManager</code>触发<strong>检查点</strong>。检查点触发完成后，<code>TaskManager</code>会执行<code>JobManager</code>的回调，在回调中<code>JobManager</code>会告知触发保存点的结果（也是通过<code>akka</code>给客户端发消息）。保存点它不会随着新的已完成的检查点产生而自动失效。另外，不同于检查点的是，保存点并不像检查点一样将状态作为自己的一部分一并保存。保存点不存储状态，它只通过一个指针指向具体的检查点所属的状态。</p>
+<p>保存点的存储。Flink支持两种形式的保存点的存储：<code>memory</code>和<code>filesystem</code>。推荐在生产环境下使用<code>filesystem</code>（可以利用hdfs等提供持久化保证）。因为基于<code>memory</code>的保存点存储机制是将保存点存储在<code>JobManager</code>的内存中。一旦<code>JobManager</code>宕机，那么保存点的信息将没有办法被恢复。</p>
+<h1 id="状态终端">状态终端</h1><p>在Flink中被直接支持的最终状态有：</p>
+<ul>
+<li>ValueState ： 单值状态</li>
+<li>ListState ： 集合状态</li>
+<li>FoldingState ： <code>folding</code>状态，for <code>FoldFunction</code></li>
+<li>ReducingState ： <code>reducing</code>状态，for <code>ReduceFunction</code></li>
+</ul>
+<p>但最终结合检查点机制进行存储和恢复的状态表示是<code>KvState</code>，它表示通用的用户定义的键值对状态，可以简单得将其看做上面被最终支持的状态的容器。而<code>KvStateSnapshot</code>表示状态<code>KvState</code>的快照，用于对状态进行恢复。<code>StateHandle</code>给<code>operator</code>提供操作状态的接口，将状态从面向存储介质的原始表示还原为对象表示。</p>
+<p>状态终端用来对状态进行持久化存储，Flink支持多个状态终端：</p>
+<ul>
+<li>MemoryStateBackend</li>
+<li>FsStateBackend</li>
+<li>RocksDBStateBackend（第三方开发者实现）</li>
+</ul>
+<h1 id="基于Barrier机制的一致性保证">基于Barrier机制的一致性保证</h1><p>Flink提供两种不同的一致性保证：</p>
+<ul>
+<li>EXACTLY_ONCE：恰巧一次</li>
+<li>AT_LEAST_ONCE：至少一次</li>
+</ul>
+<p>其中<code>EXACTLY_ONCE</code>支持对数据处理精确度要求较高的使用场景，但有时会产生明显的时延。而<code>AT_LEAST_ONCE</code>应对于需要低延时，但对数据的准确性要求并不高的场景。</p>
+<p>需要注意的是这里的一致性保证并不是指被处理的<strong>元素</strong>流过<code>Stream Dataflow</code>的保证，而是指<code>operator</code>在最后一次改变状态之后，后续的数据对状态的改变产生的最终影响（结合检查点）。</p>
+<p>一致性保证离不开Flink的<code>checkpoint barrier</code>。</p>
+<p>单个数据流视角，<code>barrier</code>示意：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-barriers.png" alt="flink-stream-fault-tolerance_stream-barriers"></p>
+<p>分布式多<code>input channel</code>视角，<code>barrier</code>示意图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-stream-fault-tolerance_stream-aligning.png" alt="flink-stream-fault-tolerance_stream-aligning"></p>
+<blockquote>
+<p>该图演示的是多barrier aligning（对齐），但只有<code>EXACTLY_ONCE</code>一致性时才会要求这一点</p>
+</blockquote>
+<p><code>JobManager</code>将指示<code>source</code>发射<code>barriers</code>。当某个<code>operator</code>从其输入中接收到一个<code>CheckpointBarrier</code>，它将会意识到当前正处于前一个检查点和后一个检查点之间。一旦某<code>operator</code>从它的所有<code>input channel</code>中接收到<code>checkpoint barrier</code>。那么它将意识到该检查点已经完成了。它可以触发<code>operator</code>特殊的检查点行为并将该<code>barrier</code>广播给下游的<code>operator</code>。</p>
+<p>应对两种不同的一致性保证，Flink提供了两个不同的<code>CheckpointBarrierHandler</code>的实现，它们的对应关系是：</p>
+<ul>
+<li>BarrierBuffer - EXACTLY_ONCE</li>
+<li>BarrierTracker - AT_LEAST_ONCE</li>
+</ul>
+<p><code>BarrierBuffer</code>通过阻塞已接收到<code>barrier</code>的<code>input channel</code>并缓存被阻塞的<code>channel</code>中后续流入的数据流，直到所有的<code>barrier</code>都接收到或者不满足特定的检查点的条件后，才会释放这些被阻塞的<code>channel</code>，这个机制被称之为——aligning（对齐）。正是这种机制来实现<code>EXACTLY_ONCE</code>的一致性（它将检查点中的数据精准得隔离开）。</p>
+<p>而<code>BarrierTrack</code>的实现就要简单地多，它仅仅是对数据流中的<code>barrier</code>进行跟踪，但是数据流中的元素<code>buffer</code>是直接放行的。这种情况会导致同一个检查点中可能会预先混入后续检查点的元素，从而只能提供<code>AT_LEAST_ONCE</code>的一致性。</p>
+<h1 id="完整的检查点流程示例">完整的检查点流程示例</h1><p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-1.png" alt="flink-fault-tolerance-7_checkpoint-1"></p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-2.png" alt="flink-fault-tolerance-7_checkpoint-2"></p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-3.png" alt="flink-fault-tolerance-7_checkpoint-3"></p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/flink-fault-tolerance-7_checkpoint-4.png" alt="flink-fault-tolerance-7_checkpoint-4"></p>
+<h1 id="小结">小结</h1><p>本文是Flink <code>fault tolerance</code>系列的完结篇，对关键概念和流程进行了总结和梳理。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-<h1 id="思路">思路</h1><div>很明显我们想要解决的是第一个问题。如何让消息总线主动推送消息？如果你把容纳消息的容器看做是数据源，那么首先消息总线的队列就是数据源，现在相当于要把一个数据源里的数据写入到另一个数据源，而这里的“另一个数据源”以及“写入”这一行为要能够很轻易得跟第三方系统衔接。可行的一种方式是第三方系统单独开发一个接收消息的http请求处理程序（考虑到大部分系统都是web系统，那么这里就是一个单独的controller或者如果是Java Web技术，那么就是一个Servlet）。那么“另一个数据源”直接就可以是第三方系统，而“写入” 这一行为的技术是通过http这种平台无关的通信协议。<br></div>
-
-<h1 id="实现方式">实现方式</h1><div>消息总线如何知晓第三方数据源的接口？这需要引入一个registry（注册表），也就是说当第三方系统在申请队列的时候，它可以往该注册表内登记一条信息以表明：如果该队列接收到消息，请代为转发到我注册的这个接口。因此，它其实是个key-value形式的映射关系的容器来衔接消息总线（队列）以及第三方系统（接口），这成功得进行了依赖转移！<br></div><div>有了这个对应关系，我们就可以给消息总线开一个专门扫描该注册表的cron job，我们暂且将其称之为：consume proxy service。该Job以一定的时间间隔扫描该registry里的所有队列-接收接口的映射关系，然后以pull的模式尝试从相应的队列里消费消息，当消费到消息之后，将其发送到已被注册的接口，而该接口是第三方一个专门用于接收消息总线消息的请求处理器，大致流程如下：<br></div><div><img src="http://img.blog.csdn.net/20150514215808119?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQveWFuZ2h1YV9rb2Jl/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast" alt=""><br></div><div>见图中所有虚线部分。<br></div><div>现在第三方系统只需知道消息总线的消息格式即可，而无需直接对消息总线产生较强的依赖——因为它不再需要主动跟消息总线通信，而是被动接收。<br></div>
-
-<h1 id="风险应对">风险应对</h1><div>其实依赖对哪一方都会产生影响，这也是软件开发中一直在强调“低耦合”的原因。一旦消息总线“依赖”第三方系统——因为它要将消息通过http请求发送个第三方系统。http请求的特征：请求响应模型，如果第三方系统不给响应，或者恶意hold住请求不释放，那么消息总线的这个代理消费并转发服务很容易被拖死。<br></div><div>解决这个问题可以有如下的一些手段：<br></div><div><br><br>1.  给第三方接口建议：如果处理消息的逻辑很耗时，可以暂时将消息缓存后进行异步处理，先让请求返回<br><br>2.  对第三方接口进行严格的审核：对可访问性以及请求的响应速度给出严格的审核标准<br><br>3.  消息总线提供的转发服务被实现为“尽力而为”的服务：何为尽力而为？也即非核心服务，它的稳定状态不会影响消息总线提供的核心服务。并且它应该被设计为“可降级”的。当发现它严重不稳定时，可将其关闭（因为消息如果没被转发出去，它仍然被存储在队列中，并不会丢失，后续仍可消费）。甚至可以将整个虚线部分转移到消息总线的外部实现。<br><br>4.  可以开发一些“watch dog”服务，专门监控第三方接口，一旦发现异常，即将其从registry中移除<div>以上手段可以多条并用来保障代理消费&amp;转发服务的稳定性。<br></div></div><div>上面我们主要谈到了对消费方而言，通过依赖转移的方式来使得第三方系统对消息总线的依赖降到最低，从而减少了第三方系统对消息总线的接入成本、维护成本以及引入的复杂性。其实能够做到这一点主要是因为我们假设了：消费方对消费的时机没有要求，队列里有数据就可以被消费走。所以这种依赖转移的方式，无法被应用在想要生产消息的系统中。因此生产者对消息总线的依赖无法降低！<br></div>
-
-<h1 id="应用场景">应用场景</h1><div>消费者对消息总线依赖性降低的好处主要体现在需要应用Pub/Sub模型的系统群中。在这个系统群中，消息的生产者所对应的业务系统较少，而消息的消费者对应的业务系统较多。这种降低依赖性手段还有一个前提：第三方系统都是web系统。<br></div><div>这种消费模式即可视为消息总线的主动推送模式。只是一个设想，目前还没有正式实现，如果消息总线提供这个功能，那么它将在“消费模式”以及“消费消息的接口”（API）上同时提供“推拉结合”的方式。<br></div><div><br></div><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
-
-<!-- Baidu Button BEGIN -->
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2015/05/15/消息总线扩展之主动转发/" data-id="cipmn9qrd000vz7z2lvvs0edh" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/19/flink-fault-tolerance-7/" data-id="cipmn9qzd005oz7z2upii0fj5" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2015/06/02/Google-Guava-EventBus源码解读/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          Google-Guava-EventBus源码解读
-        
-      </div>
-    </a>
   
-  
-    <a href="/2015/05/05/消息总线优化之PubSub/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/06/13/flink-fault-tolerance-6/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">消息总线优化之PubSub</div>
+      <div class="article-nav-title">Apache Flink fault tolerance源码剖析(六)</div>
     </a>
   
 </nav>
@@ -147,7 +230,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-消息总线扩展之主动转发" data-title="消息总线扩展之主动转发" data-url="http://vinoyang.com/2015/05/15/消息总线扩展之主动转发/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-fault-tolerance-7" data-title="Apache Flink fault tolerance源码剖析完结篇" data-url="http://vinoyang.com/2016/06/19/flink-fault-tolerance-7/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
