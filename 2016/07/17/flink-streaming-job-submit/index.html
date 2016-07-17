@@ -5,20 +5,23 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>SEDA源码解读（三） | yanghua</title>
+  <title>Apache Flink流作业提交流程分析 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="本篇，我们继续来看看seda的开源项目sandstorm，这次我们主要关注aDisk包的实现：">
+  <meta name="description" content="提交流程调用的关键方法链用户编写的程序逻辑需要提交给Flink才能得到执行。本文来探讨一下客户程序如何提交给Flink。鉴于用户将自己利用Flink的API编写的逻辑打成相应的应用程序包（比如Jar）然后提交到一个目标Flink集群上去运行是比较主流的使用场景，因此我们的分析也基于这一场景进行。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="SEDA源码解读（三）">
-<meta property="og:url" content="http://vinoyang.com/2012/04/22/SEDA源码解读（三）/index.html">
+<meta property="og:title" content="Apache Flink流作业提交流程分析">
+<meta property="og:url" content="http://vinoyang.com/2016/07/17/flink-streaming-job-submit/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="本篇，我们继续来看看seda的开源项目sandstorm，这次我们主要关注aDisk包的实现：">
-<meta property="og:image" content="http://my.csdn.net/uploads/201204/21/1335011658_3750.png">
-<meta property="og:image" content="http://my.csdn.net/uploads/201204/21/1335011774_3126.png">
-<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta property="og:description" content="提交流程调用的关键方法链用户编写的程序逻辑需要提交给Flink才能得到执行。本文来探讨一下客户程序如何提交给Flink。鉴于用户将自己利用Flink的API编写的逻辑打成相应的应用程序包（比如Jar）然后提交到一个目标Flink集群上去运行是比较主流的使用场景，因此我们的分析也基于这一场景进行。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/streaming-remote-execute-method-chain.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Client-JobClient-relationship.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/JobClient-Actor-SubmitJobGraph.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-07-17T14:19:28.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="SEDA源码解读（三）">
-<meta name="twitter:description" content="本篇，我们继续来看看seda的开源项目sandstorm，这次我们主要关注aDisk包的实现：">
+<meta name="twitter:title" content="Apache Flink流作业提交流程分析">
+<meta name="twitter:description" content="提交流程调用的关键方法链用户编写的程序逻辑需要提交给Flink才能得到执行。本文来探讨一下客户程序如何提交给Flink。鉴于用户将自己利用Flink的API编写的逻辑打成相应的应用程序包（比如Jar）然后提交到一个目标Flink集群上去运行是比较主流的使用场景，因此我们的分析也基于这一场景进行。">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -78,10 +81,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-SEDA源码解读（三）" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-streaming-job-submit" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2012/04/22/SEDA源码解读（三）/" class="article-date">
-  <time datetime="2012-04-21T21:44:00.000Z" itemprop="datePublished">2012-04-22</time>
+    <a href="/2016/07/17/flink-streaming-job-submit/" class="article-date">
+  <time datetime="2016-07-17T14:15:27.000Z" itemprop="datePublished">2016-07-17</time>
 </a>
     
   </div>
@@ -92,7 +95,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      SEDA源码解读（三）
+      Apache Flink流作业提交流程分析
     </h1>
   
 
@@ -102,34 +105,80 @@
       
         <!-- Table of Contents -->
         
-        <div><br><br>本篇，我们继续来看看seda的开源项目sandstorm，这次我们主要关注aDisk包的实现：<br><br><a id="more"></a><br><br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<img src="http://my.csdn.net/uploads/201204/21/1335011658_3750.png" alt=""><br><br><strong>AFile</strong>-通过上一篇我们对SimpleSink的介绍可以看出这是一个对于队列“槽端”的实现，事实上你会发现它并没有真正提供实现，这是一个文件对外的异步访问接口。既然它实现了SinkIF（因为SimpleSink实现了该接口，所以被其继承），那它就可以入队所有对于某一文件的特定请求。<br><br><strong>AFileImpl</strong>-该类是一个内部类，只提供了包级别的访问权限，它表示了对于AFile的“实现”。这里实现之所以加引号，意思是这里并没有提供真正的实现，它其实还是一个抽象类，定义了一些接口方法而已。真正的实现类会继承该抽象类。<br><br><strong>AFileTPImpl</strong>-它就是真正的实现类，继承自AFileImpl，它内部有一个队列用来存储事件。并且它使用一个线程池在文件上执行阻塞的I/O。从图上可以看到它同时还实现了QueueElementIF接口，说明它可以是一个事件。<br><br><span style="color:#ff0000;">备注</span>：<em>从图上可以看到AFile与AFileImpl都继承了SimpleSink，而AFileTPImpl继承自AFileImpl。感觉关系有些乱了。我之前看也是这么认为，但仔细看了之后，其实会发现，还是有些合理的。AFile是一个文件对外的“接口”，包含了对于文件的操作，这些方法内部都是调用了AFileImpl的实现者处理的，而具体调用哪个实现者并不是它关系的问题，应该由管理器来负责。这里共同的目的都是为了保证AFile的简单，纯粹以及内部实现的可扩展性。</em><br><br>下面列出了，对于文件操作的一系列事件：<br><br>这里有两个抽象的事件基类：AFileRequest、AFileCompletion，他们都实现了QueueElementIF接口。<br><br>先介绍一下这两个抽象事件基类：<br><br><strong>AFileRequest</strong>-它代表I/O请求的抽象基类，能够入AFile的enqueue()方法。<br><br><strong>AFileCompletion</strong>-它表示I/O完成事件的抽象基类<br><br>AFileRequest的派生类：<br><br><strong>AFileReadRequest</strong>-表示文件的读请求；<br><br><strong>AFileWriteRequest</strong>-表示文件的写请求；<br><br><strong>AFileFlushRequest</strong>-对于一个给定的文件，flush所有的I/O 事件<br><br><strong>AFileSeekRequest</strong>-对于一个给定位置的给定文件，的查找事件<br><br><strong>AFileCloseRequest</strong>-关闭一个给定的文件要触发该事件<br><br>AFileCompletion的派生类：<br><br><strong>AFileIOCompleted</strong>-完成事件包括了对于之前的一个I/O请求已经完成<br><br><strong>AFileIOExceptionOccurred</strong>-该完成事件包括在引发I/O请求时产生的IOException<br><br><strong>AFileIOExceptionOccurred</strong>-一个在给定的文件上执行I/O操作但已经到达EOF位置的完成事件<br><br><strong>AFileTPEventHandler</strong>-它是一个事件处理器（实现了EventHandlerIF），用来被AFileTPImpl层调用<br><br><strong>AFileTM</strong>-内部抽象类，它用来表示一个AFile的线程管理器<br><br><strong>AFileTPStageWrapper</strong>-它是AFileTPImpl的包装实现，实现了StageWrapperIF。（事实上该StageWrapper并没有一个真实的事件队列，AFileTPTM创建的线程将给予每个AFile提供队列）<br><br><strong>AFileTPTM</strong>-它继承了TPSThreadManager，同时实现了ThreadManagerIF以及ProfilableIF接口。<br><br>（注：TPSThreadManager同样实现了ThreadManagerIF接口，它提供了每个stage,每个source有一个线程池的线程管理器）。它是一个为AFileTPImpl提供的ThreadManager，它管理一个用来在磁盘文件上执行阻塞I/O的线程池。<br><br><strong>AFileMgr</strong>-它是一个内部类，用来给Sandstorm运行时和aDisk类库之间提供一个访问接口。应用程序不应该使用该类。<br><br>其实，作为磁盘I/Ostage的实现，它基本包含了对几个核心package的实现（api/api.internal）。它们大致的对应关系如下图所示：<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="http://my.csdn.net/uploads/201204/21/1335011774_3126.png" alt=""><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#提交流程调用的关键方法链"><span class="toc-number">1.</span> <span class="toc-text">提交流程调用的关键方法链</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">2.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <h1 id="提交流程调用的关键方法链">提交流程调用的关键方法链</h1><p>用户编写的程序逻辑需要提交给Flink才能得到执行。本文来探讨一下客户程序如何提交给Flink。鉴于用户将自己利用Flink的API编写的逻辑打成相应的应用程序包（比如Jar）然后提交到一个目标Flink集群上去运行是比较主流的使用场景，因此我们的分析也基于这一场景进行。</p>
+<a id="more"></a>
+<blockquote>
+<p>Flink的API针对不同的执行环境有不同的<code>Environment</code>对象，这里我们主要基于常用的<code>RemoteStreamEnvironment</code>和<code>RemoteEnvironment</code>进行分析</p>
+</blockquote>
+<p>在前面我们谈到了Flink中实现了“惰性求值”，只有当最终调用<code>execute</code>方法时，才会“真正”开始执行。因此，<code>execute</code>方法是我们的切入点。</p>
+<blockquote>
+<p>其源码位于<code>org.apache.flink.streaming.api.environment.RemoteStreamEnvironment</code></p>
+</blockquote>
+<p>首先，我们来看一下其<code>execute</code>方法触发的关键方法调用链示意图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/streaming-remote-execute-method-chain.png" alt="streaming-remoge-execute-method-chain"></p>
+<p>根据上图的调用链，我们针对这些关键方法进行剖析，当然一些细节性的内容我们可能会暂时略过，这样可以保证主路径一直都很清晰。</p>
+<p><code>getStreamGraph</code>方法用于获得一个<code>StreamGraph</code>的实例，该实例表示流的完整的拓扑结构并且包含了生成<code>JobGraph</code>所必要的相关信息（包含了<code>source</code>、<code>sink</code>的集合以及这些在图中的“节点”抽象化的表示、一些虚拟的映射关系、执行和检查点的配置等）。</p>
+<p>获得<code>StreamGraph</code>之后，通过调用<code>executeRemotely</code>方法进行远程执行。该方法首先根据获取到的用户程序包的路径以及类路径创建加载用户代码的类加载器：</p>
+<figure class="highlight gcode"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ClassLoader usercodeClassLoader = JobWithJars.buildUserCodeClassLoader<span class="comment">(</span><br><span class="line">jarFiles, globalClasspaths,   getClass()</span>.getClassLoader<span class="comment">()</span>);</span><br></pre></td></tr></table></figure>
+<p>紧接着根据配置构建Client对象（Client对象是真正跟JobManager对接的内部代理）：</p>
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Client <span class="keyword">client</span>;</span><br><span class="line"><span class="keyword">try</span> &#123;   </span><br><span class="line">    <span class="keyword">client</span> = <span class="keyword">new</span> Client(configuration);   </span><br><span class="line">    <span class="keyword">client</span>.setPrintStatusDuringExecution(getConfig().isSysoutLoggingEnabled());</span><br><span class="line">&#125;<span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">   <span class="keyword">throw</span> <span class="keyword">new</span> ProgramInvocationException(<span class="string">"Cannot establish connection to JobManager: "</span> + e.getMessage(), e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>后面的事情就此被<code>Client</code>接管：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;   </span><br><span class="line">    <span class="function"><span class="keyword">return</span> client.<span class="title">runBlocking</span><span class="params">(streamGraph, jarFiles, globalClasspaths, usercodeClassLoader)</span></span>;</span><br><span class="line">&#125;<span class="keyword">catch</span> (ProgramInvocationException e) &#123;   </span><br><span class="line">    <span class="keyword">throw</span> e;</span><br><span class="line">&#125;<span class="keyword">catch</span> (Exception e) &#123;   </span><br><span class="line">    String term = e.getMessage() == <span class="keyword">null</span> ? <span class="string">"."</span> : (<span class="string">": "</span> + e.getMessage());   </span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ProgramInvocationException(<span class="string">"The program execution failed"</span> + term, e);</span><br><span class="line">&#125;<span class="keyword">finally</span> &#123;   </span><br><span class="line">    client.shutdown();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>client</code>对象调用了<code>runBlocking</code>以阻塞式的行为“运行”用户程序并等待返回<code>JobExecutionResult</code>对象作为<code>Job</code>的执行结果。执行完成，最终在<code>finally</code>块中，调用<code>shutdown</code>方法关闭并释放资源。</p>
+<p><code>runBlocking</code>被调用后，调用链跳转到Client类中。为了适配多种提交方式以及运行模式，<code>runBlocking</code>方法有着非常多的重载。在当前的远程执行环境下，<code>runBlocking</code>在多个重载方法之间跳转的过程中，会调用<code>getJobGraph</code>方法获得<code>JobGraph</code>的实例。<code>JobGraph</code>表示Flink <code>dataflow</code> 程序，它将会被<code>JobManager</code>所理解并接收。在某个<code>Job</code>被提交给<code>JobManager</code>之前，通过Flink提供的高层次的API都将会被转化为<code>JobGraph</code>表示。关于如何获得JobGraph的实现，我们后面会进行剖析。这里，让我们忽视这些细节，进入下一个关键方法。</p>
+<p><code>runBlocking_1</code>其实是<code>runBlocking</code>方法的重载，这里加一个后缀标识，只是为了跟上面的<code>runBlocking</code>进行区别。runBlocking_1方法中，首先利用<code>LeaderRetrievalUtils</code>创建了<code>LeaderRetrievalService</code>这一服务对象：</p>
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="title">LeaderRetrievalService</span> leaderRetrievalService;</span><br><span class="line"><span class="title">try</span> &#123;   </span><br><span class="line">    <span class="title">leaderRetrievalService</span> = LeaderRetrievalUtils.createLeaderRetrievalService(config);</span><br><span class="line">&#125; <span class="title">catch</span> (Exception e) &#123;   </span><br><span class="line">    <span class="title">throw</span> new ProgramInvocationException(<span class="string">"Could not create the leader retrieval service."</span>, e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>顾名思义，<code>LeaderRetrievalService</code>在Flink中提供查找主节点的服务。它会根据Flink的配置信息（主要是recovery.mode来判断基于哪种恢复机制来创建该服务。当前有两种模式：一种是<code>Standalone</code>的独立运行模式；另一种是基于<code>Zookeeper</code>的高可用模式）。Flink提供了一个称之为<code>LeaderRetrievalListener</code>的回调接口来获得主节点的信息。接下来，就是调用<code>JobClient</code>的<code>submitJobAndWait</code>方法将产生的<code>JobGraph</code>以及主节点查找的服务对象等相关信息提交给<code>JobManager</code>并等待返回结果：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">try</span> &#123;   </span><br><span class="line">    <span class="keyword">this</span>.lastJobID = jobGraph.getJobID();   </span><br><span class="line">    <span class="function"><span class="keyword">return</span> JobClient.<span class="title">submitJobAndWait</span><span class="params">(actorSystem, leaderRetrievalService, jobGraph, </span><br><span class="line">                                        timeout, printStatusDuringExecution, classLoader)</span></span>;</span><br><span class="line">&#125; <span class="keyword">catch</span> (JobExecutionException e) &#123;   </span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> ProgramInvocationException(<span class="string">"The program execution failed: "</span> + e.getMessage(), e);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>上面的<code>submitJobAndWait</code>方法的第一个参数<code>actorSystem</code>是<code>ActorSystem</code>的实例。在构造<code>Client</code>对象时创建，在Job提交并获得返回结果后通过调用<code>Client</code>的<code>shutdown</code>方法关闭：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;   </span><br><span class="line">    <span class="keyword">if</span> (!<span class="keyword">this</span>.actorSystem.isTerminated()) &#123;      </span><br><span class="line">        <span class="keyword">this</span>.actorSystem.shutdown();      </span><br><span class="line">        <span class="keyword">this</span>.actorSystem.awaitTermination();   </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>该方法的调用见上面<code>executeRemotely</code>方法的代码段的finally语句块。</p>
+<p><code>JobClient</code>的出现可能会让你产生疑惑——它跟<code>Client</code>是什么关系？作用是什么？下面这幅示意图可以用来解释这些疑问：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Client-JobClient-relationship.png" alt="Client-JobClient-relationship"></p>
+<p>上面这幅图展示了<code>Client</code>对象与其他几个对象的关系。<code>JobClient</code>在其中起到了“桥接”作用，它在基于API的编程层面上桥接了同步的方法调用和异步的消息通信。更具体得说，<code>JobClient</code>可以看做是一个“静态类”提供了一些静态方法，这里我们主要关注上面的<code>submitJobAndWait</code>方法，该方法内部封装了<code>Actor</code>之间的异步通信（具体的通信对象是<code>JobClientActor</code>，它负责跟<code>JobManager</code>的<code>ActorSystem</code>的<code>Actor</code>进行通信），并以阻塞的形式返回结果。而<code>Client</code>只需调用<code>JobClient</code>的这些方法，而无需关注其内部是如何实现的。</p>
+<p>通过调用<code>JobClient</code>的静态方法<code>submitJobAndWait</code>，会触发基于<code>Akka</code>的<code>Actor</code>之间的消息通信来完成后续的提交JobGraph的动作。<code>JobClient</code>提交<code>Job</code>的基于消息交互的抽象示意图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/JobClient-Actor-SubmitJobGraph.png" alt="JobClient-Actor-SubmitJobGraph"></p>
+<p>总体来说这里总共有两个<code>ActorSystem</code>，一个归属于<code>Client</code>，另一个归属于<code>JobManager</code>。在<code>submitJobAndWait</code>方法中，其首先会创建一个<code>JobClientActor</code>的<code>ActorRef</code>：</p>
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ActorRef jobClientActor = actorSystem.actorOf(jobClientActorProps)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>然后向其发起一个<code>SubmitJobAndWait</code>消息，该消息将<code>JobGraph</code>的实例提交给<code>jobClientActor</code>。该消息的发起模式是<strong>ask</strong>，它表示需要一个应答消息。</p>
+<p>JobClient向JobClientActor发送消息的代码段如下所示：</p>
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Future</span>&lt;<span class="type">Object</span>&gt; future = <span class="type">Patterns</span>.ask(jobClientActor,      </span><br><span class="line">                                     new <span class="type">JobClientMessages</span>.<span class="type">SubmitJobAndWait</span>(jobGraph),      </span><br><span class="line">                                     new <span class="type">Timeout</span>(<span class="type">AkkaUtils</span>.<span class="type">INF_TIMEOUT</span>()));</span><br><span class="line">answer = <span class="type">Await</span>.<span class="literal">result</span>(future, <span class="type">AkkaUtils</span>.<span class="type">INF_TIMEOUT</span>());</span><br></pre></td></tr></table></figure>
+<p><code>JobClient</code>会阻塞等待该<code>future</code>返回结果。在得到返回结果answer之后，先进行解析判断它是<code>Job</code>被成功执行返回的结果还是失败返回的结果。</p>
+<h1 id="小结">小结</h1><p>至此，Client提交Streaming Job的关键方法调用路径已梳理完成。这里为了突出主路线，同时避免被太多的实现细节干扰，我们暂时忽略了一些重要数据结构和关键概念的解读。不过，后续我们会对它们进行分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-<!-- Baidu Button BEGIN -->
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/04/22/SEDA源码解读（三）/" data-id="ciqqowg180045plz2voo38ask" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/07/17/flink-streaming-job-submit/" data-id="ciqqowg340054plz2tv2e9359" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2012/04/22/多队列网卡简介以及Linux通过网卡发送数据包源码解读/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          多队列网卡简介以及Linux通过网卡发送数据包源码解读
-        
-      </div>
-    </a>
   
-  
-    <a href="/2012/04/16/如何在Java中选择Map-List-Set/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/07/09/flink-type-system-Value-and-interfaces/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">如何在Java中选择Map/List/Set</div>
+      <div class="article-nav-title">Flink类型系统的根Value及基本接口</div>
     </a>
   
 </nav>
@@ -140,7 +189,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-SEDA源码解读（三）" data-title="SEDA源码解读（三）" data-url="http://vinoyang.com/2012/04/22/SEDA源码解读（三）/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-streaming-job-submit" data-title="Apache Flink流作业提交流程分析" data-url="http://vinoyang.com/2016/07/17/flink-streaming-job-submit/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
