@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Apache Flink Client生成StreamGraph | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="概述上文我们分析提交流程时，RemoteStreamEnvironment类的execute方法的第一步就是生成StreamGraph。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Apache Flink Client生成StreamGraph">
+<meta property="og:url" content="http://vinoyang.com/2016/07/23/flink-streaming-job-generate-stream-graph/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="概述上文我们分析提交流程时，RemoteStreamEnvironment类的execute方法的第一步就是生成StreamGraph。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/StreamGraph-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Flink-StreamGraph.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/StreamNode-StreamEdge-relationship.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Stream-Object-relationship.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/StreamTransformation-demo.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/StreamGraph-demo.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-07-23T12:58:28.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Apache Flink Client生成StreamGraph">
+<meta name="twitter:description" content="概述上文我们分析提交流程时，RemoteStreamEnvironment类的execute方法的第一步就是生成StreamGraph。">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css" type="text/css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-streaming-job-generate-stream-graph" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/" class="article-date">
+  <time datetime="2016-07-23T12:39:43.000Z" itemprop="datePublished">2016-07-23</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Apache Flink Client生成StreamGraph
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#节点和边"><span class="toc-number">2.</span> <span class="toc-text">节点和边</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#生成StreamGraph"><span class="toc-number">3.</span> <span class="toc-text">生成StreamGraph</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#小结"><span class="toc-number">4.</span> <span class="toc-text">小结</span></a></li></ol>
+          </div>
+        
+        <h1 id="概述">概述</h1><p>上文我们分析提交流程时，<code>RemoteStreamEnvironment</code>类的<code>execute</code>方法的第一步就是生成<code>StreamGraph</code>。</p>
+<a id="more"></a>
+<p><code>StreamGraph</code>是用于表示流的拓扑结构的数据结构，它包含了生成<code>JobGraph</code>的必要信息。它的类继承关系图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/StreamGraph-class-diagram.png" alt="StreamGraph-class-diagram"></p>
+<p>如果你按照<code>StreamGraph</code>的继承链向上追溯，最终会发现它实现了接口<code>FlinkPlan</code>。Flink在这里效仿的是数据库的执行SQL是产生执行计划的机制，<code>FlinkPlan</code>定义在Flink的优化器相关的包中，针对流应用的计划是<code>StreamingPlan</code>。</p>
+<blockquote>
+<p>针对Batch类的应用的计划类是OptimizedPlan。Flink会对Batch类的应用进行优化（这点我们后面会分析），而当前针对Streaming类的应用没有优化措施。</p>
+</blockquote>
+<p><code>StreamGraph</code>的形象化表示如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Flink-StreamGraph.png" alt="Flink-StreamGraph"></p>
+<blockquote>
+<p>Flink官方提供了一个<a href="http://flink.apache.org/visualizer/" target="_blank" rel="external">计划可视化器</a>来图形化执行计划</p>
+</blockquote>
+<h1 id="节点和边">节点和边</h1><p>上面的图是由“节点”和“边”组成的。节点在Flink中对应的数据结构是<code>StreamNode</code>，而边在Flink中对应的数据结构是<code>StreamEdge</code>。<code>StreamNode</code>和<code>StreamEdge</code>之间存在着组合的依赖关系，依赖关系可见下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/StreamNode-StreamEdge-relationship.png" alt="StreamNode-StreamEdge-relationship"></p>
+<p><code>StreamEdge</code>包含了其连接的源节点<code>sourceVertex</code>和目的节点<code>targetVertex</code>，而<code>StreamNode</code>中包含了与其连接的入边集合<code>inEdges</code>和出边集合<code>outEdges</code>。<code>StreamEdge</code>和<code>StreamNode</code>都有唯一的编号进行标识，但是各自编号的生成规则并不相同。</p>
+<p><code>StreamNode</code>的编号<code>id</code>的生成是通过调用<code>StreamTransformation</code>的静态方法<code>getNewNodeId</code>获得的，其实现是一个静态计数器：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// This is used to assign a unique ID to every StreamTransformation</span></span><br><span class="line"><span class="keyword">protected</span> <span class="keyword">static</span> Integer idCounter = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> <span class="title">getNewNodeId</span><span class="params">()</span> </span>&#123;   </span><br><span class="line">    idCounter++;   </span><br><span class="line">    <span class="keyword">return</span> idCounter;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>StreamEdge</code>的编号<code>edgeId</code>是字符串类型，其生成的规则为：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">this.edgeId = <span class="built_in">source</span>Vertex + <span class="string">"_"</span> + targetVertex + <span class="string">"_"</span> + <span class="built_in">type</span>Number + <span class="string">"_"</span> + selectedNames + <span class="string">"_"</span> + outputPartitioner;</span><br></pre></td></tr></table></figure>
+<p>它是由多个段连接起来的，语义的文字表述如下：</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">源顶点_目的顶点_输入类型数量_输出选择器的名称_输出分区器</span><br></pre></td></tr></table></figure>
+<p><code>edgeId</code>除了用来实现StreamEdge的hashCode及equals方法之外并没有其他实际意义。</p>
+<blockquote>
+<p>StreamNode其实是表示operator的数据结构，了解这一点很重要。从Flink开始生成StreamGraph开始，source、sink都是图中的一个节点都是operator，都通过StreamNode这一数据结构来表示，我们常将它们单独拎出来讲是因为它们是流的的输入和输出，但在数据结构层面上它们是一致的。</p>
+</blockquote>
+<p><code>StreamNode</code>除了存储了输入端和输出端的<code>StreamEdge</code>集合，还封装了<code>operator</code>的其他关键属性，基于这不是我们关注的重点，所以不再赘述。</p>
+<p>回过头来我们看<code>JobGraph</code>就不是那么难理解了。它包含了表述整个流拓扑的所有必要信息（比如所有的节点集合、所有的<code>source</code>集合、所有的<code>sink</code>集合、虚拟输出选择节点、虚拟分区节点）。同时还包含了大量操作这些信息的方法。</p>
+<h1 id="生成StreamGraph">生成StreamGraph</h1><p>了解了基础的数据结构之后，我们来分析如何生成<code>JobGraph</code>。定位到<code>getStreamGraph</code>的实现：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="function">StreamGraph <span class="title">getStreamGraph</span><span class="params">()</span> </span>&#123;   </span><br><span class="line">    <span class="keyword">if</span> (transformations.size() &lt;= <span class="number">0</span>) &#123;      </span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"No operators defined in streaming topology. Cannot execute."</span>);   </span><br><span class="line">    &#125;   </span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">return</span> StreamGraphGenerator.<span class="title">generate</span><span class="params">(<span class="keyword">this</span>, transformations)</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>它依赖于<code>transformations</code>集合，该集合中存储着一个<code>Streaming</code>程序中所有的转换操作对应的<code>StreamTransformation</code>对象。</p>
+<p>每当在<code>DataStream</code>对象上调用<code>transform</code>方法或者调用已经被实现了的一些转换操作（如map、flter等，这些转换操作在内部也调用了<code>transform</code>方法），这些调用都会被加入到<code>transformations</code>集合中。</p>
+<blockquote>
+<p>StreamTransformation表示创建DataStream的操作，其实每个DataStream底层都对应着一个StreamTransformation。DataStream持有执行环境对象的引用，当调用transform方法时，它会调用执行环境对象的addOperator方法，将特定的StreamTransformation对象加入到transformations集合中去，这就是transformations集合中元素的来源。</p>
+</blockquote>
+<p>到目前为止我们提到了多个名词，它们之前拥有着强依赖关系，为了避免混淆，我们以flatMap转换操作为例图示各种对象之间的构建关系：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Stream-Object-relationship.png" alt="Stream-Object-relationship"></p>
+<blockquote>
+<p>在源码中，其实Flink自身的命名也并不是那么准确，比如上图中的SingleOutputStreamOperator其实是一种DataStream，但却以Operator结尾，让人匪夷所思。这种情况下，鉴定它们类型的方式可以通过查看它们的继承链来进行识别。</p>
+</blockquote>
+<p><code>StreamGraph</code>的生成依赖于生成器<code>StreamGraphGenerator</code>，每调用一次静态方法<code>generate</code>才会在内部创建一个<code>StreamGraphGenerator</code>的实例，一个实例对应着一个<code>StreamGraph</code>对象。<code>StreamGraphGenerator</code>调用内部的实例方法<code>generateInternal</code>来遍历<code>transformations</code>集合的每个对象：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">private</span> StreamGraph generateInternal(<span class="keyword">List</span>&lt;StreamTransformation<span class="preprocessor">&lt;?</span>&gt;&gt; transformations) &#123;   </span><br><span class="line">    <span class="keyword">for</span> (StreamTransformation<span class="preprocessor">&lt;?</span>&gt; transformation: transformations) &#123;</span><br><span class="line">        transform(transformation);   </span><br><span class="line">    &#125;   </span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> streamGraph;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>在<code>transform</code>方法中，它枚举了Flink中每一种转换类型，并对当前传入的转换类型进行判断，然后将其分发给特定的转换方法进行转换，最终返回当前<code>StreamGraph</code>对象中跟该转换有关的节点编号集合。</p>
+<p>你可以将整个过程看作是玩拼图游戏，每遍历完一个转换对象，就离构建完整的<code>StreamGraph</code>更近一步。所有类型各异的转换操作各自持有整个<code>StreamGraph</code>的一部分小图片，根据不同的转换操作类型，它们为<code>StreamGraph</code>提供的“部件”并不完全相同，有的转换只构建节点（如<code>SourceTransformation</code>），有的转换除了构建节点还构建边（如<code>SinkTransformation</code>），有的只构建虚拟节点（如<code>PartitionTransformation</code>、<code>SplitTransformation</code>、<code>SelectTransformation</code>）。</p>
+<p>关于虚拟节点，这里需要说明的是并非所有转换操作都具有实际的物理意义（即物理上对应<code>operator</code>）。有些转换操作只具有逻辑概念，例如<code>union</code>，<code>split</code>，<code>select</code>，<code>partition</code>。这些转换操作不会构建真实的<code>StreamNode</code>对象。比如某个流处理应用对应的转换树如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/StreamTransformation-demo.png" alt="StreamTransformation-demo"></p>
+<p>但在运行时，其生成的执行计划，这里也就等同于<code>StreamGraph</code>却是下图这种形式：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/StreamGraph-demo.png" alt="StreamGraph-demo"></p>
+<p>从图中可以看到，转换图中对应的一些逻辑操作在产生的执行计划时并不存在，Flink将这些逻辑转换操作转换成了虚拟节点，它们的信息会被绑定到从<code>source</code>到<code>map</code>转换的这条边上。</p>
+<p>在给<code>StreamGraph</code>创建并添加一个<code>operator</code>时，需要给该<code>operator</code>指定<code>slotSharingGroup</code>，这时需要调用方法<code>determineSlotSharingGroup</code>来获得SlotSharingGroup的名称：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">String</span> determineSlotSharingGroup(<span class="built_in">String</span> specifiedGroup, Collection&lt;<span class="built_in">Integer</span>&gt; inputIds) &#123;   </span><br><span class="line">    <span class="keyword">if</span> (specifiedGroup != <span class="built_in">null</span>) &#123;      </span><br><span class="line">        <span class="keyword">return</span> specifiedGroup;   </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;      </span><br><span class="line">        <span class="built_in">String</span> inputGroup = <span class="built_in">null</span>;      </span><br><span class="line">        f<span class="subst">or</span> (int id: inputIds) &#123;         </span><br><span class="line">            <span class="built_in">String</span> inputGroupCandidate = streamGraph<span class="built_in">.</span>getSlotSharingGroup(id);         </span><br><span class="line">            <span class="keyword">if</span> (inputGroup == <span class="built_in">null</span>) &#123;            </span><br><span class="line">                inputGroup = inputGroupCandidate;         </span><br><span class="line">            &#125; <span class="keyword">else</span> <span class="keyword">if</span> (<span class="subst">!</span>inputGroup<span class="built_in">.</span><span class="keyword">equals</span>(inputGroupCandidate)) &#123;            </span><br><span class="line">                <span class="keyword">return</span> <span class="string">"default"</span>;         </span><br><span class="line">            &#125;      </span><br><span class="line">        &#125;      </span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> inputGroup == <span class="built_in">null</span> ? <span class="string">"default"</span> : inputGroup;   </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>当用户指定了组名，则直接使用用户指定的名称。如果用户没有指定特定的名称，则需要结合输入节点来做决定：第一种情况如果所有的输入节点都拥有相同的<code>slotSharingGroup</code>名称，那么就使用该组名；否则组名将被命名为<code>default</code>。</p>
+<p>Flink当前对于流处理的应用是不作优化的，所以其执行计划就是<code>StreamGraph</code>。Flink提供了一个执行计划的可视化器，它将客户端生成的执行计划以图形的方式展示出来，就像本节开始我们展示的那幅图就是可视化器生成的。那么我们怎么来查看我们自己编写的程序的执行计划呢？其实很简单，我们以Flink的flink-examples-streaming包中的<code>SocketTextStreamWordCount</code>为例，来看一下如何生成执行计划。</p>
+<p>我们将<code>SocketTextStreamWordCount</code>最后一行代码注释掉：</p>
+<figure class="highlight autoit"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">env.<span class="built_in">execute</span>(<span class="string">"WordCount from SocketTextStream Example"</span>)<span class="comment">;</span></span><br></pre></td></tr></table></figure>
+<p>然后将其替换成下面这句：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">System</span><span class="class">.out</span><span class="class">.println</span>(<span class="tag">env</span><span class="class">.getExecutionPlan</span>());</span><br></pre></td></tr></table></figure>
+<p>这行语句的作用是打印当前这个程序的执行计划，它将在控制台产生该执行计划的JSON格式表示：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;<span class="string">"nodes"</span>:[&#123;<span class="string">"id"</span>:<span class="number">1</span>,<span class="string">"type"</span>:<span class="string">"Source: Socket Stream"</span>,<span class="string">"pact"</span>:<span class="string">"Data Source"</span>,<span class="string">"contents"</span>:<span class="string">"Source: Socket Stream"</span>,</span><br><span class="line"><span class="string">"parallelism"</span>:<span class="number">1</span>&#125;,&#123;<span class="string">"id"</span>:<span class="number">2</span>,<span class="string">"type"</span>:<span class="string">"Flat Map"</span>,<span class="string">"pact"</span>:<span class="string">"Operator"</span>,<span class="string">"contents"</span>:<span class="string">"Flat Map"</span>,<span class="string">"parallelism"</span>:<span class="number">2</span>,</span><br><span class="line"><span class="string">"predecessors"</span>:[&#123;<span class="string">"id"</span>:<span class="number">1</span>,<span class="string">"ship_strategy"</span>:<span class="string">"REBALANCE"</span>,<span class="string">"side"</span>:<span class="string">"second"</span>&#125;]&#125;,&#123;<span class="string">"id"</span>:<span class="number">4</span>,<span class="string">"type"</span>:<span class="string">"Keyed Aggregation"</span>,</span><br><span class="line"><span class="string">"pact"</span>:<span class="string">"Operator"</span>,<span class="string">"contents"</span>:<span class="string">"Keyed Aggregation"</span>,<span class="string">"parallelism"</span>:<span class="number">2</span>,<span class="string">"predecessors"</span>:[&#123;<span class="string">"id"</span>:<span class="number">2</span>,</span><br><span class="line"><span class="string">"ship_strategy"</span>:<span class="string">"HASH"</span>,<span class="string">"side"</span>:<span class="string">"second"</span>&#125;]&#125;,&#123;<span class="string">"id"</span>:<span class="number">5</span>,<span class="string">"type"</span>:<span class="string">"Sink: Unnamed"</span>,<span class="string">"pact"</span>:<span class="string">"Data Sink"</span>,</span><br><span class="line"><span class="string">"contents"</span>:<span class="string">"Sink: Unnamed"</span>,<span class="string">"parallelism"</span>:<span class="number">2</span>,<span class="string">"predecessors"</span>:[&#123;<span class="string">"id"</span>:<span class="number">4</span>,<span class="string">"ship_strategy"</span>:<span class="string">"FORWARD"</span>,</span><br><span class="line"><span class="string">"side"</span>:<span class="string">"second"</span>&#125;]&#125;]&#125;System.out.println(env.getExecutionPlan());</span><br></pre></td></tr></table></figure>
+<p>把上面这段JSON复制到Flink的执行计划可视化器，点击下方的<code>Draw</code>按钮，即可生成。</p>
+<h1 id="小结">小结</h1><p>本文我们谈论了<code>StreamGraph</code>的数据结构以及<code>StreamGraphGenerator</code>如何生成<code>StreamGraph</code>。鉴于<code>StreamEdge</code>和<code>StreamNode</code>是组成<code>StreamGraph</code>不可或缺的部分，我们还对这两个数据结构进行了简单的分析。当然，<code>StreamGraph</code>还有一个关键的实例方法：<code>getJobGraph</code>，它用于获取流处理程序的<code>JobGraph</code>（该方法继承自<code>StreamingPlan</code>）。至于什么是<code>JobGraph</code>以及如何获取它，我们将在下文进行讨论。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/07/23/flink-streaming-job-generate-stream-graph/" data-id="ciqz6mjtp005y4ez27l8ndwwr" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/07/17/flink-streaming-job-submit/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Apache Flink流作业提交流程分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-streaming-job-generate-stream-graph" data-title="Apache Flink Client生成StreamGraph" data-url="http://vinoyang.com/2016/07/23/flink-streaming-job-generate-stream-graph/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">24</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/">Apache Flink Client生成StreamGraph</a>
+          </li>
+        
+          <li>
+            <a href="/2016/07/17/flink-streaming-job-submit/">Apache Flink流作业提交流程分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/07/09/flink-type-system-Value-and-interfaces/">Flink类型系统的根Value及基本接口</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/22/flink-data-stream-partitioner/">Apache Flink流分区器剖析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/06/19/flink-fault-tolerance-7/">Apache Flink fault tolerance源码剖析完结篇</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css" type="text/css">
+  <script src="/fancybox/jquery.fancybox.pack.js" type="text/javascript"></script>
+
+
+<script src="/js/script.js" type="text/javascript"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
