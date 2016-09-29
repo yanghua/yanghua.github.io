@@ -77,6 +77,47 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-SEDA简介与源码解读-一" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2012/04/04/SEDA简介与源码解读-一/" class="article-date">
+  <time datetime="2012-04-03T18:19:00.000Z" itemprop="datePublished">2012-04-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2012/04/04/SEDA简介与源码解读-一/">SEDA简介与源码解读(一)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <a id="more"></a>
+<div><br><br><span style="font-size:24px;"><strong>简介：</strong></span><br><br>——————————————————————————————————————————————————————–<br><br>/<em><br><br>&nbsp;</em>分割线内内容纯粹引用<br><br>&nbsp;<em>原文作者：朱之光<br><br>&nbsp;</em>原文地址：<a href="http://larryzhu.bokee.com/6779982.html" target="_blank" rel="external">http://larryzhu.bokee.com/6779982.html</a><br><br><em>/<br><br><strong><span style="font-size:12px;">一、前言</span></strong><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">Staged Event Driven Architecture (SEDA)&nbsp;</span>是加州大学伯克利分校研究的一套优秀的高性能互联网服务器架构模型。其设计目标是：支持大规模并发处理、简化系统开发、支持处理监测、支持系统资源管理。本文会先对两种目前被广泛使用的网络服务器架构模型进行介绍。然后对<span style="font-family:Calibri;">SEDA</span>进行详细描述。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><strong><span style="font-size:12px;">二、当前流行的两种并发处理编程模型</span></strong><br><br><strong><span style="font-size:12px;"><span style="font-family: Calibri; ">1、</span><span roman="" new="" times="">&nbsp;</span>多线程服务器<span style="font-family:Calibri;">&nbsp;(Threaded Server)</span></span></strong><br><br><shapetype id="_x0000_t75" coordsize="21600,21600" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><stroke joinstyle="miter"><formulas><f eqn="if lineDrawn pixelLineWidth 0"><f eqn="sum @0 1 0"><f eqn="sum 0 0 @1"><f eqn="prod @2 1 2"><f eqn="prod @3 21600 pixelWidth"><f eqn="prod @3 21600 pixelHeight"><f eqn="sum @0 0 1"><f eqn="prod @6 1 2"><span style="font-size:12px;"><f eqn="prod @7 21600 pixelWidth"></f></span></f></f></f></f></f></f></f></f></formulas></stroke></shapetype><br><br><span style="font-size:12px;"><img src="http://larryzhu.bokee.com/inc/seda_1.png" alt=" "></span><br><br><span style="font-size:12px;">工作原理：对于每一个<span style="font-family:Calibri;">request</span>，<span style="font-family:Calibri;">dispatcher</span>会为其创建并分配一个线程。该线程负责这个请求的处理。这种方式<span style="font-family:Calibri;">&nbsp;</span>又名（<span style="font-family:Calibri;">Thread-per-request</span>）。</span><br><br><span style="font-size:12px;">优点：执行粒度是整个完整的处理流程。处理逻辑清晰，容易开发。</span><br><br><span style="font-size:12px;">缺点：是当随着处理请求不断增加，导致并发执行的线程数量太多。过多的线程数量导致系统在线程调度和资源争用上的开销过大。引起系统性能急剧下降。导致系统处理能力下降。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><span style="font-size:12px;">改进措施：线程池（<span style="font-family:Calibri;">Bounded Thread Pools</span>）</span><br><br><span style="font-size:12px;">系统最多只能创建一定数量的线程。当所有线程都饱和运行时，新到达的处理请求只能等待，或者被抛弃。</span><br><br><span style="font-size:12px;">缺点：</span><br><br><span style="font-size:12px;">执行粒度仍然是完整的处理流程。难以检测系统性能瓶颈的根源以及进行相应调整。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><strong><span style="font-size:12px;"><span style="font-family: Calibri; ">2、</span><span roman="" new="" times="">&nbsp;</span>事件驱动并发处理<span style="font-family:Calibri;">(Event-Driven Concurrency)</span></span></strong><br><br><span style="font-size:12px;"><img src="http://larryzhu.bokee.com/inc/seda_2.png" alt=" "></span><br><br><span style="font-size:12px;">将处理流程分割成多个步骤，每一个步骤都实现为一个有限状态机（<span style="font-family:Calibri;">FSM</span>）。</span><br><br><span style="font-size:12px;">工作原理：所有的处理请求会作为<span style="font-family:Calibri;">Event</span>进入系统。由<span style="font-family:Calibri;">Scheduler</span>负责传递给相应<span style="font-family:Calibri;">FSM</span>。<span style="font-family:Calibri;">FSM</span>的处理结果也以<span style="font-family:Calibri;">Event</span>形式输出给<span style="font-family:Calibri;">Scheduler</span>。新的<span style="font-family:Calibri;">Event</span>会再次被<span style="font-family:Calibri;">Scheduler</span>进行转发给下一个<span style="font-family:Calibri;">FSM</span>。直至处理完成。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><span style="font-size:12px;">优点：</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">1</span>、随着处理量的增加，系统负荷是以线形增长。当达到系统饱和处理能力后。系统的处理能力不会下降。</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">2</span>、由于将各个处理步骤独立实现，可以很容易的进行系统监测和调整。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><span style="font-size:12px;">缺点：</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">Scheduler</span><span ang="ZH-CN">的设计和实现过于复杂。针对于不同的应用和系统的逻辑变更需要不同的实现。</span></span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><strong><span style="font-size:12px;">三、<span style="font-family:Calibri;">SEDA</span>架构</span></strong><br><br><span style="font-family: Calibri; "><span style="font-size:12px;"><img src="http://larryzhu.bokee.com/inc/seda_3.png" alt=" "></span></span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">(</span>近似于<span style="font-family:Calibri;">Event-Driven Concurrency</span>，但是没有其中的<span style="font-family:Calibri;">Scheduler)</span></span><br><br><span style="font-size:12px;">将每一个处理步骤独立为一个<span style="font-family:Calibri;">Stage</span>。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;"><img src="http://larryzhu.bokee.com/inc/seda_4.png" alt=" "></span></span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">Stage</span>结构：</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">1、</span><span roman="" new="" times="">&nbsp;</span>一个接受输入的<span style="font-family:Calibri;">Event Queue</span>；</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">2、</span><span roman="" new="" times="">&nbsp;</span>一个应用开发者编写的<span style="font-family:Calibri;">Event Handler</span>；</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">3、</span><span roman="" new="" times="">&nbsp;</span>一个<span style="font-family:Calibri;">Controller</span>用于对执行过程进行控制。包括并发线程数量，批处理数量，<span style="font-family:Calibri;">…;</span></span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">4、</span><span roman="" new="" times="">&nbsp;</span>一个<span style="font-family:Calibri;">Thread Pool</span>用于并发处理；</span><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">Stage</span>的输入通过<span style="font-family:Calibri;">Event Queue</span>获得。<span style="font-family:Calibri;">Stage</span>的输出会以<span style="font-family:Calibri;">Event</span>形式推送到其他<span style="font-family:Calibri;">Stage</span>的<span style="font-family:Calibri;">Event Queue</span>中。<span style="font-family:Calibri;">Stage</span>之间的这种连接关系由应用开发人员指定。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><span style="font-size:12px;">带来的问题：<span style="font-family:Calibri;">Event Queue</span>尽管减少了模块间的耦合性，但是会降低响应速度。</span><br><br><span style="font-family: Calibri; "><span style="font-size:12px;">&nbsp;</span></span><br><br><strong><span style="font-size:12px;">四、小结：</span></strong><br><br><span style="font-size:12px;"><span style="font-family: Calibri; ">SEDA</span>架构将应用的整个处理过程分割为多个步骤即<span style="font-family:Calibri;">Stage</span>。每个<span style="font-family:Calibri;">Stage</span>可以独立进行开发。同时<span style="font-family:Calibri;">Stage</span>之间通过<span style="font-family:Calibri;">Event Queue</span>来进行通信，可以降低耦合性。可以以很小的成本来适应将来的系统逻辑变化。</span><br><br><span style="font-size:12px;">同时系统提供了标准的资源控制，使得应用开发人员只需要专注于实现<span style="font-family:Calibri;">Event Handler</span>的内部逻辑。而无须关注多线程、资源共享、<span style="font-family:Calibri;">…</span></span><br><br><span style="font-size:12px;">同时可以在运行时对于每一个<span style="font-family: Calibri; ">Stage</span>的运行情况进行监测以及调整。</span><br>———————————————————————–分割线————————————————————————————<br><br>最近我也拜读了这篇来自哈佛的研究论文【1】，本来想翻译的，翻译了大概五分之一，感慨文章之长，速度之慢，再加上自己事情又多，热情日益减退，也就不想继续下去了。<br><br>其实，值得我们借鉴的是它的设计思想（虽然有些人认为，它学术味道浓厚，并没有考虑到实际应用中的复杂逻辑），事实上淘宝开源的Netty【2】（一个基于事件的异步通信框架）采用的就是标准的SEDA架构。<br><br><span style="font-size:24px;"><strong>源码分析</strong></span><br><br>网络上已经有一些对于SEDA的介绍和研究。在论文里，提到了一个基于SEDA的实现——sandstorm，最近也在看源码。近期想推出自己对于该项目源码的解读（源码在最后提供下载）。<br><br>下图是sandStorm的开放接口（位于package:seda.sandstorm.api），虽然我已经尽力想让UML图清晰一点，但由于关系比较复杂，还是显得有些混乱。<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="http://my.csdn.net/uploads/201204/03/1333447789_1483.png" alt=""><br><br>接下来，让我们来将其分割，看看各个接口提供哪些功能：<br><br><strong>StageIF</strong>:表示一个应用程序的层。应用程序并不会直接实现StageIF，而是实现EventHandlerIF。StageIF用来被一个事件处理器使用，用它来访问其他层。StageIF的实例通过ManageIF.getStage()获得。<br><br><strong>EventHandlerIF</strong>：表示一个事件处理器，SandStorm组件的基本单元。它是一个应用程序所有模块需要实现的一个基本接口。<br><br><strong>SourceIF</strong>、<strong>SinkIF</strong>、<strong>QueueIF</strong>这三个接口用来实现事件队列。继承关系参见下图：<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="http://my.csdn.net/uploads/201204/03/1333447908_9140.png" alt=""><br><br>其中，SinkIF、SourceIF分别表示一个队列的两端。SinkIF表示“槽”，形象化地理解为连接着前面一个层的“水槽”，事件都从这里“流入”队列，所以它只支持事件的入队操作。SourceIF表示“源端”，理解为我们要从事件队列获取的“事件源”以进行处理，所以它只支持出队操作。QueueIF直接继承了这两个接口，并没有增加自己额外的操作，从而形成了一个 “队列”。<br><br>可以看到，这样的设计十分地灵活。它并没有直接在物理上实现一个队列的数据结构，而是用实现入队、出队操作在逻辑上实现了一个“队列”。这样可以获得两个好处，你可以自行实现入队、出队时的处理逻辑；同时，只要你获得了该接口，你就获得了可以将事件入队、出队的“权力”。<br><br><strong>QueueElementIF</strong>：表示一个事件基接口，既然QueueIF表示一个事件队列，那么它的元素自然是一个事件。任何定义的“事件”都必须实现该接口。已经提供了一些定义事件如下图：<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="http://my.csdn.net/uploads/201204/03/1333447984_9461.png" alt=""><br><br><strong>ClassQueueElementIF</strong>：基于“等级”的事件；<br><br><strong>SinkCloggedEvent：</strong>Sink被阻塞事件（当Sink满或者某些条件阻止一个给定的元素被服务时，会触发该事件）；<br><br><strong>SinkClosedEvent</strong>:该事件表示一个Sink已经被关闭，要么是应用程序有意关闭，要么是由于一个错误条件被无意地关闭。当一个sink不再被服务时，就认为它被关闭了；<br><br><strong>SinkDrainedEvent</strong>：该事件表示一个sink已经被处理；<br><br><strong>SinkFlushedEvent</strong>：该事件表示一个给定的sink被成功地刷新，它通常由一个sinkIF.flush()的调用生成。<br><br><strong>ProfilerIF</strong>：一个ProfilerIF表示对于系统行为的跟踪记录，如果系统运行在跟踪记录模式，应用程序可以对ProfilerIF获得处理（通过调用ManagerIF.getProfiler()）；<br><br><strong>ProfilableIF</strong>：一个实现了ProfilableIF的对象可以被一个ProfilerIF进行跟踪记录。通常，这意味着该对象有一个被分配的大小（比如队列长度，列表长度，内存大小等）；<br><strong>ManagerIF</strong>：这是一个管理接口，提供对上面一些接口的访问等；<br><br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<img src="http://my.csdn.net/uploads/201204/03/1333448033_9165.png" alt=""><br><br>它给应用程序提供了一些运行时服务；<br><br>&nbsp;<br><br><strong>SignalIF</strong>：它也是一个事件，表示一个信号事件，所有需要实现一个信号通知的事件都需要实现它；<br><br><strong>StagesInitializedSignal</strong>：它是对SignalIF的一个实现，它表示指定在sandStorm的配置文件中的所有层，或者在init()方法被调用期间基于指定的初始化配置创建的层已经被实例化。注意，额外的层可以在实例化完成之后创建；<br><br><strong>SignalMgrIF</strong>：对于系统级别的“信号”、层可能希望使用的消息事件的实例化或控制；<br><br><strong>EnqueuePredicateIF</strong>：入队断言接口，它允许用户指定一个方法，该方法能够在sink上执行入队操作的时候屏蔽元素——要么接受、要么拒绝。该方案能够被用来实现很多有趣的“条件式加载”策略，比如，简单的阈值控制、速率控制、基于信用的流量控制等。注意：入队断言运行在enqueue()的上下文，这意味着它必须简单而且快速；<br><br><strong>ConfigDataIF</strong>：它用于给层传递配置参数，当一个层被实例化时，一个ConfigDataIF被传递到它的init方法；<br><br><strong>SingleThreadedEventHandlerIF</strong>：空接口，它指示系统，一个事件处理器必须是单线程的；<br><br><span style="font-size:24px;"><strong>源码下载</strong></span><br><br><a href="http://download.csdn.net/detail/yanghua_kobe/4197465" target="_blank" rel="external">SEDA-Release</a><br><br><a href="http://download.csdn.net/detail/yanghua_kobe/4197469" target="_blank" rel="external">SEDA-Eclipse工程可直接运行</a><br><br><span style="font-size:24px;"><em>*引用</em></span></em><br><br>【1】：<a href="http://www.eecs.harvard.edu/~mdw/papers/seda-sosp01.pdf" target="_blank" rel="external">http://www.eecs.harvard.edu/~mdw/papers/seda-sosp01.pdf</a><br><br>【2】：<a href="http://rdc.taobao.com/team/jm/archives/423" target="_blank" rel="external">http://rdc.taobao.com/team/jm/archives/423</a><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2012/04/04/SEDA简介与源码解读-一/" data-id="citof4cob0044lvse402g8per" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-浅谈公司核心业务数据表的重构——结合Memcache分析缓存策略与系统数据交互" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2012/03/12/浅谈公司核心业务数据表的重构——结合Memcache分析缓存策略与系统数据交互/" class="article-date">
@@ -108,7 +149,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/03/12/浅谈公司核心业务数据表的重构——结合Memcache分析缓存策略与系统数据交互/" data-id="ciqz6mjly00134ez255cjk969" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/03/12/浅谈公司核心业务数据表的重构——结合Memcache分析缓存策略与系统数据交互/" data-id="citof4cj80013lvsecsn7h76k" class="article-share-link">Share</a>
       
       
     </footer>
@@ -149,7 +190,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/03/05/OAuth工作原理随想——让你的系统提供的服务更加安全/" data-id="ciqz6mjrm004d4ez2fnakgavc" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/03/05/OAuth工作原理随想——让你的系统提供的服务更加安全/" data-id="citof4cou004dlvse3m4yicdo" class="article-share-link">Share</a>
       
       
     </footer>
@@ -190,7 +231,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/02/27/用Java编写你自己的简单HTTP服务器/" data-id="ciqz6mjkg000e4ez28m7rhxra" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/02/27/用Java编写你自己的简单HTTP服务器/" data-id="citof4chq000elvsej31d7cbd" class="article-share-link">Share</a>
       
       
     </footer>
@@ -231,7 +272,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/02/10/给你的站点全面提速——来自YahooUI的各种BsetPractices/" data-id="ciqz6mjk6000a4ez21kkow3zh" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/02/10/给你的站点全面提速——来自YahooUI的各种BsetPractices/" data-id="citof4chh000alvsedf4g4rsl" class="article-share-link">Share</a>
       
       
     </footer>
@@ -272,7 +313,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/" data-id="ciqz6mjs1004m4ez2ole7q7bn" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/" data-id="citof4cpb004mlvsend0b97gy" class="article-share-link">Share</a>
       
       
     </footer>
@@ -313,7 +354,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" data-id="ciqz6mjjq00034ez2nw7waay5" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" data-id="citof4ch10003lvseti0sx3jq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -354,7 +395,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" data-id="ciqz6mjlp00104ez25pa1qrhr" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" data-id="citof4cj00010lvseuz4dp8zt" class="article-share-link">Share</a>
       
       
     </footer>
@@ -395,7 +436,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" data-id="ciqz6mjlw00124ez2rrbun020" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/01/07/浅谈简单工作流设计——责任链模式配合策略与命令模式的实现/" data-id="citof4cj60012lvse4ydmqdf1" class="article-share-link">Share</a>
       
       
     </footer>
@@ -436,48 +477,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/01/02/从零开始学-net多线程系列-三-——同步/" data-id="ciqz6mjpi002z4ez2mirunzjv" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-记住密码-quot-功能的正确设计" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2011/12/25/记住密码-quot-功能的正确设计/" class="article-date">
-  <time datetime="2011-12-25T10:42:00.000Z" itemprop="datePublished">2011-12-25</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2011/12/25/记住密码-quot-功能的正确设计/">记住密码&amp;quot;功能的正确设计</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br><span style="color:rgb(85,85,85); font-family:Arial,Verdana,'BitStream vera Sans',Tahoma,Helvetica,sans-serif; font-size:14px; line-height:22px">这个功能简直就是一个安全隐患，我觉得并不是所有的程序员都知道怎么设计这个事。一般的设计 是——一时用户勾选了这个功能，系统会生成一个cookie，cookie包括用户名和一个固定的散列&#20540;，这个固定的散列&#20540;一直使用。这样，你就可以在所有的设备和客户上都可以登录，而且可以有多个用户同时登录。这个并不是很安全。下面是一些更为安全的方法供你参考：</span><br><br>
-        
-          <p class="article-more-link">
-            <a href="/2011/12/25/记住密码-quot-功能的正确设计/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2011/12/25/记住密码-quot-功能的正确设计/" data-id="ciqz6mjk100084ez2gx9l28bg" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2012/01/02/从零开始学-net多线程系列-三-——同步/" data-id="citof4cmr002zlvsek8hlyi8i" class="article-share-link">Share</a>
       
       
     </footer>
@@ -502,7 +502,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">24</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">25</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
     </div>
   </div>
 
@@ -520,7 +520,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
     </div>
   </div>
 
@@ -530,6 +530,10 @@
     <h3 class="widget-title">Recents</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2016/09/29/how-flink-optimize-window-with-pane/">Flink如何用窗格来优化窗口</a>
+          </li>
         
           <li>
             <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/">Apache Flink Client生成StreamGraph</a>
@@ -545,10 +549,6 @@
         
           <li>
             <a href="/2016/06/22/flink-data-stream-partitioner/">Apache Flink流分区器剖析</a>
-          </li>
-        
-          <li>
-            <a href="/2016/06/19/flink-fault-tolerance-7/">Apache Flink fault tolerance源码剖析完结篇</a>
           </li>
         
       </ul>
