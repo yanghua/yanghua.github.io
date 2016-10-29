@@ -77,9 +77,9 @@
       <div class="outer">
         <section id="main">
   
-    <article id="post-flink-streaming-window-analysis" class="article article-type-post" itemscope itemprop="blogPost">
+    <article id="post-flink-streaming-window-operator-analysis" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/10/29/flink-streaming-window-analysis/" class="article-date">
+    <a href="/2016/10/29/flink-streaming-window-operator-analysis/" class="article-date">
   <time datetime="2016-10-29T09:15:35.000Z" itemprop="datePublished">2016-10-29</time>
 </a>
     
@@ -91,7 +91,7 @@
         
   
     <h1 itemprop="name">
-      <a class="article-title" href="/2016/10/29/flink-streaming-window-analysis/">Flink流处理之窗口算子分析</a>
+      <a class="article-title" href="/2016/10/29/flink-streaming-window-operator-analysis/">Flink流处理之窗口算子分析</a>
     </h1>
   
 
@@ -99,62 +99,18 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <!-- Table of Contents -->
-        
         <p>窗口算子WindowOperator是窗口机制的底层实现，它几乎会牵扯到所有窗口相关的知识点，因此相对复杂。本文将以由面及点的方式来分析WindowOperator的实现。首先，我们来看一下对于最常见的时间窗口（包含处理时间和事件时间）其执行示意图：</p>
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/window-operator-work-detail.png" alt="window-operator-work-detail"></p>
 <p>上图中，左侧从左往右为事件流的方向。方框代表事件，事件流中夹杂着的竖直虚线代表水印，Flink通过水印分配器（TimestampsAndPeriodicWatermarksOperator和TimestampsAndPunctuatedWatermarksOperator这两个算子）向事件流中注入水印。元素在streaming dataflow引擎中流动到WindowOperator时，会被分为两拨，分别是普通事件和水印。</p>
-<p>如果是普通的事件，则会调用processElement方法（上图虚线框中的三个圆圈中的一个）进行处理，在processElement方法中，首先会利用窗口分配器为当前接收到的元素分配窗口，接着会调用触发器的onElement方法进行逐元素触发。对于时间相关的触发器，通常会注册事件时间或者处理时间定时器，这些定时器会被存储在WindowOperator的处理时间定时器队列和水印定时器队列中（见图中虚线框中上下两个圆柱体），如果触发的结果是FIRE，则对窗口进行计算。</p>
-<p>如果是水印（事件时间场景），则方法processWatermark将会被调用，它将会处理水印定时器队列中的定时器。如果时间戳满足条件，则利用触发器的onEventTime方法进行处理。</p>
-<p>而对于处理时间的场景，WindowOperator将自身实现为一个基于处理时间的触发器，以触发trigger方法来消费处理时间定时器队列中的定时器满足条件则会调用窗口触发器的onProcessingTime，根据触发结果判断是否对窗口进行计算。</p>
-<p>以上是WindowOperator的常规流程最简单的表述，事实上其逻辑要复杂得多。我们首先分解掉几个内部核心对象，上图中我们看到有两个队列：分别是水印定时器队列和处理时间定时器队列。这里的定时器是什么？它有什么作用呢？接下来我们就来看看它的定义——WindowOperator的内部类Timer。Timer是所有时间窗口执行的基础，它其实是一个上下文对象，封装了三个属性：</p>
-<ul>
-<li>timestamp：触发器触发的时间戳；</li>
-<li>key：当前元素所归属的分组的键；</li>
-<li>window：当前元素所属窗口；</li>
-</ul>
-<p>在我们讲解窗口触发器时，我们曾提及过触发器上下文对象，它作为process系列方法参数。在WindowOperator内部我们终于看到了对该上下文对象接口的实现——Context，它主要提供了三种类型的方法：</p>
-<ul>
-<li>提供状态存储与访问；</li>
-<li>定时器的注册与删除；</li>
-<li>窗口触发器process系列方法的包装；</li>
-</ul>
-<p>在注册定时器时，会新建定时器对象并将其加入到定时器队列中。等到时间相关的处理方法（processWatermark和trigger）被触发调用，则会从定时器队列中消费定时器对象并调用窗口触发器，然后根据触发结果来判断是否触动窗口的计算。我们选择事件时间的处理方法processWatermark进行分析（处理时间的处理方法trigger跟其类似）：</p>
-<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line">public void processWatermark(Watermark <span class="keyword">mark</span>) throws Exception &#123;</span><br><span class="line">    <span class="comment">//定义一个标识，表示是否仍有定时器满足触发条件   </span></span><br><span class="line">    boolean fire;   </span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        <span class="comment">//从水印定时器队列中查找队首的一个定时器，注意此处并不是出队（注意跟remove方法的区别）      </span></span><br><span class="line">        <span class="keyword">Timer</span>&lt;K, W&gt; <span class="keyword">timer</span> = watermarkTimersQueue.peek();      </span><br><span class="line">        <span class="comment">//如果定时器存在，且其时间戳戳不大于水印的时间戳</span></span><br><span class="line">        <span class="comment">//（注意理解条件是：不大于，水印用于表示小于该时间戳的元素都已到达，所以所有不大于水印的触发时间戳都该被触发）</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">timer</span> != null &amp;&amp; <span class="keyword">timer</span>.timestamp &lt;= <span class="keyword">mark</span>.getTimestamp()) &#123;</span><br><span class="line">            <span class="comment">//置标识为真，表示找到满足触发条件的定时器         </span></span><br><span class="line">            fire = true;         </span><br><span class="line">            <span class="comment">//将该元素从队首出队</span></span><br><span class="line">            watermarkTimers.remove(<span class="keyword">timer</span>);         </span><br><span class="line">            watermarkTimersQueue.remove();</span><br><span class="line">            <span class="comment">//构建新的上下文         </span></span><br><span class="line">            context.key = <span class="keyword">timer</span>.key;         </span><br><span class="line">            context.<span class="keyword">window</span> = <span class="keyword">timer</span>.<span class="keyword">window</span>;         </span><br><span class="line">            setKeyContext(<span class="keyword">timer</span>.key);         </span><br><span class="line">            <span class="comment">//窗口所使用的状态存储类型为可追加的状态存储</span></span><br><span class="line">            AppendingState&lt;<span class="keyword">IN</span>, ACC&gt; windowState;         </span><br><span class="line">            MergingWindowSet&lt;W&gt; mergingWindows = null;         </span><br><span class="line">            <span class="comment">//如果分配器是合并分配器（比如会话窗口）</span></span><br><span class="line">            <span class="keyword">if</span> (windowAssigner instanceof MergingWindowAssigner) &#123;</span><br><span class="line">                <span class="comment">//获得合并窗口帮助类MergingWindowSet的实例            </span></span><br><span class="line">                mergingWindows = getMergingWindowSet();            </span><br><span class="line">                <span class="comment">//获得当前窗口对应的状态窗口（状态窗口对应着状态后端存储的命名空间）</span></span><br><span class="line">                W stateWindow = mergingWindows.getStateWindow(context.<span class="keyword">window</span>);            </span><br><span class="line">                <span class="comment">//如果没有对应的状态窗口，则跳过本次循环</span></span><br><span class="line">                <span class="keyword">if</span> (stateWindow == null) &#123;                              </span><br><span class="line">                    <span class="keyword">continue</span>;            </span><br><span class="line">                &#125;</span><br><span class="line">                <span class="comment">//获得当前窗口对应的状态表示            </span></span><br><span class="line">                windowState = getPartitionedState(stateWindow, </span><br><span class="line">                    windowSerializer, windowStateDescriptor);         </span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">//如果不是合并分配器，则直接获取窗口对应的状态表示            </span></span><br><span class="line">                windowState = getPartitionedState(context.<span class="keyword">window</span>, </span><br><span class="line">                    windowSerializer, windowStateDescriptor);         </span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//从窗口状态表示中获得窗口中所有的元素         </span></span><br><span class="line">            ACC contents = windowState.<span class="literal">get</span>();         </span><br><span class="line">            <span class="keyword">if</span> (contents == null) &#123;            </span><br><span class="line">                <span class="comment">// if we have no state, there is nothing to do            </span></span><br><span class="line">                <span class="keyword">continue</span>;         </span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//通过上下文对象调用窗口触发器的事件时间处理方法并获得触发结果对象</span></span><br><span class="line">            TriggerResult triggerResult = context.onEventTime(<span class="keyword">timer</span>.timestamp);         </span><br><span class="line">            <span class="comment">//如果触发的结果是FIRE（触动窗口计算），则调用fire方法进行窗口计算</span></span><br><span class="line">            <span class="keyword">if</span> (triggerResult.isFire()) &#123;            </span><br><span class="line">                fire(context.<span class="keyword">window</span>, contents);         </span><br><span class="line">            &#125;</span><br><span class="line">            <span class="comment">//而如果触动的结果是清理窗口，或者事件时间等于窗口的清理时间（通常为窗口的maxTimestamp属性）         </span></span><br><span class="line">            <span class="keyword">if</span> (triggerResult.isPurge() || </span><br><span class="line">                (windowAssigner.isEventTime() </span><br><span class="line">                    &amp;&amp; isCleanupTime(context.<span class="keyword">window</span>, <span class="keyword">timer</span>.timestamp))) &#123;</span><br><span class="line">                <span class="comment">//清理窗口及元素            </span></span><br><span class="line">                cleanup(context.<span class="keyword">window</span>, windowState, mergingWindows);         </span><br><span class="line">            &#125;      </span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">//队列中没有符合条件的定时器，置标识为否，终止循环         </span></span><br><span class="line">            fire = false;      </span><br><span class="line">        &#125;   </span><br><span class="line">    &#125; <span class="keyword">while</span> (fire);   </span><br><span class="line">    <span class="comment">//向下游发射水印</span></span><br><span class="line">    output.emitWatermark(<span class="keyword">mark</span>);   </span><br><span class="line">    <span class="comment">//将当前算子的水印属性用新水印的时间戳覆盖</span></span><br><span class="line">    this.currentWatermark = <span class="keyword">mark</span>.getTimestamp();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>以上方法虽然冗长但流程还算清晰，其中的fire方法用于对窗口进行计算，它会调用内部窗口函数（即InternalWindowFunction，它包装了WindowFunction）的apply方法。</p>
-<p>而isCleanupTime和cleanup这对方法主要涉及到窗口的清理。如果当前窗口是时间窗口，且窗口的时间到达了清理时间，则会进行清理窗口清理。那么清理时间如何判断呢？Flink是通过窗口的最大时间戳属性结合允许延迟的时间联合计算的：</p>
-<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">long</span> <span class="title">cleanupTime</span><span class="params">(W window)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//清理时间被预置为窗口的最大时间戳加上允许的延迟事件   </span></span><br><span class="line">    <span class="keyword">long</span> cleanupTime = window.maxTimestamp() + allowedLateness;</span><br><span class="line">    <span class="comment">//如果窗口为非时间窗口（其maxTimestamp属性值为Long.MAX_VALUE），则其加上允许延迟的时间，</span></span><br><span class="line">    <span class="comment">//会造成Long溢出，从而会变成负数，导致cleanupTime &lt; window.maxTimestamp 条件成立，</span></span><br><span class="line">    <span class="comment">//则直接将清理时间设置为Long.MAX_VALUE   </span></span><br><span class="line">    <span class="keyword">return</span> cleanupTime &gt;= window.maxTimestamp() ? cleanupTime : Long.MAX_VALUE;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>求出清理时间后会与定时器注册的时间进行对比，如果两者相等则布尔条件为真，否则为假：</p>
-<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="function"><span class="keyword">boolean</span> <span class="title">isCleanupTime</span><span class="params">(W window, <span class="keyword">long</span> time)</span> </span>&#123;   </span><br><span class="line">    <span class="keyword">long</span> cleanupTime = cleanupTime(window);   </span><br><span class="line">    <span class="keyword">return</span>  cleanupTime == time;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>下面我们来看一下清理方法主要做了哪些事情：</p>
-<figure class="highlight processing"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">void</span> cleanup(W window,               </span><br><span class="line">    AppendingState&lt;IN, ACC&gt; windowState,               </span><br><span class="line">    MergingWindowSet&lt;W&gt; mergingWindows) <span class="keyword">throws</span> Exception &#123;</span><br><span class="line">    <span class="comment">//清空窗口对应的状态后端的状态   </span></span><br><span class="line">    windowState.<span class="built_in">clear</span>();</span><br><span class="line">    <span class="comment">//如果支持窗口合并，则清空窗口合并集合中对应当前窗口的记录   </span></span><br><span class="line">    <span class="keyword">if</span> (mergingWindows != <span class="keyword">null</span>) &#123;   </span><br><span class="line">        mergingWindows.retireWindow(window);   </span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//清空上下文对象状态   </span></span><br><span class="line">    context.<span class="built_in">clear</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>关于窗口清理，其实三大处理方法（processElement\/processWatermark\/trigger）都会进行判断，如果满足条件则清理。而真正注册清理定时器的逻辑在processElement中，它会调用registerCleanupTimer方法：</p>
-<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">void</span> <span class="title">registerCleanupTimer</span><span class="params">(W window)</span> </span>&#123;</span><br><span class="line">    <span class="comment">//这里注册的时间即为计算过了的清理时间   </span></span><br><span class="line">    <span class="keyword">long</span> cleanupTime = cleanupTime(window);</span><br><span class="line">    <span class="comment">//根据不同的时间分类调用不同的注册方法   </span></span><br><span class="line">    <span class="keyword">if</span> (windowAssigner.isEventTime()) &#123;      </span><br><span class="line">        context.registerEventTimeTimer(cleanupTime);   </span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;      </span><br><span class="line">        context.registerProcessingTimeTimer(cleanupTime);   </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>从上面的代码段可知：清理定时器跟普通定时器是一样的。</p>
-<blockquote>
-<p>如果没有延迟，对于事件时间和处理时间而言，也许它们的窗口清理不一定是由清理定时器触发。因为在事件时间触发器和处理时间触发器中，它们注册的定时器对应的时间点就是窗口的最大时间戳。由于这些定时器在队列中一般排在清理定时器之前，所以这些定时器会优先于清理定时器得到执行（优先触发窗口的清理）。而这里的registerCleanupTimer方法，是一般化的清理机制，针对所有类型的窗口都适用，并确保窗口一定会得到清理。而对于刚刚提到的这种情况，重复的“清理”定时器并不会产生负作用。</p>
-</blockquote>
-<p>WindowOperator还有一个继承者：EvictingWindowOperator，该算子在常规的窗口算子上支持了元素驱逐器（见上图中大虚线框内部的小虚线长方形）。EvictingWindowOperator特别的地方主要在于其fire的实现——在进行窗口计算之前会预先对符合驱逐条件的元素进行剔除，具体实现见如下代码：</p>
-<figure class="highlight stata"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">private void fire(W <span class="keyword">window</span>, Iterable&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;&gt; contents) throws Exception &#123;   </span><br><span class="line">    timestampedCollector.setAbsoluteTimestamp(<span class="keyword">window</span>.maxTimestamp());   </span><br><span class="line">    <span class="comment">//计算要驱逐的元素个数   </span></span><br><span class="line">    int toEvict = evictor.evict((Iterable) contents, Iterables.size(contents), context.<span class="keyword">window</span>);   </span><br><span class="line">    FluentIterable&lt;<span class="keyword">IN</span>&gt; projectedContents = FluentIterable      </span><br><span class="line">        .from(contents)      </span><br><span class="line">        .skip(toEvict)      </span><br><span class="line">        .transform(new Function&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;, <span class="keyword">IN</span>&gt;() &#123;         </span><br><span class="line">            @Override         </span><br><span class="line">            public <span class="keyword">IN</span> apply(StreamRecord&lt;<span class="keyword">IN</span>&gt; <span class="keyword">input</span>) &#123;            </span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">input</span>.getValue();         </span><br><span class="line">            &#125;      </span><br><span class="line">        &#125;);   </span><br><span class="line">    userFunction.apply(context.key, context.<span class="keyword">window</span>, projectedContents, timestampedCollector);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>在最终调用窗口计算的apply方法之前，会先计算要驱逐的元素个数，然后跳过这些元素并且跳过的都是从首个元素开始的连续个元素（这一点在之前我们分析窗口元素驱逐器是也曾提及过）。</p>
-<blockquote>
-<p>这里采用了Guava类库的FluentIterable帮助类，它扩展了Iterable接口并提供了非常丰富的扩展API。</p>
-</blockquote>
-<hr>
-<blockquote>
-<p>微信扫码关注公众号：Apache_Flink</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
-<hr>
-<blockquote>
-<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
-
+        
+          <p class="article-more-link">
+            <a href="/2016/10/29/flink-streaming-window-operator-analysis/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-analysis/" data-id="ciuv3gzma00549qz2d375j1dj" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-operator-analysis/" data-id="ciuv3pnis0054c8z2b78qo0ub" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -197,7 +153,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/09/29/how-flink-optimize-window-with-pane/" data-id="ciuv3gzmf005a9qz2yar5ouhp" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/09/29/how-flink-optimize-window-with-pane/" data-id="ciuv3pniy005ac8z25ani1de7" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -240,7 +196,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/07/23/flink-streaming-job-generate-stream-graph/" data-id="ciuv3gzn500629qz2znm100vz" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/07/23/flink-streaming-job-generate-stream-graph/" data-id="ciuv3pnk70062c8z2cfnrqzy8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -283,7 +239,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/07/17/flink-streaming-job-submit/" data-id="ciuv3gzmc00569qz2y4k64xig" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/07/17/flink-streaming-job-submit/" data-id="ciuv3pniu0056c8z2uqbvfr9a" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -326,7 +282,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/07/09/flink-type-system-Value-and-interfaces/" data-id="ciuv3gzll004p9qz2qe8zfbzg" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/07/09/flink-type-system-Value-and-interfaces/" data-id="ciuv3pnhw004pc8z2i70i34q2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -369,7 +325,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/22/flink-data-stream-partitioner/" data-id="ciuv3gzn300609qz2dr3ujsfn" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/22/flink-data-stream-partitioner/" data-id="ciuv3pnk50060c8z2v947v114" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -413,7 +369,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/19/flink-fault-tolerance-7/" data-id="ciuv3gzmy005w9qz2bt6o8yzr" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/19/flink-fault-tolerance-7/" data-id="ciuv3pnk1005wc8z24segtmhp" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -456,7 +412,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/13/flink-fault-tolerance-6/" data-id="ciuv3gzmq005o9qz2cwclkfb8" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/13/flink-fault-tolerance-6/" data-id="ciuv3pnjo005oc8z2fsgxdj4w" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -499,7 +455,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/07/flink-fault-tolerance-5/" data-id="ciuv3gzmr005q9qz2nibcfv8g" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/07/flink-fault-tolerance-5/" data-id="ciuv3pnjq005qc8z2b8rfv053" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -544,7 +500,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/" data-id="ciuv3gzmo005m9qz2oncpkq00" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/06/04/flink-fault-tolerance-4/" data-id="ciuv3pnjl005mc8z280529snd" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -601,7 +557,7 @@
       <ul>
         
           <li>
-            <a href="/2016/10/29/flink-streaming-window-analysis/">Flink流处理之窗口算子分析</a>
+            <a href="/2016/10/29/flink-streaming-window-operator-analysis/">Flink流处理之窗口算子分析</a>
           </li>
         
           <li>

@@ -12,7 +12,7 @@
 上图中，左侧从左往右为事件流的方向。方框代表事件，事件流中夹杂着的竖直虚线代表水印，Flink通过水印分配器（TimestampsAndPerio">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink流处理之窗口算子分析">
-<meta property="og:url" content="http://vinoyang.com/2016/10/29/flink-streaming-window-analysis/index.html">
+<meta property="og:url" content="http://vinoyang.com/2016/10/29/flink-streaming-window-operator-analysis/index.html">
 <meta property="og:site_name" content="yanghua">
 <meta property="og:description" content="窗口算子WindowOperator是窗口机制的底层实现，它几乎会牵扯到所有窗口相关的知识点，因此相对复杂。本文将以由面及点的方式来分析WindowOperator的实现。首先，我们来看一下对于最常见的时间窗口（包含处理时间和事件时间）其执行示意图：
 
@@ -20,7 +20,7 @@
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/window-operator-work-detail.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-10-29T10:57:59.000Z">
+<meta property="og:updated_time" content="2016-10-29T10:59:45.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink流处理之窗口算子分析">
 <meta name="twitter:description" content="窗口算子WindowOperator是窗口机制的底层实现，它几乎会牵扯到所有窗口相关的知识点，因此相对复杂。本文将以由面及点的方式来分析WindowOperator的实现。首先，我们来看一下对于最常见的时间窗口（包含处理时间和事件时间）其执行示意图：
@@ -85,9 +85,9 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-flink-streaming-window-analysis" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-streaming-window-operator-analysis" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/10/29/flink-streaming-window-analysis/" class="article-date">
+    <a href="/2016/10/29/flink-streaming-window-operator-analysis/" class="article-date">
   <time datetime="2016-10-29T09:15:35.000Z" itemprop="datePublished">2016-10-29</time>
 </a>
     
@@ -117,6 +117,7 @@
         <p>窗口算子WindowOperator是窗口机制的底层实现，它几乎会牵扯到所有窗口相关的知识点，因此相对复杂。本文将以由面及点的方式来分析WindowOperator的实现。首先，我们来看一下对于最常见的时间窗口（包含处理时间和事件时间）其执行示意图：</p>
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/window-operator-work-detail.png" alt="window-operator-work-detail"></p>
 <p>上图中，左侧从左往右为事件流的方向。方框代表事件，事件流中夹杂着的竖直虚线代表水印，Flink通过水印分配器（TimestampsAndPeriodicWatermarksOperator和TimestampsAndPunctuatedWatermarksOperator这两个算子）向事件流中注入水印。元素在streaming dataflow引擎中流动到WindowOperator时，会被分为两拨，分别是普通事件和水印。</p>
+<a id="more"></a>
 <p>如果是普通的事件，则会调用processElement方法（上图虚线框中的三个圆圈中的一个）进行处理，在processElement方法中，首先会利用窗口分配器为当前接收到的元素分配窗口，接着会调用触发器的onElement方法进行逐元素触发。对于时间相关的触发器，通常会注册事件时间或者处理时间定时器，这些定时器会被存储在WindowOperator的处理时间定时器队列和水印定时器队列中（见图中虚线框中上下两个圆柱体），如果触发的结果是FIRE，则对窗口进行计算。</p>
 <p>如果是水印（事件时间场景），则方法processWatermark将会被调用，它将会处理水印定时器队列中的定时器。如果时间戳满足条件，则利用触发器的onEventTime方法进行处理。</p>
 <p>而对于处理时间的场景，WindowOperator将自身实现为一个基于处理时间的触发器，以触发trigger方法来消费处理时间定时器队列中的定时器满足条件则会调用窗口触发器的onProcessingTime，根据触发结果判断是否对窗口进行计算。</p>
@@ -167,7 +168,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-analysis/" data-id="ciuv3gzma00549qz2d375j1dj" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-operator-analysis/" data-id="ciuv3pnis0054c8z2b78qo0ub" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -192,7 +193,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-flink-streaming-window-analysis" data-title="Flink流处理之窗口算子分析" data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-analysis/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-streaming-window-operator-analysis" data-title="Flink流处理之窗口算子分析" data-url="http://vinoyang.com/2016/10/29/flink-streaming-window-operator-analysis/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -248,7 +249,7 @@
       <ul>
         
           <li>
-            <a href="/2016/10/29/flink-streaming-window-analysis/">Flink流处理之窗口算子分析</a>
+            <a href="/2016/10/29/flink-streaming-window-operator-analysis/">Flink流处理之窗口算子分析</a>
           </li>
         
           <li>
