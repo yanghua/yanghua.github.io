@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>flink流处理之迭代案例 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="flink流处理之迭代案例">
+<meta property="og:url" content="http://vinoyang.com/2016/11/29/flink-streaming-iteration/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-demo.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-11-29T11:40:51.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="flink流处理之迭代案例">
+<meta name="twitter:description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-demo.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-streaming-iteration" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/11/29/flink-streaming-iteration/" class="article-date">
+  <time datetime="2016-11-29T12:14:36.000Z" itemprop="datePublished">2016-11-29</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      flink流处理之迭代案例
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。</p>
+<a id="more"></a>
+<p>可迭代的流处理程序允许定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。因为一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最大次数。取而代之的是，你可以指定等待反馈输入的最大时间间隔（如果超过该时间间隔没有反馈元素到来，那么该迭代将会终止）。通过应用split或filter转换，你可以指定流的哪一部分用于反馈给迭代头，哪一部分分发给下游。这里我们以filter作为示例来展示可迭代的流处理程序的API使用模式。</p>
+<p>首先，基于输入流构建IterativeStream，这是一个迭代的起始，通常称之为迭代头：</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">IterativeStream&lt;Integer&gt; </span><span class="keyword">iteration </span>= inputStream.<span class="keyword">iterate();</span></div></pre></td></tr></table></figure>
+<p>接着，我们指定一系列的转换操作用于表述在迭代过程中执行的逻辑（这里简单以map转换作为示例），map API所接受的UDF就是我们上文所说的步函数：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;<span class="built_in">Integer</span>&gt; iteratedStream = iteration.<span class="built_in">map</span>(<span class="comment">/* this is executed many times */</span>);</div></pre></td></tr></table></figure>
+<p>然后，作为迭代我们肯定需要有数据反馈给迭代头进行重复计算，所以我们从迭代过的流中过滤出符合条件的元素组成的部分流，我们称之为反馈流：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">DataStream<span class="params">&lt;Integer&gt;</span> feedbackStream = iteratedStream.filter(<span class="comment">/* one part of the stream */</span>);</div></pre></td></tr></table></figure>
+<p>将反馈流反馈给迭代头就意味着一个迭代的完整逻辑的完成，那么它就可以“关闭”这个闭合的“环”了。通过调用IterativeStream的closeWith这一实例方法可以关闭一个迭代（也可表述为定义了迭代尾）。传递给closeWith的数据流将会反馈给迭代头：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">iteration.closeWith(feedbackStream)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>另外，一个惯用的模式是过滤出需要继续向前分发的部分流，这个过滤转换其实定义的是“终止迭代”的逻辑条件，符合条件的元素将被分发给下游而不用于进行下一次迭代：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">DataStream<span class="params">&lt;Integer&gt;</span> output = iteratedStream.filter(<span class="comment">/* some other part of the stream */</span>);</div></pre></td></tr></table></figure>
+<p>跟分析批处理中的迭代一样，我们仍然以解决实际问题的案例作为切入点来看看流处理中的迭代跟批处理中的迭代有何不同。</p>
+<p>首先描述一下需要解决的问题：产生一个由一系列二元组（两个字段都是在一个区间内产生的正整数来作为斐波那契数列的两个初始值）构成的数据流，然后对该数据流中的二元组不断地迭代使其产生斐波那契数列，直到某次产生的值大于给定的阈值，则停止迭代并输出迭代次数。</p>
+<blockquote>
+<p>该案例参考自Flink随源码发布的迭代示例，此案例问题规模较小并且能够说明问题。但它示例代码中的一系列变量稍显混乱，为了增强程序的表述性，笔者会对其稍作调整。</p>
+</blockquote>
+<p>这个案例如果拆分到对单个元素（二元组）的角度来看，其执行过程如下图所示：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-demo.png" alt="Streaming-iteration-demo"></p>
+<blockquote>
+<p>n表示迭代次数，在最初的map转换中初始化为0；m是判定迭代停止的阈值；</p>
+<p>另外，T后面跟的是字段索引，比如T2表示取元组中位置为3的字段。且注意随着迭代T在不断变化。</p>
+</blockquote>
+<p>上面我们已经对问题的核心过程进行了分析，接下来我们会分步解决这个问题的构建迭代的流处理程序。</p>
+<p>首先，我们先通过source函数创建初始的流对象inputStream：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; inputStream = env.addSource(<span class="literal">new</span> RandomFibonacciSource());</div></pre></td></tr></table></figure>
+<p>该source函数会生成二元组序列，二元组的两个字段值是随机生成的作为斐波那契数列的初始值：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="keyword">static</span> <span class="class"><span class="keyword">class</span> <span class="title">RandomFibonacciSource</span>        </span></div><div class="line">    <span class="keyword">implements</span> <span class="title">SourceFunction</span>&lt;<span class="title">Tuple2</span>&lt;<span class="title">Integer</span>, <span class="title">Integer</span>&gt;&gt; &#123;    </div><div class="line"></div><div class="line">    <span class="keyword">private</span> Random random = <span class="keyword">new</span> Random();    </div><div class="line">    <span class="keyword">private</span> <span class="keyword">volatile</span> <span class="keyword">boolean</span> isRunning = <span class="keyword">true</span>;    </div><div class="line">    <span class="keyword">private</span> <span class="keyword">int</span> counter = <span class="number">0</span>;   </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">(SourceContext&lt;Tuple2&lt;Integer, Integer&gt;&gt; ctx)</span> <span class="keyword">throws</span> Exception </span>&#123;        </div><div class="line">        <span class="keyword">while</span> (isRunning &amp;&amp; counter &lt; MAX_RANDOM_VALUE) &#123;            </div><div class="line">            <span class="keyword">int</span> first = random.nextInt(MAX_RANDOM_VALUE / <span class="number">2</span> - <span class="number">1</span>) + <span class="number">1</span>;            </div><div class="line">            <span class="keyword">int</span> second = random.nextInt(MAX_RANDOM_VALUE / <span class="number">2</span> -<span class="number">1</span>) + <span class="number">1</span>;  </div><div class="line"></div><div class="line">            <span class="keyword">if</span> (first &gt; second) <span class="keyword">continue</span>;            </div><div class="line"></div><div class="line">            ctx.collect(<span class="keyword">new</span> Tuple2&lt;Integer, Integer&gt;(first, second));            </div><div class="line">            counter++;            </div><div class="line">            Thread.sleep(<span class="number">50</span>);        </div><div class="line">        &#125;    </div><div class="line">    &#125;    </div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cancel</span><span class="params">()</span> </span>&#123;        </div><div class="line">        isRunning = <span class="keyword">false</span>;    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>为了对新计算的斐波那契数列中的值以及累加的迭代次数进行存储，我们需要将二元组数据流转换为五元组数据流，并据此创建迭代对象：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">IterativeStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; iterativeStream =        </div><div class="line">    inputStream.<span class="built_in">map</span>(<span class="literal">new</span> TupleTransformMapFunction()).<span class="keyword">iterate</span>(<span class="number">5000</span>);</div></pre></td></tr></table></figure>
+<blockquote>
+<p>注意上面代码段中iterate API的参数5000，不是指迭代5000次，而是等待反馈输入的最大时间间隔为5秒。流被认为是无界的，所以无法像批处理迭代那样指定最大迭代次数。但它允许指定一个最大等待间隔，如果在给定的时间间隔里没有元素到来，那么将会终止迭代。</p>
+</blockquote>
+<p>元组转换的map函数实现：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> static <span class="keyword">class</span> TupleTransformMapFunction <span class="keyword">extends</span> RichMapFunction&lt;Tuple2&lt;<span class="keyword">Integer</span>,        </div><div class="line">    <span class="keyword">Integer</span>&gt;, Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; map(            </div><div class="line">        Tuple2&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; inputTuples) throws Exception &#123;        </div><div class="line">        <span class="keyword">return</span> new Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;(                </div><div class="line">            inputTuples.f0,                </div><div class="line">            inputTuples.f1,                </div><div class="line">            inputTuples.f0,                </div><div class="line">            inputTuples.f1,                </div><div class="line">            <span class="number">0</span>);    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>上面五元组中，其中索引为0，1这两个位置的元素，始终都是最初生成的两个元素不会变化，而后三个字段都会随着迭代而变化。</p>
+</blockquote>
+<p>在迭代流iterativeStream创建完成之后，我们将基于它执行斐波那契数列的步函数并产生斐波那契数列流fibonacciStream：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; fibonacciStream =        </div><div class="line">    iterativeStream.<span class="built_in">map</span>(<span class="literal">new</span> FibonacciCalcStepFunction());</div></pre></td></tr></table></figure>
+<blockquote>
+<p>这里的fibonacciStream只是一个代称，其中的数据并不是真正的斐波那契数列，其实就是上面那个五元组。</p>
+</blockquote>
+<p>其中用于计算斐波那契数列的步函数实现如下：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> static <span class="keyword">class</span> FibonacciCalcStepFunction <span class="keyword">extends</span>        </div><div class="line">    RichMapFunction&lt;Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;,        </div><div class="line">    Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; map(            </div><div class="line">        Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; inputTuple) throws Exception &#123;        </div><div class="line">        <span class="keyword">return</span> new Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;(                </div><div class="line">            inputTuple.f0,                </div><div class="line">            inputTuple.f1,                </div><div class="line">            inputTuple.f3,                </div><div class="line">            inputTuple.f2 + inputTuple.f3,                </div><div class="line">            ++inputTuple.f4);    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>正如上文所述，后三个字段会产生变化，在计算之前，数列最后一个元素会被保留，也就是f3对应的元素，然后通过f2元素加上f3元素会产生最新值并更新f3元素，而f4则会累加。</p>
+<blockquote>
+<p>随着迭代次数增加，不是整个数列都会被保留，只有最初的两个元素和最新的两个元素会被保留，这里也没必要保留整个数列，因为我们不需要完整的数列，我们只需要对最新的两个元素进行判断即可。</p>
+</blockquote>
+<p>上文我们对每个元素计算斐波那契数列的新值并产生了fibonacciStream，但是我们需要对最新的两个值进行判断，看它们是否超过了指定的阈值。超过了阈值的元组将会被输出，而没有超过的则会再次参与迭代。因此这将产生两个不同的分支，我们也为此构建了分支流：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">SplitStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; branchedStream =        </div><div class="line">    fibonacciStream.split(<span class="literal">new</span> FibonacciOverflowSelector());</div></pre></td></tr></table></figure>
+<p>而对是否超过阈值的元组进行判断并分离的实现如下：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> static <span class="keyword">class</span> FibonacciOverflowSelector implements OutputSelector&lt;</div><div class="line">    Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> Iterable&lt;String&gt; <span class="keyword">select</span>(            </div><div class="line">        Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; inputTuple) &#123;        </div><div class="line">        <span class="keyword">if</span> (inputTuple.f2 &lt; OVERFLOW_THRESHOLD &amp;&amp; inputTuple.f3 &lt; OVERFLOW_THRESHOLD) &#123;            </div><div class="line">            <span class="keyword">return</span> Collections.singleton(ITERATE_FLAG);        </div><div class="line">        &#125;        </div><div class="line"></div><div class="line">        <span class="keyword">return</span> Collections.singleton(OUTPUT_FLAG);    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在筛选方法select中，我们对不同的分支以不同的常量标识符进行标识：ITERATE_FLAG（还要继续迭代）和OUTPUT_FLAG（直接输出）。</p>
+<p>产生了分支流之后，我们就可以从中检出不同的流分支做迭代或者输出处理。对需要再次迭代的，就通过迭代流的closeWith方法反馈给迭代头：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">iterativeStream</span><span class="selector-class">.closeWith</span>(<span class="selector-tag">branchedStream</span><span class="selector-class">.select</span>(<span class="selector-tag">ITERATE_FLAG</span>));</div></pre></td></tr></table></figure>
+<p>而对于不需要的迭代就直接让其流向下游处理，这里我们只是简单得将流“重构”了一下然后直接输出：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;Tuple3&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; outputStream = branchedStream        </div><div class="line">    .<span class="keyword">select</span>(OUTPUT_FLAG).<span class="built_in">map</span>(<span class="literal">new</span> BuildOutputTupleMapFunction());</div><div class="line">outputStream.print();</div></pre></td></tr></table></figure>
+<p>所谓的重构就是将之前的五元组重新缩减为三元组，实现如下：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> static <span class="keyword">class</span> BuildOutputTupleMapFunction <span class="keyword">extends</span> RichMapFunction&lt;        </div><div class="line">    Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;,        </div><div class="line">    Tuple3&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> Tuple3&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt; map(Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>,            </div><div class="line">        <span class="keyword">Integer</span>&gt; inputTuple) throws Exception &#123;        </div><div class="line">        <span class="keyword">return</span> new Tuple3&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;(                </div><div class="line">            inputTuple.f0,                </div><div class="line">            inputTuple.f1,                </div><div class="line">            inputTuple.f4);    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>最终我们将会得到类似如下的输出：</p>
+<p>(7,14,5)</p>
+<p>(18,37,3)</p>
+<p>(3,46,3)</p>
+<p>(23,32,3)</p>
+<p>(31,43,2)</p>
+<p>(13,45,2)</p>
+<p>(37,42,2)</p>
+<p>……</p>
+<blockquote>
+<p>前两个整数是斐波那契数列的两个初始值，第三个整数表示其需要经历多少次迭代其斐波那契数列最新的两个值才会超过阈值。</p>
+</blockquote>
+<p>最终完整的主干程序代码如下：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> static void main(String[] args) throws Exception &#123;    </div><div class="line">    StreamExecutionEnvironment env = StreamExecutionEnvironment            </div><div class="line">        .getExecutionEnvironment().setBufferTimeout(<span class="number">1</span>);</div><div class="line"></div><div class="line">    DataStream&lt;Tuple2&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; inputStream = env.addSource(new RandomFibonacciSource());    </div><div class="line"></div><div class="line">    IterativeStream&lt;Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; iterativeStream =            </div><div class="line">        inputStream.map(new TupleTransformMapFunction()).iterate(<span class="number">5000</span>);    </div><div class="line"></div><div class="line">    DataStream&lt;Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; fibonacciStream =            </div><div class="line">        iterativeStream.map(new FibonacciCalcStepFunction());    </div><div class="line"></div><div class="line">    SplitStream&lt;Tuple5&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; branchedStream =            </div><div class="line">        fibonacciStream.split(new FibonacciOverflowSelector());    </div><div class="line"></div><div class="line">    iterativeStream.closeWith(branchedStream.<span class="keyword">select</span>(ITERATE_FLAG));    </div><div class="line"></div><div class="line">    DataStream&lt;Tuple3&lt;<span class="keyword">Integer</span>, <span class="keyword">Integer</span>, <span class="keyword">Integer</span>&gt;&gt; outputStream = branchedStream            </div><div class="line">        .<span class="keyword">select</span>(OUTPUT_FLAG).map(new BuildOutputTupleMapFunction());    </div><div class="line"></div><div class="line">    outputStream.<span class="built_in">print</span>();    </div><div class="line">    env.execute(<span class="string">"Streaming Iteration Example"</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/" data-id="ciw3fpsz2002u3vvuzij5nya2" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/10/29/flink-streaming-window-operator-analysis/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink流处理之窗口算子分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration" data-title="flink流处理之迭代案例" data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">27</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/11/29/flink-streaming-iteration/">flink流处理之迭代案例</a>
+          </li>
+        
+          <li>
+            <a href="/2016/10/29/flink-streaming-window-operator-analysis/">Flink流处理之窗口算子分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/09/29/how-flink-optimize-window-with-pane/">Flink如何用窗格来优化窗口</a>
+          </li>
+        
+          <li>
+            <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/">Apache Flink Client生成StreamGraph</a>
+          </li>
+        
+          <li>
+            <a href="/2016/07/17/flink-streaming-job-submit/">Apache Flink流作业提交流程分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
