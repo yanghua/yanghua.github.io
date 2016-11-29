@@ -5,21 +5,21 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>flink流处理之迭代案例 | yanghua</title>
+  <title>Flink流处理之迭代案例 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+  <meta name="description" content="当前Flink将迭代的重心集中在批处理上，其批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="flink流处理之迭代案例">
+<meta property="og:title" content="Flink流处理之迭代案例">
 <meta property="og:url" content="http://vinoyang.com/2016/11/29/flink-streaming-iteration/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+<meta property="og:description" content="当前Flink将迭代的重心集中在批处理上，其批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-demo.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-11-29T11:40:51.000Z">
+<meta property="og:updated_time" content="2016-11-29T14:22:56.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="flink流处理之迭代案例">
-<meta name="twitter:description" content="当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
+<meta name="twitter:title" content="Flink流处理之迭代案例">
+<meta name="twitter:description" content="当前Flink将迭代的重心集中在批处理上，其批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。">
 <meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-demo.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -94,7 +94,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      flink流处理之迭代案例
+      Flink流处理之迭代案例
     </h1>
   
 
@@ -109,7 +109,7 @@
             
           </div>
         
-        <p>当前Flink将迭代的重心集中在批处理上，之前我们谈及了批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。</p>
+        <p>当前Flink将迭代的重心集中在批处理上，其批量迭代和增量迭代主要是针对批处理（DataSet）API而言的，并且Flink为批处理中的迭代提供了针对性的优化。但是对于流处理（DataStream），Flink同样提供了对迭代的支持，这一节我们主要来分析流处理中的迭代，我们将会看到流处理中的迭代相较于批处理有相似之处，但差异也是十分之明显。</p>
 <a id="more"></a>
 <p>可迭代的流处理程序允许定义“步函数”（step function）并将其内嵌到一个可迭代的流（IterativeStream）中。因为一个流处理程序可能永不终止，因此不同于批处理中的迭代机制，流处理中无法设置迭代的最大次数。取而代之的是，你可以指定等待反馈输入的最大时间间隔（如果超过该时间间隔没有反馈元素到来，那么该迭代将会终止）。通过应用split或filter转换，你可以指定流的哪一部分用于反馈给迭代头，哪一部分分发给下游。这里我们以filter作为示例来展示可迭代的流处理程序的API使用模式。</p>
 <p>首先，基于输入流构建IterativeStream，这是一个迭代的起始，通常称之为迭代头：</p>
@@ -198,7 +198,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/" data-id="ciw3fpsz2002u3vvuzij5nya2" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/" data-id="ciw3lj23g006hi1se7qpwec52" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -223,7 +223,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration" data-title="flink流处理之迭代案例" data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration" data-title="Flink流处理之迭代案例" data-url="http://vinoyang.com/2016/11/29/flink-streaming-iteration/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
@@ -279,7 +279,7 @@
       <ul>
         
           <li>
-            <a href="/2016/11/29/flink-streaming-iteration/">flink流处理之迭代案例</a>
+            <a href="/2016/11/29/flink-streaming-iteration/">Flink流处理之迭代案例</a>
           </li>
         
           <li>
