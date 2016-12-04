@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink流处理之迭代API分析 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="IterativeStreamFlink在DataStream中也是通过一个特定的可迭代的流（IterativeStream）来构建相关的迭代处理逻辑，这一点跟DataSet提供的可迭代的数据集（IterativeDataSet）的是类似的。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink流处理之迭代API分析">
+<meta property="og:url" content="http://vinoyang.com/2016/12/04/flink-streaming-iteration-api/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="IterativeStreamFlink在DataStream中也是通过一个特定的可迭代的流（IterativeStream）来构建相关的迭代处理逻辑，这一点跟DataSet提供的可迭代的数据集（IterativeDataSet）的是类似的。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-12-04T13:14:46.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink流处理之迭代API分析">
+<meta name="twitter:description" content="IterativeStreamFlink在DataStream中也是通过一个特定的可迭代的流（IterativeStream）来构建相关的迭代处理逻辑，这一点跟DataSet提供的可迭代的数据集（IterativeDataSet）的是类似的。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-streaming-iteration-api" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/04/flink-streaming-iteration-api/" class="article-date">
+  <time datetime="2016-12-04T13:10:05.000Z" itemprop="datePublished">2016-12-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink流处理之迭代API分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#IterativeStream"><span class="toc-number">1.</span> <span class="toc-text">IterativeStream</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#FeedbackTransformation"><span class="toc-number">2.</span> <span class="toc-text">FeedbackTransformation</span></a></li></ol>
+          </div>
+        
+        <h1 id="IterativeStream"><a href="#IterativeStream" class="headerlink" title="IterativeStream"></a>IterativeStream</h1><p>Flink在DataStream中也是通过一个特定的可迭代的流（IterativeStream）来构建相关的迭代处理逻辑，这一点跟DataSet提供的可迭代的数据集（IterativeDataSet）的是类似的。</p>
+<a id="more"></a>
+<p>IterativeStream继承自DataStream，因此DataStream支持的转换函数，在IterativeStream上同样可以调用。</p>
+<p>IterativeStream的实例是通过DataStream的iterate方法创建的˙。iterate方法存在两个重载形式：一种是无参的，表示不限定最大等待时间；另一种提供一个长整型的maxWaitTimeMillis参数，允许用户指定等待反馈边的下一个输入元素的最大时间间隔。而迭代的关闭是通过调用IterativeStream的实例方法closeWith来实现的。</p>
+<p>每一种数据流（DataStream）都会有与之对应的流转换（StreamTransformation）。IterativeStream对应的转换是FeedbackTransformation。</p>
+<p>我们来看一下closeWith方法的实现：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> DataStream&lt;T&gt; <span class="title">closeWith</span>(<span class="params">DataStream&lt;T&gt; feedbackStream</span>) </span>&#123;</div><div class="line"><span class="comment">//基于需要反馈给迭代头的反馈流对象获取其所有前任的StreamTransformation对象，目的是为了下文的检查</span></div><div class="line">Collection&lt;StreamTransformation&lt;?&gt;&gt; predecessors =</div><div class="line">feedbackStream.getTransformation().getTransitivePredecessors();</div><div class="line"></div><div class="line"><span class="comment">//在反馈流的所有前任StreamTransformation对象集合中查找当前可迭代的流（迭代头）对应的转换对象是否在其中，</span></div><div class="line"><span class="comment">//如果不在，则抛出异常</span></div><div class="line"><span class="keyword">if</span> (!predecessors.contains(<span class="keyword">this</span>.transformation)) &#123;</div><div class="line"><span class="keyword">throw</span> <span class="keyword">new</span> UnsupportedOperationException(</div><div class="line"><span class="string">"Cannot close an iteration with a feedback DataStream "</span></div><div class="line">+ <span class="string">" that does not originate from said iteration."</span>);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//将反馈流对应的转换对象作为迭代头的反馈边</span></div><div class="line">((FeedbackTransformation) getTransformation()).addFeedbackEdge(feedbackStream.getTransformation());</div><div class="line"></div><div class="line"><span class="keyword">return</span> feedbackStream;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>解释一下上文代码中为什么要检查前任StreamTransformation对象的原因。我们结合上一篇的案例中的代码片段来看：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">IterativeStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; iterativeStream =</div><div class="line">inputStream.<span class="built_in">map</span>(<span class="literal">new</span> TupleTransformMapFunction()).<span class="keyword">iterate</span>(<span class="number">5000</span>);</div><div class="line">DataStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; fibonacciStream =</div><div class="line">iterativeStream.<span class="built_in">map</span>(<span class="literal">new</span> FibonacciCalcStepFunction());</div><div class="line">SplitStream&lt;Tuple5&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt;&gt; branchedStream =</div><div class="line">fibonacciStream.split(<span class="literal">new</span> FibonacciOverflowSelector());</div><div class="line">iterativeStream.closeWith(branchedStream.<span class="keyword">select</span>(ITERATE_FLAG));</div></pre></td></tr></table></figure>
+<p>这里传递给closeWith的是branchedStream筛选出的数据流，而从branchedStream向上是能追溯到可迭代的流iterativeStream的，因此满足前任追溯到迭代头的条件。所以这里需要基于前任向上游追溯的原因是确保反馈流是的源头是来自迭代头（从而形成迭代这样一个闭环），而不是任意的某个流都可以作为反馈流。</p>
+<p>另外，IterativeStream通过调用withFeedbackType方法还可以改变或者重新指定迭代反馈流的类型，从而形成一个跟最初的输入流组合而成的连接迭代流（ConnectedIterativeStreams），这一点也是批处理中的迭代所不具备的。示例代码如下：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;<span class="built_in">Integer</span>&gt; source = <span class="params">...</span>;</div><div class="line">ConnectedIterativeStreams&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>&gt; coIter = source.<span class="keyword">iterate</span>().withFeedbackType(<span class="built_in">Integer</span>.class);</div></pre></td></tr></table></figure>
+<p>ConnectedIterativeStreams是ConnectedStreams的特例，它表示将迭代最初的输入与反馈边的输入进行连接所形成的ConnectedStreams。ConnectedIterativeStreams的构造器会要求指定反馈流的数据类型信息（TypeInformation），你可以为其指定Flink所支持的任意类型。ConnectedIterativeStreams对应的转换是CoFeedbackTransformation，我们在下面会顺带介绍。</p>
+<p>当IterativeStream转变为双流连接而成的ConnectedIterativeStreams，转换也从FeedbackTransformation转变为CoFeedbackTransformation，因此ConnectedIterativeStreams也提供了自己的closeWith方法来将CoFeedbackTransformation添加为自己的反馈边。在实现上和IterativeStream是类似的，不再赘述。</p>
+<h1 id="FeedbackTransformation"><a href="#FeedbackTransformation" class="headerlink" title="FeedbackTransformation"></a>FeedbackTransformation</h1><p>迭代流（IterativeStream）对应的转换是反馈转换（FeedbackTransformation），它表示拓扑中的一个反馈点（也即迭代头）。一个反馈点包含一个输入边以及若干个反馈边，且Flink要求每个反馈边的并行度必须跟输入边的并行度一致，这一点在往该转换中加入反馈边时会进行校验。</p>
+<blockquote>
+<p>这里并行度一致的原因是Flink将采用一种CoLocationGroup来优化迭代任务的子任务执行。当一组作业顶点（JobVertex，一个任务在JobGraph中的表示）被包含在同一个CoLocationGroup中的时候，这些JobVertex在运行时所对应的任务的第i个子任务必须运行在同一个TaskManager的JVM实例中。那么一个分布式的迭代作业，其迭代部分是就是并行度个执行体在并行执行，而每个执行体中的子任务都在位于同一个TaskManager的实例中多线程的形式并发地执行，其中还涉及到并发环境下的数据交换，后续会进行分析。</p>
+</blockquote>
+<p>当IterativeStream对象被构造时，FeedbackTransformation的实例会被创建并传递给DataStream的构造方法：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">protected</span> <span class="title">IterativeStream</span><span class="params">(DataStream&lt;T&gt; dataStream, <span class="keyword">long</span> maxWaitTime)</span> </span>&#123;</div><div class="line"><span class="keyword">super</span>(dataStream.getExecutionEnvironment(),</div><div class="line"><span class="keyword">new</span> FeedbackTransformation&lt;&gt;(dataStream.getTransformation(), maxWaitTime));</div><div class="line"><span class="keyword">this</span>.originalInput = dataStream;</div><div class="line"><span class="keyword">this</span>.maxWaitTime = maxWaitTime;</div><div class="line">setBufferTimeout(dataStream.environment.getBufferTimeout());</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>每一个流转换对象都要实现获得其前任转换对象集合的getTransitivePredecessors方法，FeedbackTransformation对该方法的实现如下：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> Collection&lt;StreamTransformation&lt;?&gt;&gt; getTransitivePredecessors() &#123;</div><div class="line">List&lt;StreamTransformation&lt;?&gt;&gt; result = Lists.<span class="keyword">new</span><span class="type">ArrayList</span>();</div><div class="line"><span class="comment">//先加入自身</span></div><div class="line">result.add(<span class="built_in">this</span>);</div><div class="line"><span class="comment">//加入其输入端的所有前任转换对象</span></div><div class="line">result.addAll(input.getTransitivePredecessors());</div><div class="line"><span class="keyword">return</span> result;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在上面分析IterativeStream时，我们提过它可以转换为ConnectedIterativeStreams，ConnectedIterativeStreams对应的CoFeedbackTransformation这里我们也一并分析一下。CoFeedbackTransformation跟FeedbackTransformation一样都表示拓扑中的一个反馈点。对于CoFeedbackTransformation转换，它不要求反馈边元素的类型跟上游输入端元素的类型一致。因为上游流将会成为该转换的第一个输入，而反馈流将会成为该转换的第二个输入。因为两个流会在此连接，所以CoFeedbackTransformation后只允许跟TwoInputTransformations类型的转换。</p>
+<p>CoFeedbackTransformation同样对输入端的并行度和反馈边的并行度有一定的限制，它也要求两者的并行度必须相等，但是它们的分区策略可以是不一致的。</p>
+<p>Flink在创建ConnectedIterativeStreams流对象时，会用迭代流的初始输入来作为ConnectedIterativeStreams的第一个输入流，然后用CoFeedbackTransformation来构建参与连接的第二个流对象，这里可以指定跟迭代流类型不同的feedbackType作为第二个流的类型：</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">public ConnectedIterativeStreams(DataStream&lt;I&gt; <span class="keyword">input</span>,</div><div class="line">TypeInformation&lt;F&gt; feedbackType,</div><div class="line">long waitTime) &#123;</div><div class="line"><span class="keyword">super</span>(<span class="keyword">input</span><span class="variable">.getExecutionEnvironment</span>(),</div><div class="line"><span class="keyword">input</span>,</div><div class="line"><span class="keyword">new</span> DataStream&lt;&gt;(<span class="keyword">input</span><span class="variable">.getExecutionEnvironment</span>(),</div><div class="line"><span class="keyword">new</span> CoFeedbackTransformation&lt;&gt;(<span class="keyword">input</span><span class="variable">.getParallelism</span>(),</div><div class="line">feedbackType,</div><div class="line">waitTime)));</div><div class="line"><span class="keyword">this</span><span class="variable">.coFeedbackTransformation</span> = (CoFeedbackTransformation&lt;F&gt;) getSecondInput()<span class="variable">.getTransformation</span>();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这一篇我们介绍了IterativeStream以及ConnectedIterativeStreams所对应的转换对象，下一篇我们分析StreamGraph的迭代相关的内容时，将会剖析Flink如何将FeedbackTransformation转换为算子。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/12/04/flink-streaming-iteration-api/" data-id="ciwao7b9a001ah2vu1g4hn63l" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/11/29/flink-streaming-iteration/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink流处理之迭代案例</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration-api" data-title="Flink流处理之迭代API分析" data-url="http://vinoyang.com/2016/12/04/flink-streaming-iteration-api/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">28</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/04/flink-streaming-iteration-api/">Flink流处理之迭代API分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/29/flink-streaming-iteration/">Flink流处理之迭代案例</a>
+          </li>
+        
+          <li>
+            <a href="/2016/10/29/flink-streaming-window-operator-analysis/">Flink流处理之窗口算子分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/09/29/how-flink-optimize-window-with-pane/">Flink如何用窗格来优化窗口</a>
+          </li>
+        
+          <li>
+            <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/">Apache Flink Client生成StreamGraph</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
