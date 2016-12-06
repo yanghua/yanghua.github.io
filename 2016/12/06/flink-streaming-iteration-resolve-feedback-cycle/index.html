@@ -5,23 +5,22 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Flink如何用窗格来优化窗口 | yanghua</title>
+  <title>Flink流处理迭代之化解反馈环 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="对于处理时间类型的窗口（包含了翻滚窗口和滑动窗口），Flink会使用称之为”pane”的技术来优化这类时间窗口的计算。">
+  <meta name="description" content="我们都知道Flink在可迭代的流处理中引入了反馈边来将本次迭代的结果反馈给迭代头以进行下一次迭代，这在执行拓扑中引入了环（反馈环）。Flink主要应对的执行拓扑还是有向无环图（DAG），最终它选择了将反馈环进行化解使其能够适配有向无环图的结构，而如何对反馈环进行化解是我们这一篇主要探讨的话题。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Flink如何用窗格来优化窗口">
-<meta property="og:url" content="http://vinoyang.com/2016/09/29/how-flink-optimize-window-with-pane/index.html">
+<meta property="og:title" content="Flink流处理迭代之化解反馈环">
+<meta property="og:url" content="http://vinoyang.com/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="对于处理时间类型的窗口（包含了翻滚窗口和滑动窗口），Flink会使用称之为”pane”的技术来优化这类时间窗口的计算。">
-<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/window-and-pane.png">
-<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/TimePanes-class-diagram.png">
+<meta property="og:description" content="我们都知道Flink在可迭代的流处理中引入了反馈边来将本次迭代的结果反馈给迭代头以进行下一次迭代，这在执行拓扑中引入了环（反馈环）。Flink主要应对的执行拓扑还是有向无环图（DAG），最终它选择了将反馈环进行化解使其能够适配有向无环图的结构，而如何对反馈环进行化解是我们这一篇主要探讨的话题。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/streaming-iteration-StreamGraph.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-09-29T14:10:09.000Z">
+<meta property="og:updated_time" content="2016-12-06T11:16:27.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Flink如何用窗格来优化窗口">
-<meta name="twitter:description" content="对于处理时间类型的窗口（包含了翻滚窗口和滑动窗口），Flink会使用称之为”pane”的技术来优化这类时间窗口的计算。">
-<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/window-and-pane.png">
+<meta name="twitter:title" content="Flink流处理迭代之化解反馈环">
+<meta name="twitter:description" content="我们都知道Flink在可迭代的流处理中引入了反馈边来将本次迭代的结果反馈给迭代头以进行下一次迭代，这在执行拓扑中引入了环（反馈环）。Flink主要应对的执行拓扑还是有向无环图（DAG），最终它选择了将反馈环进行化解使其能够适配有向无环图的结构，而如何对反馈环进行化解是我们这一篇主要探讨的话题。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/streaming-iteration-StreamGraph.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -81,10 +80,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-how-flink-optimize-window-with-pane" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-streaming-iteration-resolve-feedback-cycle" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2016/09/29/how-flink-optimize-window-with-pane/" class="article-date">
-  <time datetime="2016-09-29T14:02:41.000Z" itemprop="datePublished">2016-09-29</time>
+    <a href="/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/" class="article-date">
+  <time datetime="2016-12-06T12:08:54.000Z" itemprop="datePublished">2016-12-06</time>
 </a>
     
   </div>
@@ -95,7 +94,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      Flink如何用窗格来优化窗口
+      Flink流处理迭代之化解反馈环
     </h1>
   
 
@@ -110,30 +109,24 @@
             
           </div>
         
-        <p>对于处理时间类型的窗口（包含了翻滚窗口和滑动窗口），Flink会使用称之为”pane”的技术来优化这类时间窗口的计算。</p>
+        <p>我们都知道Flink在可迭代的流处理中引入了反馈边来将本次迭代的结果反馈给迭代头以进行下一次迭代，这在执行拓扑中引入了环（反馈环）。Flink主要应对的执行拓扑还是有向无环图（DAG），最终它选择了将反馈环进行化解使其能够适配有向无环图的结构，而如何对反馈环进行化解是我们这一篇主要探讨的话题。</p>
 <a id="more"></a>
+<p>任何提交给Flink执行的程序在提交之前都必须先生成作业图，对于用DataStream API编写的流处理程序在生成作业图之前，还会先生成流图。因此，如果想化解迭代产生的反馈环其时机只能是在部署执行之前的流图和作业图中，而不可能是在最终的执行图中，事实上经过分析，我们发现它发生在流图中。</p>
+<p>Flink生成流图的部件主要是流图生成器（StreamGraphGenerator）。它会对流处理程序进行遍历、转换。跟迭代有关的转换是我们上一篇所分析的FeedbackTransformation和CoFeedbackTransformation。</p>
+<p>首先，我们来看对FeedbackTransformation的转换：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> &lt;T&gt; Collection&lt;<span class="built_in">Integer</span>&gt; transformFeedback(FeedbackTransformation&lt;T&gt; <span class="keyword">iterate</span>) &#123;</div><div class="line"><span class="comment">//检查迭代的反馈边，如果没有反馈边，则无法形成迭代的“环”，这时就抛出异常</span></div><div class="line"><span class="keyword">if</span> (<span class="keyword">iterate</span>.getFeedbackEdges().size() &lt;= <span class="number">0</span>) &#123;</div><div class="line">throw <span class="literal">new</span> IllegalStateException(<span class="string">"Iteration "</span> + <span class="keyword">iterate</span> + <span class="string">" does not have any feedback edges."</span>);</div><div class="line">&#125;</div><div class="line"><span class="comment">//获得迭代的上游输入端对应的转换</span></div><div class="line">StreamTransformation&lt;T&gt; input = <span class="keyword">iterate</span>.getInput();</div><div class="line"><span class="built_in">List</span>&lt;<span class="built_in">Integer</span>&gt; resultIds = <span class="literal">new</span> ArrayList&lt;&gt;();</div><div class="line"><span class="comment">//对上游输入进行（递归）转换以获得转换编号集合</span></div><div class="line">Collection&lt;<span class="built_in">Integer</span>&gt; inputIds = transform(input);</div><div class="line"><span class="comment">//将转换编号集合加入结果集合中</span></div><div class="line">resultIds.addAll(inputIds);</div><div class="line"><span class="comment">//因为转换是递归进行的，所以为防止重复转换，会将已转换过的对象将入alreadyTransformed集合中</span></div><div class="line"><span class="comment">//在对当前转换对象进行转换之前会预先检查该集合，如果当前转换对象已处于该集合中，则直接返回对应的编号集合，防止重复转换</span></div><div class="line"><span class="keyword">if</span> (alreadyTransformed.containsKey(<span class="keyword">iterate</span>)) &#123;</div><div class="line"><span class="keyword">return</span> alreadyTransformed.get(<span class="keyword">iterate</span>);</div><div class="line">&#125;</div><div class="line"><span class="comment">//这里将迭代这一在执行图中的环看作一个闭合的整体，认为它也有source和sink，为其创建source和sink的二元组</span></div><div class="line">Tuple2&lt;StreamNode, StreamNode&gt; itSourceAndSink = streamGraph.createIterationSourceAndSink(</div><div class="line"><span class="keyword">iterate</span>.getId(),</div><div class="line">getNewIterationNodeId(),</div><div class="line">getNewIterationNodeId(),</div><div class="line"><span class="keyword">iterate</span>.getWaitTime(),</div><div class="line"><span class="keyword">iterate</span>.getParallelism());</div><div class="line"><span class="comment">//获得迭代source和sink</span></div><div class="line">StreamNode itSource = itSourceAndSink.f0;</div><div class="line">StreamNode itSink = itSourceAndSink.f1;</div><div class="line"><span class="comment">//在StreamGraph中为这两个顶点设置序列化器</span></div><div class="line">streamGraph.setSerializers(itSource.getId(), <span class="built_in">null</span>, <span class="built_in">null</span>, <span class="keyword">iterate</span>.getOutputType()</div><div class="line">.createSerializer(env.getConfig()));</div><div class="line">streamGraph.setSerializers(itSink.getId(), <span class="keyword">iterate</span>.getOutputType()</div><div class="line">.createSerializer(env.getConfig()), <span class="built_in">null</span>, <span class="built_in">null</span>);</div><div class="line"><span class="comment">//将迭代的source顶点的编号也作为结果集合的一部分，这是为了让下游的算子将其视为输入</span></div><div class="line">resultIds.add(itSource.getId());</div><div class="line"><span class="comment">//将反馈转换对象以及其对应的结果集合的映射关系加入已遍历的Map中，这样在进行反馈边转换时，当它们向上递归转换时</span></div><div class="line"><span class="comment">//遇到当前的反馈转换对象将停止递归转换</span></div><div class="line">alreadyTransformed.put(<span class="keyword">iterate</span>, resultIds);</div><div class="line"><span class="comment">//遍历迭代的所有反馈边，并将所有反馈边对应的转换对象编号加入allFeedbackIds中</span></div><div class="line"><span class="built_in">List</span>&lt;<span class="built_in">Integer</span>&gt; allFeedbackIds = <span class="literal">new</span> ArrayList&lt;&gt;();</div><div class="line">for (StreamTransformation&lt;T&gt; feedbackEdge : <span class="keyword">iterate</span>.getFeedbackEdges()) &#123;</div><div class="line"><span class="comment">//对反馈边转换对象执行递归转换</span></div><div class="line">Collection&lt;<span class="built_in">Integer</span>&gt; feedbackIds = transform(feedbackEdge);</div><div class="line"><span class="comment">//将获取到的反馈边转换对象编号集合加入allFeedbackIds</span></div><div class="line">allFeedbackIds.addAll(feedbackIds);</div><div class="line"><span class="comment">//遍历所有的反馈转换对象的编号，并在StreamGraph中构建从反馈转换对象到迭代sink之间的边</span></div><div class="line">for (<span class="built_in">Integer</span> feedbackId: feedbackIds) &#123;</div><div class="line">streamGraph.addEdge(feedbackId, itSink.getId(), <span class="number">0</span>);</div><div class="line">&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//决定所有的反馈对象的”槽共享组“名</span></div><div class="line"><span class="built_in">String</span> slotSharingGroup = determineSlotSharingGroup(<span class="built_in">null</span>, allFeedbackIds);</div><div class="line"><span class="comment">//为迭代sink设置槽共享组名称</span></div><div class="line">itSink.setSlotSharingGroup(slotSharingGroup);</div><div class="line"><span class="comment">//为迭代source设置槽共享组名称</span></div><div class="line">itSource.setSlotSharingGroup(slotSharingGroup);</div><div class="line"><span class="comment">//返回该转换对象对应的编号结果集</span></div><div class="line"><span class="keyword">return</span> resultIds;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>Flink在流图中如何处理迭代产生的”环“呢？从上面的转换方法的实现中可以看出一些端倪。我们看到它在内部调用了createIterationSourceAndSink这一创建“伪”source和sink的方法。通过这种方式，将迭代产生的“环”转化成了虚拟的输入输出。我们以之前的迭代案例的实现代码为示例，来看一下其通过计划可视化器所产生的流图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/streaming-iteration-StreamGraph.png" alt="streaming-iteration-StreamGraph"></p>
 <blockquote>
-<p>pane：中文译为窗格。它将窗口划分成多个规则的部分，这些部分可看作子窗口，可简单理解为对窗口再次分片。</p>
+<p>注意，通过计划可视化器展示的流图并不能完整地展示程序的执行拓扑，它会丢失一些信息，比如虚拟节点等。</p>
 </blockquote>
-<p>当前很多系统对滑动窗口进行查询（计算）的通用解决方案是缓存每个输入的元素，直到其不出现在所有的窗口中（随着时间的推移、窗口的滑动，元素对应的时间点将超出窗口的时间范围）。既然每一个输入元素都会同时属于多个窗口，那么这种方案会缓存一个元素直到它所归属的最后一个窗口被计算为止。</p>
-<p>这种方案存在两个主要的问题。首先，它要求缓冲区的大小是无界的：在任何一个时间点，当前窗口的所有元素都必须存在于缓冲区中，因此缓冲区的大小就取决于窗口的大小以及数据到达的速率。其次，对每个输入元素处理多次会导致很高昂的计算开销。比如，对于下面这个滑动窗口示例，每个元素都会被处理四次（参考如下示意图，假设对窗口大小为4分钟，滑动步长为1分钟的滑动窗口进行计算，则图中每个正方形格子代表滑动步长的时间大小，以图中深色格子为例，随着窗口的滑动其中的元素都会被计算四次）。随着窗口大小和滑动步长比例的增大，每个元素被处理的次数也随之增大。考虑到流处理系统中庞大的数据量以及快速的数据到达速率，减少大量的缓冲区空间需求以及计算次数就显得尤为重要。</p>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/window-and-pane.png" alt="window-and-pane"></p>
-<p>而基于窗格的计算优化是解决上述两个问题的有效方式。窗格通过对窗口进行子聚合来减少对缓冲区的空间需求，通过在计算窗口时共享子聚合的结果来减少计算次数。我们仍然以上图作为示例分析窗格机制，上图中窗口流被分割为一分钟的窗格（这里窗格大小等于滑动步长并不是特意为之，窗格如果能被设置为滑动步长是最好的选择，但有时并不一定能实现，具体窗格大小如何计算，后面我们会提及），每一个四分钟大小的窗口都由四个连续的窗格组成。W3窗口由窗格P3-P6组成，每一个窗格都是四个窗口的组成部分，例如P5是窗口W2-W5的组成部分。为了完成对窗口的计算，我们先对窗格进行子聚合，而对窗口的聚合则建立在对四个窗格的聚合结果之上。</p>
-<p>Flink对窗格的应用有其限制的场景。首先，必须是基于键分组过的窗口流，也就是窗口必须是基于键的；其次，Flink只支持具备定时触发器的处理时间（这一点也将计数窗口等非时间窗口排除在外）；第三，凡是配备了驱逐器的窗口都无法应用基于窗格的计算优化。</p>
-<blockquote>
-<p>虽然窗格发挥优势的对象是处理时间的滑动窗口，但因为翻滚窗口可以看作滑动窗口的特例（滑动步长即为窗口大小），所以基于窗格的计算优化也同样适用于处理时间的翻滚窗口。</p>
-</blockquote>
-<p>下面我们来看Flink对窗格的实现，在Flink中支持两种类型的窗格：聚合窗格和累加窗格。类图如下所示：</p>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/TimePanes-class-diagram.png" alt="TimePanes-class-diagram"> </p>
-<p>AbstractKeyedTimePanes为两种类型的窗格提供模板，它维护了最新的窗格引用，并将之前的窗格都存储到一个队列里，队列中始终维护着固定数量的窗格个数（个数为：窗口的大小除以窗格的大小）。在Flink中存储窗格信息的数据结构是KeyMap（它是对哈希表的一种特殊实现，这种实现的特点是能够更高效地遍历元素），并提供了traverseMaps方法用于对KeyMap集合进行遍历，定义被遍历元素的处理逻辑需要实现接口：TraversalEvaluator。</p>
-<p>AbstractKeyedTimePanes定义了两个抽象方法，供子类实现：</p>
-<ul>
-<li>addElementToLatestPane：将元素添加到最新的窗格中；</li>
-<li>evaluateWindow：对窗口进行计算（最终依赖于各自对TraversalEvaluator接口的实现）；</li>
-</ul>
-<p>AggregatingKeyedTimePanes和AccumulatingKeyedTimePanes是抽象类AbstractKeyedTimePanes的两个派生类。AggregatingKeyedTimePanes类采用的计算函数是ReduceFunction，而AccumulatingKeyedTimePanes类采用的计算函数则是一般的WindowFunction。</p>
-<p>这两个派生类对上面两个抽象方法的实现有很大的差别：AggregatingKeyedTimePanes是在addElementToLatestPane方法中即时计算窗格的值并更新，在evaluateWindow方法中其实现的AggregatingTraversal也是即时求值的。而AccumulatingKeyedTimePanes正好与之相反，其addElementToLatestPane只是将元素加入到集合中，对应的WindowFunctionTraversal则是惰性求值（先收集元素，到最后再应用函数进行计算）。</p>
-<p>窗格是可以“滑动”的（对应方法：slidePanes），对应到代码实现上：就是将“当前”窗格加入到双端队列中，然后重新生成一个新的窗格对象作为“当前”窗格。</p>
+<p>上面的流图中并没有因为迭代而产生环，而是多了IterationSource-3以及IterationSink-3这两个节点。代码段中创建这两个节点的createIterationSourceAndSink方法实现如下：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> Tuple2&lt;StreamNode, StreamNode&gt; createIterationSourceAndSink(<span class="keyword">int</span> loopId, <span class="keyword">int</span> sourceId,</div><div class="line"><span class="keyword">int</span> sinkId, <span class="keyword">long</span> timeout, <span class="keyword">int</span> parallelism) &#123;</div><div class="line"><span class="comment">//创建一个source节点实例，这里我们尤其关注第三个参数，它对应的执行时的任务类是StreamIterationHead</span></div><div class="line">StreamNode <span class="keyword">source</span> = <span class="keyword">this</span>.addNode(sourceId,</div><div class="line"><span class="keyword">null</span>,</div><div class="line">StreamIterationHead.<span class="keyword">class</span>,</div><div class="line"><span class="keyword">null</span>,</div><div class="line"><span class="string">"IterationSource-"</span> + loopId);</div><div class="line">sources.add(<span class="keyword">source</span>.getId());</div><div class="line">setParallelism(<span class="keyword">source</span>.getId(), parallelism);</div><div class="line"></div><div class="line"><span class="comment">//创建一个sink节点实例，它对应的执行时的任务类是StreamIterationTail</span></div><div class="line">StreamNode sink = <span class="keyword">this</span>.addNode(sinkId,</div><div class="line"><span class="keyword">null</span>,</div><div class="line">StreamIterationTail.<span class="keyword">class</span>,</div><div class="line"><span class="keyword">null</span>,</div><div class="line"><span class="string">"IterationSink-"</span> + loopId);</div><div class="line">sinks.add(sink.getId());</div><div class="line">setParallelism(sink.getId(), parallelism);</div><div class="line"></div><div class="line">iterationSourceSinkPairs.add(<span class="keyword">new</span> Tuple2&lt;&gt;(<span class="keyword">source</span>, sink));</div><div class="line"></div><div class="line"><span class="comment">//建立节点编号与代理的关系</span></div><div class="line"><span class="keyword">this</span>.vertexIDtoBrokerID.put(<span class="keyword">source</span>.getId(), <span class="string">"broker-"</span> + loopId);</div><div class="line"><span class="keyword">this</span>.vertexIDtoBrokerID.put(sink.getId(), <span class="string">"broker-"</span> + loopId);</div><div class="line"><span class="keyword">this</span>.vertexIDtoLoopTimeout.put(<span class="keyword">source</span>.getId(), timeout);</div><div class="line"><span class="keyword">this</span>.vertexIDtoLoopTimeout.put(sink.getId(), timeout);</div><div class="line"></div><div class="line"><span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;&gt;(<span class="keyword">source</span>, sink);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面代码段中创建source和sink时，分别指定了这两个节点在最终被部署执行时所对应的任务类（StreamIterationHead和StreamIterationTail）。这两个类如何协作是了解可迭代的流处理程序执行机制的关键，我们将会在下一篇对其进行详细分析。在创建完source和sink节点之后，我们还看到了建立节点编号跟代理（broker）编号映射关系的代码。这里的代理主要用于为迭代头和迭代尾交换数据。</p>
+<p>在流图中生成的source和sink二元组有什么作用呢？它将会在流处理程序生成作业图的过程中获得迭代source、sink并将它们相应的作业顶点加入到同一个CoLocationGroup中：</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">for (Tuple2&lt;StreamNode, StreamNode&gt; pair : streamGraph.getIterationSourceSinkPairs()) &#123;</div><div class="line">CoLocationGroup ccg = new CoLocationGroup()<span class="comment">;</span></div><div class="line"></div><div class="line"><span class="keyword">JobVertex </span>source = <span class="keyword">jobVertices.get(pair.f0.getId());</span></div><div class="line"><span class="keyword">JobVertex </span>sink = <span class="keyword">jobVertices.get(pair.f1.getId());</span></div><div class="line"></div><div class="line">ccg.<span class="keyword">addVertex(source);</span></div><div class="line">ccg.<span class="keyword">addVertex(sink);</span></div><div class="line">source.updateCoLocationGroup(ccg)<span class="comment">;</span></div><div class="line">sink.updateCoLocationGroup(ccg)<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>Flink会确保伪source/sink对被放置到同一个TaskManager上且分区完全对应得执行。</p>
+<p>对CoFeedbackTransformation的转换，跟FeedbackTransformation有所不同。它不需要去转换输入端对应的转换对象然后再通过返回输入转换的编号以将输入连接到迭代头，因为输入将对接到可连接的迭代流的左侧输入端，所以仅需要返回反馈边对应的转换对象的编号，反馈边会被用来对接到可连接的迭代流的右侧输入端。</p>
 <hr>
 <blockquote>
 <p>微信扫码关注公众号：Apache_Flink</p>
@@ -148,7 +141,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/09/29/how-flink-optimize-window-with-pane/" data-id="ciwdeupiv001edwvufo35bsw3" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/" data-id="ciwdeupiy001kdwvu2g5q8c8f" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -159,19 +152,10 @@
     
 <nav id="article-nav">
   
-    <a href="/2016/10/29/flink-streaming-window-operator-analysis/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          Flink流处理之窗口算子分析
-        
-      </div>
-    </a>
   
-  
-    <a href="/2016/07/23/flink-streaming-job-generate-stream-graph/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/12/04/flink-streaming-iteration-api/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">Apache Flink Client生成StreamGraph</div>
+      <div class="article-nav-title">Flink流处理之迭代API分析</div>
     </a>
   
 </nav>
@@ -182,7 +166,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-how-flink-optimize-window-with-pane" data-title="Flink如何用窗格来优化窗口" data-url="http://vinoyang.com/2016/09/29/how-flink-optimize-window-with-pane/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration-resolve-feedback-cycle" data-title="Flink流处理迭代之化解反馈环" data-url="http://vinoyang.com/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
