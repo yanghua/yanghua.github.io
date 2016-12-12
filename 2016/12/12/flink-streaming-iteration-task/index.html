@@ -5,18 +5,23 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>辞旧迎新——年度web开发合辑，新年大放送 | yanghua</title>
+  <title>Flink流处理之迭代任务 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="本文整理了，工作半年来实践、研究、翻译过的相关web有关的知识，在2012来临之际，与大家分享。祝愿所有的网友和程序员朋友们身体健康，阖家欢乐！">
+  <meta name="description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
 <meta property="og:type" content="article">
-<meta property="og:title" content="辞旧迎新——年度web开发合辑，新年大放送">
-<meta property="og:url" content="http://vinoyang.com/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/index.html">
+<meta property="og:title" content="Flink流处理之迭代任务">
+<meta property="og:url" content="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="本文整理了，工作半年来实践、研究、翻译过的相关web有关的知识，在2012来临之际，与大家分享。祝愿所有的网友和程序员朋友们身体健康，阖家欢乐！">
-<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta property="og:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/BlockingQueueBroker-structure.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-runtime.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-12-12T13:16:53.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="辞旧迎新——年度web开发合辑，新年大放送">
-<meta name="twitter:description" content="本文整理了，工作半年来实践、研究、翻译过的相关web有关的知识，在2012来临之际，与大家分享。祝愿所有的网友和程序员朋友们身体健康，阖家欢乐！">
+<meta name="twitter:title" content="Flink流处理之迭代任务">
+<meta name="twitter:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/BlockingQueueBroker-structure.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -76,10 +81,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-辞旧迎新——年度web开发合辑，新年大放送" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-streaming-iteration-task" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" class="article-date">
-  <time datetime="2012-01-22T18:31:00.000Z" itemprop="datePublished">2012-01-23</time>
+    <a href="/2016/12/12/flink-streaming-iteration-task/" class="article-date">
+  <time datetime="2016-12-12T13:11:47.000Z" itemprop="datePublished">2016-12-12</time>
 </a>
     
   </div>
@@ -90,7 +95,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      辞旧迎新——年度web开发合辑，新年大放送
+      Flink流处理之迭代任务
     </h1>
   
 
@@ -100,35 +105,64 @@
       
         <!-- Table of Contents -->
         
-        <div><br><br>本文整理了，工作半年来实践、研究、翻译过的相关web有关的知识，在2012来临之际，与大家分享。祝愿所有的网友和程序员朋友们身体健康，阖家欢乐！<br><br><a id="more"></a><br><br><strong><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000">【基本篇】</span></strong><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7093421" title="[置顶]细说Cache" target="_blank" rel="external">细说Cache</a><br><br><strong><span style="font-size:13px">所有Cache类型的完整介绍，偏重于服务端缓存的讲解与演示</span></strong><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7061889" title="[置顶]细说Cookies" target="_blank" rel="external">细说Cookies</a><br><br><span style="font-size:13px"><strong>Cookies的完整介绍，包括实现原理，利弊，偏重服务端使用演示</strong></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000"><strong>【前端篇】</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6780181" title="JS闭包可被利用的常见场景" target="_blank" rel="external">JS闭包可被利用的常见场景</a><br><br><span style="font-size:13px"><strong>展示了JS闭包的几个常见场景，给你带来更简洁更优化的编码方式！</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6401683" title="仿新浪微博登录的邮箱地址自动补全功能" target="_blank" rel="external">仿新浪微博登录的邮箱地址自动补全功能</a><br><br><span style="font-size:13px"><strong>如题，这是一个JQuery的小Demo</strong></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000"><strong>【提高篇】</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6937816" title="使用ASP.NET实现Windows Service定时执行任务" target="_blank" rel="external">使用ASP.NET实现Windows Service定时执行任务</a><br><br><span style="font-size:13px"><strong>通过Cache过期的回调，来促使asp.net效仿Windows Service完成定时任务执行功能。</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7199669" title="浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)" target="_blank" rel="external">浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)</a><br><br><strong><span style="font-size:13px">XSS攻击手段和防范的简介以及对asp.net防XSS攻击方式详细介绍。</span></strong><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6747456" title="浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信" target="_blank" rel="external">浅谈人人网以及淘宝网的IM即时通信以及point-to-point通信</a><br><br><span style="font-size:13px"><strong>没错，来自人人和淘宝IM的最佳实践，他们共同的选择——Comet。B/S模式下当前最成熟的实时交互，很快会被Html5的WebSocket所取代？让我们拭目以待！</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6737224" title="Asp.net 构建可扩展的的Comet Web 应用(一)" target="_blank" rel="external">Asp.net 构建可扩展的的Comet Web 应用(一)</a><br><br><span style="font-size:13px"><strong>本文简介Comet技术的实现原理，采用asp.net讲解、演示</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6744518" title="Asp.net 构建可扩展的的Comet Web 应用(二)" target="_blank" rel="external">Asp.net 构建可扩展的的Comet Web 应用(二)</a><br><br><span style="font-size:13px"><strong>以一个线上聊天室，展示了comet技术。实现技术asp.net+WCF/websocket</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7039743" title="开发自己的Web服务处理程序(以支持Ajax框架异步调用Web服务方法)" target="_blank" rel="external">开发自己的Web服务处理程序(以支持Ajax框架异步调用Web服务方法)</a><br><br><span style="font-size:13px"><strong>ajax大行其道的今天，如果你选择的是微软提供的ajax框架，本文给出了一些使其支持异步方法的实现！</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6991689" title="异步调用Web服务方法" target="_blank" rel="external">异步调用Web服务方法</a><br><strong><span style="font-size:13px">讲解web service中调用异步方法</span></strong><br><br><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000"><strong>【设计篇】</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7182888" title="浅谈简单工作流设计——责任链模式配合策略与命令模式的实现" target="_blank" rel="external">浅谈简单工作流设计——责任链模式配合策略与命令模式的实现</a><br><br><span style="font-size:13px"><strong>简单工作流设计，基本实现——可扩展、可配置、开放封闭等，请多多提出宝贵意见。</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/7100788" title="记住密码&quot;功能的正确设计" target="_blank" rel="external">记住密码&quot;功能的正确设计</a><br><br><span style="font-size:13px"><strong>CSDN及各大站点密码泄露事件，引发大恐慌，转载了该设计，希望能给你或者你的系统带来好运。</strong></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000"><strong>【性能优化篇】</strong></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6850119" title="asp.net的10个提升性能或扩展性的秘密(一)" target="_blank" rel="external">asp.net的10个提升性能或扩展性的秘密(一)</a></span><br><br><span style="text-align:left"><span style="font-size:13px"><strong>提供一些对于性能优化的Best Practices，来自某外国著名网站CTO。</strong></span></span><br><br><span style="text-align:left"><br></span><br><br><span style="text-align:left"></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6871463" title="asp.net的10个提升性能或扩展性的秘密(二)" target="_blank" rel="external">asp.net的10个提升性能或扩展性的秘密(二)</a></span><br><br><span style="text-align:left"><span style="font-size:13px"><strong>同上</strong></span></span><br><br><span style="text-align:left"><br></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6840739" title="asp.net使用httphandler打包多CSS或JS文件以加快页面加载速度" target="_blank" rel="external">asp.net使用httphandler打包多CSS或JS文件以加快页面加载速度</a><br></span><br><br><span style="text-align:left"><span style="font-size:13px"><strong>提供一种CSS、JS优化方式，包括打包多文件、压缩、缓存等优化操作。</strong></span></span><br><br><span style="text-align:left"><br></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/7016580" title="性能优化之页面缓存（以Javascript方式缓存页面部件）" target="_blank" rel="external">性能优化之页面缓存（以Javascript方式缓存页面部件）</a><br></span><br><br><span style="text-align:left"><span style="font-size:13px"><strong>利用script标签hack页面静态片段（header、footer）的优化（缓存）方式，纯粹地客户端缓存，无须再次请求。</strong></span></span><br><br><span style="text-align:left"><br></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6892265" title="快速可扩展的Ajax流代理——提供持续下载跨域数据" target="_blank" rel="external">快速可扩展的Ajax流代理——提供持续下载跨域数据</a><br></span><br><br><span style="font-size:13px"><strong>Ajax的请求有跨域限制，本文旨在给你提供一个基于流式的、异步的数据下载方式</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6901943" title="开发中常见的十种对缓存的错误使用" target="_blank" rel="external">开发中常见的十种对缓存的错误使用</a><br><br><span style="font-size:13px"><strong>讲解开发中对缓存十种不当地的使用，特别是来自分布式缓存的一些建议，你值得拥有！</strong></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:24px; color:#ff0000"><strong>【相关技术篇】</strong></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6876465" title="Node.js学习笔记(一)概述" target="_blank" rel="external">Node.js学习笔记(一)概述</a></span><br><br><span style="text-align:left"><span style="font-size:13px"><strong>对NodeJS的简单介绍和演示</strong></span></span><br><br><span style="text-align:left"><br></span><br><br><span style="text-align:left"><a href="http://blog.csdn.net/yanghua_kobe/article/details/6877518" title="Node.js应用之静态文件分发器" target="_blank" rel="external">Node.js应用之静态文件分发器</a><br></span><br><br><span style="font-size:13px"><strong>充分利用NodeJS的I/O无阻塞的优势，让它们来负责传输站点的静态文件是个不错的选择。</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6911930" title="Dnode:基于Node.js给浏览器提供异步远程方法调用" target="_blank" rel="external">Dnode:基于Node.js给浏览器提供异步远程方法调用</a><br><br><span style="font-size:13px"><strong>一个全新的node的module，提供服务端与客户端双向代理调用，服务端JS开始大行其道，似乎不再遥远！</strong></span><br><br><a href="http://blog.csdn.net/yanghua_kobe/article/details/6802071" title="MySQL with Memcached 简介" target="_blank" rel="external">MySQL with Memcached 简介</a><br><br><span style="font-size:13px"><strong>开源是个不可忽视的力量，凝聚了全世界开发者的智慧。本文翻译了MySQL与Memcached组合发挥威力。</strong></span><br><br><span style="font-size:13px"><strong>
-</strong></span><br><br><span style="font-size:13px"><strong>———————————————————————————————————————————————————————————————–</strong></span><br><br><span style="font-family:'Microsoft YaHei'; font-size:18px; color:#cc0000"><strong>再次祝大家在新的一年里身体健康，工作顺利，技术突飞猛进！</strong></span><br><br>        <div style="padding-top:20px"><br><br>版权声明：本文为博主原创文章，未经博主允许不得转载。<br><br>        </div><br></div>
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：</p>
+<a id="more"></a>
+<ul>
+<li>StreamIterationHead：迭代头任务，它借助于反馈阻塞队列从迭代尾部接收参与下一次迭代的反馈数据。</li>
+<li>StreamIterationTail：迭代尾任务，它借助于阻塞队列作为反馈信道将下一次需要迭代的数据反馈给迭代头。</li>
+</ul>
+<p>对于迭代流处理而言，随着任务（task）最终被并行化执行，它们的子任务（sub task，这些任务在计算节点中的实例）的并行度要求一致，并且迭代头的子任务与迭代尾的子任务必须成对且处于同一个CoLocationGroup中执行，这些都反映了流处理的迭代任务的特殊性，可以认为是一种并发与并行兼具的模式。</p>
+<p>StreamIterationHead和StreamIterationTail之间的交互依赖于阻塞队列代理（BlockingQueueBroker）。Flink设计了一种称之为Broker的数据结构，专门用于对迭代进行并发控制，而BlockingQueueBroker是Broker针对BlockingQueue类型的特定实现。因为Broker内部的核心数据结构就是ConcurrentMap&lt;String, BlockingQueue&lt;V&gt;&gt;类型，所以BlockingQueueBroker对应的类型即为：ConcurrentMap&lt;String, BlockingQueue&lt;BlockingQueue&gt;&gt;其图示如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/BlockingQueueBroker-structure.png" alt="BlockingQueueBroker-structure"></p>
+<p>迭代头任务跟迭代尾任务之间真正交互的数据结构是容量为1的阻塞队列：</p>
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">final</span> BlockingQueue&lt;StreamRecord&lt;<span class="keyword">OUT</span>&gt;&gt; dataChannel = <span class="keyword">new</span> ArrayBlockingQueue&lt;StreamRecord&lt;<span class="keyword">OUT</span>&gt;&gt;(<span class="number">1</span>);</div></pre></td></tr></table></figure>
+<p>它会被加入到BlockingQueueBroker内部的ConcurrentMap中去，对应的键是brokerID。brokerID生成规则如下：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">String</span> createBrokerIdString(JobID jid, <span class="keyword">String</span> iterationID, <span class="keyword">int</span> subtaskIndex) &#123;</div><div class="line"><span class="built_in">return</span> jid + <span class="string">"-"</span> + iterationID + <span class="string">"-"</span> + subtaskIndex;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>BlockingQueueBroker是单例的，因为对应的迭代头子任务和迭代尾子任务会生成相同的brokerID，所以两者在同一个JVM中会基于相同的dataChannel进行通信。dataChannel由迭代头创建并递交给BlockingQueueBroker：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">BlockingQueueBroker</span><span class="selector-class">.INSTANCE</span><span class="selector-class">.handIn</span>(<span class="selector-tag">brokerID</span>, <span class="selector-tag">dataChannel</span>);</div></pre></td></tr></table></figure>
+<p>由迭代尾获取：</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">BlockingQueue&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;&gt; dataChannel =</div><div class="line">(BlockingQueue&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;&gt;) BlockingQueueBroker.INSTANCE.<span class="built_in">get</span>(brokerID);</div></pre></td></tr></table></figure>
+<p>数据交换是基于dataChannel的，由迭代尾负责生产：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">collect</span><span class="params">(StreamRecord&lt;IN&gt; record)</span> </span>&#123;</div><div class="line"><span class="keyword">try</span> &#123;</div><div class="line"><span class="keyword">if</span> (shouldWait) &#123;</div><div class="line">dataChannel.offer(record, iterationWaitTime, TimeUnit.MILLISECONDS);</div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line">dataChannel.put(record);</div><div class="line">&#125;</div><div class="line">&#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</div><div class="line"><span class="keyword">throw</span> <span class="keyword">new</span> RuntimeException(e);</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>由迭代头负责消费：</p>
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">while</span> (running) &#123;</div><div class="line">StreamRecord&lt;OUT&gt; nextRecord = shouldWait ?</div><div class="line">dataChannel.poll(iterationWaitTime, TimeUnit.MILLISECONDS) :</div><div class="line">dataChannel.take();</div><div class="line"></div><div class="line"><span class="keyword">if</span> (nextRecord != <span class="built_in">null</span>) &#123;</div><div class="line"><span class="keyword">for</span> (RecordWriterOutput&lt;OUT&gt; <span class="keyword">output</span> : outputs) &#123;</div><div class="line"><span class="keyword">output</span>.collect(nextRecord);</div><div class="line">&#125;</div><div class="line">&#125; <span class="keyword">else</span> &#123;</div><div class="line"><span class="comment">// done</span></div><div class="line"><span class="keyword">break</span>;</div><div class="line">&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>因此，迭代头跟迭代尾的子任务之间通过反馈信道进行迭代数据处理的大致机制如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-runtime.png" alt="Streaming-iteration-runtime"></p>
+<p>相信分析到这里，我们应该明白了为什么迭代头和迭代尾的并行度必须一致，且处于相同的CoLocationGroup中。Flink在执行拓扑中巧妙地化解了反馈环，从而使其适应于DAG计算模型，但却在同一个TaskManager的迭代头和迭代尾对应的子任务中借助于阻塞队列的生产者和消费者模型重塑了反馈“环”。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-<!-- Baidu Button BEGIN -->
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/" data-id="ciwm3sree006ntcvuj7bb2kqu" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/" data-id="ciwm3srap001gtcvudp8j3htg" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2012/02/04/HTML5实现小车动画效果-Canvas-CSS3-JQuery/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          HTML5实现小车动画效果(Canvas/CSS3/JQuery)
-        
-      </div>
-    </a>
   
-  
-    <a href="/2012/01/14/浅谈跨网站脚本攻击-XSS-的手段与防范-简析新浪微博XSS攻击事件/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">浅谈跨网站脚本攻击(XSS)的手段与防范(简析新浪微博XSS攻击事件)</div>
+      <div class="article-nav-title">Flink流处理迭代之化解反馈环</div>
     </a>
   
 </nav>
@@ -139,7 +173,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-辞旧迎新——年度web开发合辑，新年大放送" data-title="辞旧迎新——年度web开发合辑，新年大放送" data-url="http://vinoyang.com/2012/01/23/辞旧迎新——年度web开发合辑，新年大放送/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-streaming-iteration-task" data-title="Flink流处理之迭代任务" data-url="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
