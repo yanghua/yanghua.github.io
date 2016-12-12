@@ -7,20 +7,20 @@
   
   <title>Flink流处理之迭代任务 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
+  <meta name="description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一篇我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink流处理之迭代任务">
 <meta property="og:url" content="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
+<meta property="og:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一篇我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/BlockingQueueBroker-structure.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Streaming-iteration-runtime.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2016-12-12T13:16:53.000Z">
+<meta property="og:updated_time" content="2016-12-12T13:18:45.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink流处理之迭代任务">
-<meta name="twitter:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
+<meta name="twitter:description" content="前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一篇我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：">
 <meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/BlockingQueueBroker-structure.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -110,7 +110,7 @@
             
           </div>
         
-        <p>前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一小节我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：</p>
+        <p>前面我们分析过Flink对迭代在流图中的特殊处理，使得迭代中的反馈环得以转化为普通的DAG模型。这一篇我们将剖析运行时的流处理迭代任务的执行机制。这里涉及到两个任务类：</p>
 <a id="more"></a>
 <ul>
 <li>StreamIterationHead：迭代头任务，它借助于反馈阻塞队列从迭代尾部接收参与下一次迭代的反馈数据。</li>
@@ -148,7 +148,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/" data-id="ciwm3srap001gtcvudp8j3htg" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2016/12/12/flink-streaming-iteration-task/" data-id="ciwm3v1kd001eudvu2scdzaiy" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
