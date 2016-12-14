@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之网络通信NetworkEnvironment分析 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="网络环境（NetworkEnvironment）是TaskManager进行网络通信的主对象，主要用于跟踪中间结果并负责所有的数据交换。每个TaskManager的实例都包含一个网络环境对象，在TaskManager启动时创建。NetworkEnvironment管理着多个协助通信的关键部件，它们是：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之网络通信NetworkEnvironment分析">
+<meta property="og:url" content="http://vinoyang.com/2016/12/14/flink-runtime-NetworkEnvironment/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="网络环境（NetworkEnvironment）是TaskManager进行网络通信的主对象，主要用于跟踪中间结果并负责所有的数据交换。每个TaskManager的实例都包含一个网络环境对象，在TaskManager启动时创建。NetworkEnvironment管理着多个协助通信的关键部件，它们是：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-12-14T14:47:10.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之网络通信NetworkEnvironment分析">
+<meta name="twitter:description" content="网络环境（NetworkEnvironment）是TaskManager进行网络通信的主对象，主要用于跟踪中间结果并负责所有的数据交换。每个TaskManager的实例都包含一个网络环境对象，在TaskManager启动时创建。NetworkEnvironment管理着多个协助通信的关键部件，它们是：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-NetworkEnvironment" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/14/flink-runtime-NetworkEnvironment/" class="article-date">
+  <time datetime="2016-12-14T14:43:27.000Z" itemprop="datePublished">2016-12-14</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之网络通信NetworkEnvironment分析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>网络环境（NetworkEnvironment）是TaskManager进行网络通信的主对象，主要用于跟踪中间结果并负责所有的数据交换。每个TaskManager的实例都包含一个网络环境对象，在TaskManager启动时创建。NetworkEnvironment管理着多个协助通信的关键部件，它们是：</p>
+<a id="more"></a>
+<ul>
+<li>NetworkBufferPool：网络缓冲池，负责申请一个TaskManager的所有的内存段用作缓冲池；</li>
+<li>ConnectionManager：连接管理器，用于管理本地（远程）通信连接；</li>
+<li>ResultPartitionManager：结果分区管理器，用于跟踪一个TaskManager上所有生产/消费相关的ResultPartition；</li>
+<li>TaskEventDispatcher：任务事件分发器，从消费者任务分发事件给生产者任务；</li>
+<li>ResultPartitionConsumableNotifier：结果分区可消费通知器，用于通知消费者生产者生产的结果分区可消费；</li>
+<li>PartitionStateChecker：分区状态检查器，用于检查分区状态；</li>
+</ul>
+<p>当NetworkEnvironment被初始化时，它首先根据配置创建网络缓冲池（NetworkBufferPool）。创建NetworkBufferPool时需要指定Buffer数目、单个Buffer的大小以及Buffer所基于的内存类型，这些信息都是可配置的并封装在配置对象NetworkEnvironmentConfiguration中。</p>
+<p>NetworkEnvironment对象包含了上面列举的网络I/O相关的各种部件，这些对象并不随着NetworkEnvironment对象实例化而被立即实例化，它们的实例化会被延后到NetworkEnvironment对象跟TaskManager以及JobManager<strong>关联</strong>（associate）上之后。TaskManager在启动后会向JobManager注册，随后NetworkEnvironment的associateWithTaskManagerAndJobManager方法会得到调用，在其中所有的辅助部件都会得到实例化：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">this</span>.partitionManager = <span class="keyword">new</span> <span class="type">ResultPartitionManager</span>();</div><div class="line"><span class="built_in">this</span>.taskEventDispatcher = <span class="keyword">new</span> <span class="type">TaskEventDispatcher</span>();</div><div class="line"><span class="built_in">this</span>.partitionConsumableNotifier = <span class="keyword">new</span> <span class="type">JobManagerResultPartitionConsumableNotifier</span>(</div><div class="line">    executionContext,jobManagerGateway,taskManagerGateway,jobManagerTimeout);</div><div class="line"></div><div class="line"><span class="built_in">this</span>.partitionStateChecker = <span class="keyword">new</span> <span class="type">JobManagerPartitionStateChecker</span>(jobManagerGateway, taskManagerGateway);</div><div class="line"></div><div class="line">final Option&lt;NettyConfig&gt; nettyConfig = configuration.nettyConfig();</div><div class="line">connectionManager = nettyConfig.isDefined() ? <span class="keyword">new</span> <span class="type">NettyConnectionManager</span>(nettyConfig.<span class="keyword">get</span>())</div><div class="line">    : <span class="type">new LocalConnectionManager</span>();</div><div class="line"></div><div class="line"><span class="keyword">try</span> &#123;</div><div class="line">    <span class="comment">//启动网络连接管理器</span></div><div class="line">    connectionManager.start(partitionManager, taskEventDispatcher, networkBufferPool);</div><div class="line">&#125; <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IOException</span>(<span class="string">"Failed to instantiate network connection manager: "</span> + t.getMessage(), t);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>当然在TaskManager触发stop动作之后，在其postStop逻辑中，也会跟JobManager进行<strong>解关联</strong>操作。从而触发NetworkEnvironment的disassociate方法。在disassociate方法中，上述所有的辅助通信部件也将会被释放或回收资源。</p>
+</blockquote>
+<p>在任务执行的核心逻辑中，有一个步骤是需要将自身（Task）注册到网络栈（也就是这里的NetworkEnvironment）。该步骤会调用NetworkEnvironment的实例方法registerTask进行注册，注册之后NetworkEnvironment会对任务的通信进行管理：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> registerTask(<span class="keyword">Task</span> <span class="keyword">task</span>) <span class="keyword">throws</span> IOException &#123;</div><div class="line">    <span class="comment">//获得当前任务对象所生产的结果分区集合</span></div><div class="line">    <span class="keyword">final</span> ResultPartition[] producedPartitions = <span class="keyword">task</span>.getProducedPartitions();</div><div class="line">    <span class="comment">//同时获得所有的结果分区写入器</span></div><div class="line">    <span class="keyword">final</span> ResultPartitionWriter[] writers = <span class="keyword">task</span>.getAllWriters();</div><div class="line"></div><div class="line">    <span class="comment">//正常情况下结果分区数与写入器的数目应该是相等的</span></div><div class="line">    <span class="keyword">if</span> (writers.length != producedPartitions.length) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Unequal number of writers and partitions."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    ResultPartitionConsumableNotifier jobManagerNotifier;</div><div class="line"></div><div class="line">    <span class="keyword">synchronized</span> (lock) &#123;</div><div class="line">        <span class="keyword">if</span> (isShutdown) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"NetworkEnvironment is shut down"</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//如果当前网络环境对象还没有跟TaskManager进行关联，那么说明调用的时机出现问题，直接抛出异常</span></div><div class="line">        <span class="keyword">if</span> (!isAssociated()) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"NetworkEnvironment is not associated with a TaskManager"</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//遍历任务的每个结果分区，依次进行初始化</span></div><div class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; producedPartitions.length; i++) &#123;</div><div class="line">            <span class="keyword">final</span> ResultPartition partition = producedPartitions[i];</div><div class="line">            <span class="keyword">final</span> ResultPartitionWriter writer = writers[i];</div><div class="line"></div><div class="line">            BufferPool bufferPool = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="comment">//用网络缓冲池创建本地缓冲池，该缓冲池是非固定大小的且请求的缓冲个数是结果分区的子分区个数</span></div><div class="line">                bufferPool = networkBufferPool.createBufferPool(</div><div class="line">                    partition.getNumberOfSubpartitions(), <span class="keyword">false</span>);</div><div class="line">                <span class="comment">//将本地缓冲池注册到结果分区</span></div><div class="line">                partition.registerBufferPool(bufferPool);</div><div class="line">                <span class="comment">//结果分区会被注册到结果分区管理器</span></div><div class="line">                partitionManager.registerResultPartition(partition);</div><div class="line">            &#125; <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">                <span class="keyword">if</span> (bufferPool != <span class="keyword">null</span>) &#123;</div><div class="line">                    bufferPool.lazyDestroy();</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="keyword">if</span> (t <span class="keyword">instanceof</span> IOException) &#123;</div><div class="line">                    <span class="keyword">throw</span> (IOException) t;</div><div class="line">                &#125; <span class="keyword">else</span> &#123;</div><div class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(t.getMessage(), t);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//向任务事件分发器注册结果分区写入器</span></div><div class="line">            taskEventDispatcher.registerWriterForIncomingTaskEvents(writer.getPartitionId(), writer);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//获得任务的所有输入闸门</span></div><div class="line">        <span class="keyword">final</span> SingleInputGate[] inputGates = <span class="keyword">task</span>.getAllInputGates();</div><div class="line"></div><div class="line">        <span class="comment">//遍历输入闸门，为它们设置缓冲池</span></div><div class="line">        <span class="keyword">for</span> (SingleInputGate gate : inputGates) &#123;</div><div class="line">            BufferPool bufferPool = <span class="keyword">null</span>;</div><div class="line"></div><div class="line">            <span class="keyword">try</span> &#123;</div><div class="line">                <span class="comment">//为每个输入闸门设置本地缓冲池，这里创建的本地缓冲池也非固定大小的，且初始化的缓冲数为其包含的输入信道数</span></div><div class="line">                bufferPool = networkBufferPool.createBufferPool(gate.getNumberOfInputChannels(), <span class="keyword">false</span>);</div><div class="line">                gate.setBufferPool(bufferPool);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">                <span class="keyword">if</span> (bufferPool != <span class="keyword">null</span>) &#123;</div><div class="line">                    bufferPool.lazyDestroy();</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="keyword">if</span> (t <span class="keyword">instanceof</span> IOException) &#123;</div><div class="line">                    <span class="keyword">throw</span> (IOException) t;</div><div class="line">                &#125; <span class="keyword">else</span> &#123;</div><div class="line">                    <span class="keyword">throw</span> <span class="keyword">new</span> IOException(t.getMessage(), t);</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        jobManagerNotifier = partitionConsumableNotifier;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//遍历所有的结果分区</span></div><div class="line">    <span class="keyword">for</span> (ResultPartition partition : producedPartitions) &#123;</div><div class="line">        <span class="comment">//如果某个结果分区的消费者是主动部署的</span></div><div class="line">        <span class="keyword">if</span> (partition.getEagerlyDeployConsumers()) &#123;</div><div class="line">            <span class="comment">//则直接通知JobManager，让其告知消费者任务，当前结果分区可被消费</span></div><div class="line">            jobManagerNotifier.notifyPartitionConsumable(</div><div class="line">                        partition.getJobId(), partition.getPartitionId());</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从任务被注册到NetworkEnvironment对象的代码段中，我们能够得到一些信息。NetworkEnvironment对象会为当前任务生产端的每个ResultPartition都创建本地缓冲池，缓冲池中的Buffer数为结果分区的子分区数，同时为当前任务消费端的InputGate创建本地缓冲池，缓冲池的Buffer数为InputGate所包含的输入信道数。这些缓冲池都是非固定大小的，也就是说他们会按照网络缓冲池内存段的使用情况进行重平衡。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/12/14/flink-runtime-NetworkEnvironment/" data-id="ciwp1x3u50024fwse8g721i04" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/12/12/flink-streaming-iteration-task/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink流处理之迭代任务</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-NetworkEnvironment" data-title="Flink运行时之网络通信NetworkEnvironment分析" data-url="http://vinoyang.com/2016/12/14/flink-runtime-NetworkEnvironment/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">31</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/14/flink-runtime-NetworkEnvironment/">Flink运行时之网络通信NetworkEnvironment分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/12/flink-streaming-iteration-task/">Flink流处理之迭代任务</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/">Flink流处理迭代之化解反馈环</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/04/flink-streaming-iteration-api/">Flink流处理之迭代API分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/11/29/flink-streaming-iteration/">Flink流处理之迭代案例</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
