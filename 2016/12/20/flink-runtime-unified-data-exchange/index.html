@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之统一的数据交换对象 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="统一的数据交换对象在Flink的执行引擎中，流动的元素主要有两种：缓冲（Buffer）和事件（Event）。Buffer主要针对用户数据交换，而Event则用于一些特殊的控制标识。但在实现时，为了在通信层统一数据交换，Flink提供了数据交换对象——BufferOrEvent。它是一个既可以表示Buffer又可以表示Event的类。上层使用者只需调用isBuffer和isEvent方法即可判断当前">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之统一的数据交换对象">
+<meta property="og:url" content="http://vinoyang.com/2016/12/20/flink-runtime-unified-data-exchange/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="统一的数据交换对象在Flink的执行引擎中，流动的元素主要有两种：缓冲（Buffer）和事件（Event）。Buffer主要针对用户数据交换，而Event则用于一些特殊的控制标识。但在实现时，为了在通信层统一数据交换，Flink提供了数据交换对象——BufferOrEvent。它是一个既可以表示Buffer又可以表示Event的类。上层使用者只需调用isBuffer和isEvent方法即可判断当前">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/buffer-package-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Event-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-12-20T14:37:12.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之统一的数据交换对象">
+<meta name="twitter:description" content="统一的数据交换对象在Flink的执行引擎中，流动的元素主要有两种：缓冲（Buffer）和事件（Event）。Buffer主要针对用户数据交换，而Event则用于一些特殊的控制标识。但在实现时，为了在通信层统一数据交换，Flink提供了数据交换对象——BufferOrEvent。它是一个既可以表示Buffer又可以表示Event的类。上层使用者只需调用isBuffer和isEvent方法即可判断当前">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/buffer-package-diagram.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-unified-data-exchange" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/20/flink-runtime-unified-data-exchange/" class="article-date">
+  <time datetime="2016-12-20T13:39:23.000Z" itemprop="datePublished">2016-12-20</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之统一的数据交换对象
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#统一的数据交换对象"><span class="toc-number">1.</span> <span class="toc-text">统一的数据交换对象</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#缓冲"><span class="toc-number">1.1.</span> <span class="toc-text">缓冲</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#事件"><span class="toc-number">1.2.</span> <span class="toc-text">事件</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="统一的数据交换对象"><a href="#统一的数据交换对象" class="headerlink" title="统一的数据交换对象"></a>统一的数据交换对象</h1><p>在Flink的执行引擎中，流动的元素主要有两种：缓冲（Buffer）和事件（Event）。Buffer主要针对用户数据交换，而Event则用于一些特殊的控制标识。但在实现时，为了在通信层统一数据交换，Flink提供了数据交换对象——BufferOrEvent。它是一个既可以表示Buffer又可以表示Event的类。上层使用者只需调用isBuffer和isEvent方法即可判断当前收到的这条数据是Buffer还是Event。</p>
+<a id="more"></a>
+<h2 id="缓冲"><a href="#缓冲" class="headerlink" title="缓冲"></a>缓冲</h2><p>缓冲（Buffer）是数据交换的载体，几乎所有的数据（当然事件是特殊的）交换都需要经过Buffer。Buffer底层依赖于Flink自管理内存的内存段（MemorySegment）作为数据的容器。Buffer在内存段上做了一层封装，这一层封装是为了对基于引用计数的Buffer回收机制提供支持。</p>
+<blockquote>
+<p><strong>引用计数</strong>是计算机编程语言中的一种内存管理技术，是指将资源（可以是对象、内存或磁盘）的被引用次数保存起来，当被引用次数变为零时就将其释放的过程。使用引用计数技术可以实现自动资源管理的目的。具体做法可简述为：当创建一个对象的实例并在堆上申请内存时，对象的引用计数就为1，在其他对象中需要持有这个对象时，就需要把该对象的引用计数加1，需要释放一个对象时，就将该对象的引用计数减1，直至对象的引用计数为0，对象的内存会被释放。</p>
+<p>引用计数还可以指使用引用计数技术回收未使用资源的垃圾回收算法，Objective-C就是使用这种方式进行内存管理的典型语言之一。</p>
+</blockquote>
+<p>它在内部维护着一个计数器referenceCount，初始值为1。内存回收由缓冲回收器（BufferRecycler）来完成，回收的对象就是内存段（MemorySegment）。</p>
+<p>实现引用计数的方法有两个。第一个为retain，用于将引用计数加一：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function">Buffer <span class="title">retain</span><span class="params">()</span> </span>&#123;   </div><div class="line">    <span class="keyword">synchronized</span> (recycleLock) &#123;</div><div class="line">        <span class="comment">//预防性检测，先确认内存段是否已被回收      </span></div><div class="line">        ensureNotRecycled();      </div><div class="line">        referenceCount++;      </div><div class="line">        <span class="keyword">return</span> <span class="keyword">this</span>;   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>第二个为回收（或将引用计数减一）的方法recycle，当引用计数减为0时，BufferRecycler会对内存段进行回收：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">recycle</span><span class="params">()</span> </span>&#123;   </div><div class="line">    <span class="keyword">synchronized</span> (recycleLock) &#123;      </div><div class="line">        <span class="keyword">if</span> (--referenceCount == <span class="number">0</span>) &#123;         </div><div class="line">            recycler.recycle(memorySegment);      </div><div class="line">        &#125;   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>BufferRecycler接口有一个名为FreeingBufferRecycler的简单实现者，它的做法是直接释放内存段。当然通常为了分配和回收的效率，会对Buffer进行预先分配然后加入到Buffer池中。所以，BufferRecycler的常规实现是基于缓冲池的。除此之外，还有另一个接口BufferProvider（它约定了Buffer提供者如何以同步和异步的模式提供Buffer）共同作为缓冲池（BufferPool）的基接口。</p>
+<p>整个的Buffer簇的类图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/buffer-package-diagram.png" alt="buffer-package-diagram"></p>
+<p>缓冲池工厂（BufferPoolFactory）用于创建和销毁缓冲池，网络缓冲池（NetworkBufferPool）是其唯一的实现者。NetworkBufferPool缓存了固定数目的内存段，主要用于网络栈通信。</p>
+<p>NetworkBufferPool在构造器的参数中要求指定其缓存的内存段数目，然后它会初始化固定大小的一个队列作为内存段池。与此同时，构造器参数还允许指定内存段大小以及Flink自主管理的内存类型。并根据这些参数初始化队列中的内存段：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (memoryType == MemoryType.HEAP) &#123;   </div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numberOfSegmentsToAllocate; i++) &#123;      </div><div class="line">        <span class="keyword">byte</span>[] memory = <span class="keyword">new</span> <span class="keyword">byte</span>[segmentSize];      </div><div class="line">        availableMemorySegments.<span class="keyword">add</span>(MemorySegmentFactory.wrapPooledHeapMemory(memory, <span class="literal">null</span>));   </div><div class="line">    &#125;</div><div class="line">&#125; <span class="function"><span class="keyword">else</span> <span class="title">if</span> (<span class="params">memoryType == MemoryType.OFF_HEAP</span>) </span>&#123;   </div><div class="line">    <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; numberOfSegmentsToAllocate; i++) &#123;      </div><div class="line">        ByteBuffer memory = ByteBuffer.allocateDirect(segmentSize);      </div><div class="line">        availableMemorySegments.<span class="keyword">add</span>(MemorySegmentFactory.wrapPooledOffHeapMemory(memory, <span class="literal">null</span>));   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>上面的代码段中调用了我们在分析内存管理时分析的内存段工厂（MemorySegmentFactory），注意这里wrapPooledXXX方法其实没什么特殊的，只是新建了相关的内存段实例。不要被其方法名迷惑，所谓的池化的机制都是要在外部维护，比如这里的NetworkBufferPool定义了维护内存段池（也即availableMemorySegments）的一系列方法，比如requestMemorySegment、recycle、destroy等。</p>
+</blockquote>
+<p>因为BufferPool当前只有LocalBufferPool这一个实现，所以NetworkBufferPool在实现BufferPoolFactory的createBufferPool方法时会直接实例化LocalBufferPool。NetworkBufferPool用一个Set维护了其所创建的所有LocalBufferPool的引用。createBufferPool方法要求在创建时指定需要创建的是固定大小的BufferPool还是非固定大小的BufferPool。如果是非固定大小的，NetworkBufferPool也专门提供了一个Set来维护它们，这主要是为了在创建或销毁BufferPool时对这些非固定大小的BufferPool里的Buffer进行“重分布”。</p>
+<p>这里对非固定大小的BufferPool里的内存段进行重分布值得我们重点关注一下。其实，所有BufferPool所申请的内存段都归属于NetworkBufferPool所维护的内存段池。只有NetworkBufferPool了解内存段池的所有信息，包括剩余可用的内存段数目。当createBufferPool方法或者destroyBufferPool方法被调用时，对应的可用的内存段数目也会相应得产生变化。这时，为了让内存段被合理地分配并加以利用，所有非固定大小的BufferPool都需要根据最新的可用内存段数来重分布其所包含的内存段数目。具体的重分布的实现如下：</p>
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="keyword">void</span> redistributeBuffers() <span class="keyword">throws</span> IOException &#123;</div><div class="line">    <span class="comment">//获得非固定大小的BufferPool个数   </span></div><div class="line">    <span class="keyword">int</span> numManagedBufferPools = managedBufferPools.size();   </div><div class="line">    <span class="comment">//如果没有，则直接返回，避免除零错误</span></div><div class="line">    <span class="keyword">if</span> (numManagedBufferPools == <span class="number">0</span>) &#123;      </div><div class="line">        <span class="keyword">return</span>; </div><div class="line">    &#125;   </div><div class="line"></div><div class="line">    <span class="comment">//当前总共可用的内存段数目（未实际分配）</span></div><div class="line">    <span class="keyword">int</span> numAvailableMemorySegment = totalNumberOfMemorySegments - numTotalRequiredBuffers;   </div><div class="line">    <span class="comment">//每个BufferPool可额外附“赠”的内存段数目   </span></div><div class="line">    <span class="keyword">int</span> numExcessBuffersPerPool = numAvailableMemorySegment / numManagedBufferPools;   </div><div class="line">    <span class="comment">//当然可用的内存段不一定正好能完全分摊给所有的非固定大小的BufferPool，所以剩下的余量以轮转的方式分摊</span></div><div class="line">    <span class="keyword">int</span> numLeftoverBuffers = numAvailableMemorySegment % numManagedBufferPools;   </div><div class="line">    <span class="keyword">int</span> bufferPoolIndex = <span class="number">0</span>;   </div><div class="line">    <span class="comment">//遍历BufferPool挨个扩充</span></div><div class="line">    <span class="keyword">for</span> (LocalBufferPool <span class="string">bufferPool :</span> managedBufferPools) &#123;      </div><div class="line">        <span class="keyword">int</span> leftoverBuffers = bufferPoolIndex++ &lt; numLeftoverBuffers ? 1 : <span class="number">0</span>;      </div><div class="line">        bufferPool.setNumBuffers(</div><div class="line">            bufferPool.getNumberOfRequiredMemorySegments() + numExcessBuffersPerPool + leftoverBuffers</div><div class="line">        );   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>该方法的调用环境必须处于同步块中。</p>
+</blockquote>
+<p>LocalBufferPool的setNumBuffers方法并不只是设置一下数目这么简单，具体的逻辑我们暂且按下不表。我们先来看一下LocalBufferPool的实现，它用于管理从NetworkBufferPool申请到的一组Buffer实例。LocalBufferPool中维护着的一些信息：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//当前缓冲区池最少需要的内存段的数目</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> <span class="keyword">int</span> numberOfRequiredMemorySegments;</div><div class="line"></div><div class="line"><span class="comment">//当前可用的内存段，这些内存段已从网络缓冲池中请求到本地，但当前没有被当做缓冲区用于数据传输</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> Queue&lt;MemorySegment&gt; availableMemorySegments = <span class="keyword">new</span> ArrayDeque&lt;MemorySegment&gt;();</div><div class="line"></div><div class="line"><span class="comment">//注册过的获取Buffer可用性的侦听器，当无Buffer可用时，才可注册侦听器</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> Queue&lt;EventListener&lt;Buffer&gt;&gt; registeredListeners = <span class="keyword">new</span> ArrayDeque&lt;EventListener&lt;Buffer&gt;&gt;();</div><div class="line"></div><div class="line"><span class="comment">//缓冲池的当前大小</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">int</span> currentPoolSize;</div><div class="line"></div><div class="line"><span class="comment">//从网络缓冲池请求的以及以某种形式关联着的所有的内存段数目</span></div><div class="line"><span class="keyword">private</span> <span class="keyword">int</span> numberOfRequestedMemorySegments;</div></pre></td></tr></table></figure>
+<p>LocalBufferPool被实例化时，虽然指定了其所需要的内存段的最小数目，但是NetworkBufferPool并没有将这些内存段实例分配给它，也就是说不是预先静态分配的，而是调用方调用requestBuffer方法（来自BufferProvider接口），在内部触发对NetworkBufferPool的实例方法requestMemorySegment的调用进而获取到内存段。我们来看一下requestBuffer方法的实现：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="function">Buffer <span class="title">requestBuffer</span><span class="params">(<span class="keyword">boolean</span> isBlocking)</span> <span class="keyword">throws</span> InterruptedException, IOException </span>&#123;   </div><div class="line">    <span class="keyword">synchronized</span> (availableMemorySegments) &#123;</div><div class="line">        <span class="comment">//在请求之前，可能需要先返还多余的，也就是超出currentPoolSize的内存段给NetworkBufferPool</span></div><div class="line">        returnExcessMemorySegments();      </div><div class="line">        <span class="keyword">boolean</span> askToRecycle = owner != <span class="keyword">null</span>;</div><div class="line"></div><div class="line">        <span class="comment">//当可用内存段队列为空时，说明已没有空闲的内存段，则可能需要从NetworkBufferPool获取      </span></div><div class="line">        <span class="keyword">while</span> (availableMemorySegments.isEmpty()) &#123;         </div><div class="line">            <span class="keyword">if</span> (isDestroyed) &#123;            </div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Buffer pool is destroyed."</span>);         </div><div class="line">            &#125;         </div><div class="line">            <span class="comment">//获取的条件是：所请求的总内存段的数目小于当前池大小</span></div><div class="line">            <span class="keyword">if</span> (numberOfRequestedMemorySegments &lt; currentPoolSize) &#123;            </div><div class="line">                <span class="comment">//请求一个内存段</span></div><div class="line">                <span class="keyword">final</span> MemorySegment segment = networkBufferPool.requestMemorySegment();            </div><div class="line">                <span class="keyword">if</span> (segment != <span class="keyword">null</span>) &#123;               </div><div class="line">                    <span class="comment">//所请求的内存段总数目加一，并将请求的内存段加入到可用内存段队列中，然后跳出本轮while循环</span></div><div class="line">                    <span class="comment">//注意这里是continue而不是break，这里还必须继续判断队列中是否有元素可用，</span></div><div class="line">                    <span class="comment">//因为当前对象可能处于分布式的场景下</span></div><div class="line">                    numberOfRequestedMemorySegments++;               </div><div class="line">                    availableMemorySegments.add(segment);               </div><div class="line">                    <span class="keyword">continue</span>;            </div><div class="line">                &#125;         </div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果总内存段的数目已大于等于本地缓冲池大小，判断是否需要释放，如果需要，让缓冲区池归属者释放一个内存段         </span></div><div class="line">            <span class="keyword">if</span> (askToRecycle) &#123;            </div><div class="line">                owner.releaseMemory(<span class="number">1</span>);         </div><div class="line">            &#125;</div><div class="line">            <span class="comment">//如果是阻塞式的请求模式，则对当前队列阻塞等待两秒钟，接着仍然继续while循环         </span></div><div class="line">            <span class="keyword">if</span> (isBlocking) &#123;            </div><div class="line">                availableMemorySegments.wait(<span class="number">2000</span>);         </div><div class="line">            &#125; <span class="keyword">else</span> &#123;            </div><div class="line">                <span class="comment">//否则，直接返回空并退出循环</span></div><div class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;         </div><div class="line">            &#125;      </div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//当有可用内存段时，直接从队列中获取内存段并新建一个Buffer实例      </span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Buffer(availableMemorySegments.poll(), <span class="keyword">this</span>);   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在上文我们介绍过，在NetworkBufferPool中创建或者销毁BufferPool时，所有非固定大小的BufferPool会被重分布。在分析其实现是，我们看到了它会调用LocalBufferPool的实例方法setNumBuffers，该方法会调整本地缓冲池的大小，并可能会对其所申请的内存段数目产生影响：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">setNumBuffers</span><span class="params">(<span class="keyword">int</span> numBuffers)</span> <span class="keyword">throws</span> IOException </span>&#123;   </div><div class="line">    <span class="keyword">synchronized</span> (availableMemorySegments) &#123;</div><div class="line">        <span class="comment">//重分布后新的Buffer数量不得小于最小要求的内存段数量      </span></div><div class="line">        checkArgument(numBuffers &gt;= numberOfRequiredMemorySegments, </div><div class="line">            <span class="string">"Buffer pool needs at least "</span> + numberOfRequiredMemorySegments + </div><div class="line">            <span class="string">" buffers, but tried to set to "</span> + numBuffers + <span class="string">"."</span>);      </div><div class="line">        <span class="comment">//修改缓冲池容量</span></div><div class="line">        currentPoolSize = numBuffers;      </div><div class="line">        <span class="comment">//如果当前保有的内存段数目大于新的缓冲池容量，则将超出部分归还</span></div><div class="line">        <span class="comment">//注意这里归还并不是精确强制归还的，当本地缓冲池中没有多余的内存段时，归还动作将会终止</span></div><div class="line">        returnExcessMemorySegments();      </div><div class="line">        <span class="comment">//这是第二重保险，如果Buffer存在归属者且此时本地缓冲区池中保有的内存段仍然大于缓冲池容量</span></div><div class="line">        <span class="comment">//则会对多余的内存段进行释放</span></div><div class="line">        <span class="keyword">if</span> (owner != <span class="keyword">null</span> &amp;&amp; numberOfRequestedMemorySegments &gt; currentPoolSize) &#123;         </div><div class="line">            owner.releaseMemory(numberOfRequestedMemorySegments - numBuffers);      </div><div class="line">        &#125;   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>Buffer是数据交换的载体，在所有涉及到数据交换的地方都会用到它。因此理解其相关的实现对于，理解Flink的整个数据流交换体系非常有帮助。</p>
+<h2 id="事件"><a href="#事件" class="headerlink" title="事件"></a>事件</h2><p>Flink的数据流中不仅仅只有用户的数据，还包含了一些特殊的事件，这些事件都是由算子注入到数据流中的。它们在每个流分区里伴随着其他的数据元素而被有序地分发。接收到这些事件的算子会对这些事件给出响应，典型的事件类型有：</p>
+<ul>
+<li>检查点屏障：用于隔离多个检查点之间的数据，保障快照数据的一致性；</li>
+<li>迭代屏障：标识流分区已到达了一个超级步的结尾；</li>
+<li>子分区数据结束标记：当消费任务获取到该事件时，表示其所消费的对应的分区中的数据已被全部消费完成；</li>
+</ul>
+<p>事件假设一个流分区维持着元素顺序。鉴于此，在Flink中一元算子在消费单一流分区时，能够保证FIFO（先进先出）的元素顺序。而为了保证流处理的速率同时避免反压，算子有时会接收超过一个流分区的元素并将它们合并。综合各种场景，Flink中的数据流在任何形式的重分区或广播之后不提供顺序保证。而对无序元素的处理任务交给算子自行实现。</p>
+<p>在Flink中所有事件的最终基类都是AbstractEvent。AbstractEvent这一抽象类又派生出另一个抽象类RuntimeEvent，几乎所有预先内置的事件都直接派生于此。除了预定义的事件外，Flink还支持自定义的扩展事件，所有自定义的事件都继承自派生于AbstractEvent的TaskEvent。总结一下，其类继承关系图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Event-class-diagram.png" alt="Event-class-diagram"></p>
+<p>上图中继承自RuntimeEvent的三个事件类就是上文列举的典型事件。其中只有CheckpointBarrier包含检查点编号和时间戳这两个属性，其他两个事件类主要起到标识作用。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/12/20/flink-runtime-unified-data-exchange/" data-id="ciwxm736s0026u9vuv30gajyg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/12/14/flink-runtime-NetworkEnvironment/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之网络通信NetworkEnvironment分析</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-unified-data-exchange" data-title="Flink运行时之统一的数据交换对象" data-url="http://vinoyang.com/2016/12/20/flink-runtime-unified-data-exchange/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">32</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/20/flink-runtime-unified-data-exchange/">Flink运行时之统一的数据交换对象</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/14/flink-runtime-NetworkEnvironment/">Flink运行时之网络通信NetworkEnvironment分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/12/flink-streaming-iteration-task/">Flink流处理之迭代任务</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/">Flink流处理迭代之化解反馈环</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/04/flink-streaming-iteration-api/">Flink流处理之迭代API分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
