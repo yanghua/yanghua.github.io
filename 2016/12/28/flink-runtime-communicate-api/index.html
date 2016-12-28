@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之通信层API | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="通信层API通信层API介于任务执行与通信细节之间，主要用于对上层任务执行提供记录的读写服务同时屏蔽底层的通信细节。主要包括三个部件：将记录写入结果分区的写入器、将数据从输入网关中读出并反序列化为记录的读取器以及周旋在记录和二进制的Buffer数据之间对数据表示进行转换的序列化器。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之通信层API">
+<meta property="og:url" content="http://vinoyang.com/2016/12/28/flink-runtime-communicate-api/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="通信层API通信层API介于任务执行与通信细节之间，主要用于对上层任务执行提供记录的读写服务同时屏蔽底层的通信细节。主要包括三个部件：将记录写入结果分区的写入器、将数据从输入网关中读出并反序列化为记录的读取器以及周旋在记录和二进制的Buffer数据之间对数据表示进行转换的序列化器。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Deserializer-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Reader-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2016-12-28T14:06:24.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之通信层API">
+<meta name="twitter:description" content="通信层API通信层API介于任务执行与通信细节之间，主要用于对上层任务执行提供记录的读写服务同时屏蔽底层的通信细节。主要包括三个部件：将记录写入结果分区的写入器、将数据从输入网关中读出并反序列化为记录的读取器以及周旋在记录和二进制的Buffer数据之间对数据表示进行转换的序列化器。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Deserializer-class-diagram.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-communicate-api" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2016/12/28/flink-runtime-communicate-api/" class="article-date">
+  <time datetime="2016-12-28T14:53:06.000Z" itemprop="datePublished">2016-12-28</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之通信层API
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#通信层API"><span class="toc-number">1.</span> <span class="toc-text">通信层API</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#序列化器"><span class="toc-number">1.1.</span> <span class="toc-text">序列化器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#写入器"><span class="toc-number">1.2.</span> <span class="toc-text">写入器</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#读取器"><span class="toc-number">1.3.</span> <span class="toc-text">读取器</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="通信层API"><a href="#通信层API" class="headerlink" title="通信层API"></a>通信层API</h1><p>通信层API介于任务执行与通信细节之间，主要用于对上层任务执行提供记录的读写服务同时屏蔽底层的通信细节。主要包括三个部件：将记录写入结果分区的写入器、将数据从输入网关中读出并反序列化为记录的读取器以及周旋在记录和二进制的Buffer数据之间对数据表示进行转换的序列化器。</p>
+<a id="more"></a>
+<h2 id="序列化器"><a href="#序列化器" class="headerlink" title="序列化器"></a>序列化器</h2><p>为了使得记录以及事件能够被写入Buffer随后在消费时再从Buffer中读出，Flink提供了记录序列化器（RecordSerializer）与反序列化器（RecordDeserializer）以及事件序列化器（EventSerializer）。</p>
+<p>我们先来分析RecordSerializer，作为一个接口，SpanningRecordSerializer是其唯一的实现。它是一种支持跨内存段的序列化器，其实现借助于中间缓冲区来缓存序列化后的数据，然后再往真正的目标Buffer里写，在写的时候会维护两个“指针”：一个是表示目标Buffer内存段长度的limit，还有一个是表示其当前写入位置的position。因为一个Buffer对应着一个内存段，当将数据序列化并存入内存段时，其空间有可能有剩余也有可能不够。因此，RecordSerializer定义了一个表示序列化结果的SerializationResult枚举。它提供了这么几个枚举值：</p>
+<ul>
+<li>PARTIAL_RECORD_MEMORY_SEGMENT_FULL：内存段已满但记录的数据只写入了部分，没有完全写完；</li>
+<li>FULL_RECORD_MEMORY_SEGMENT_FULL：内存段写满，记录的数据已全部写入；</li>
+<li>FULL_RECORD：记录的数据全部写入，但内存段并没有满；</li>
+</ul>
+<p>一个记录的序列化过程通常由setNextBuffer和addRecord这两个方法共同配合完成。其中setNextBuffer方法的主要作用是重新初始化一个新的Buffer作为目标Buffer并刷出剩余数据；而addRecord方法则主要用于进行真正的序列化操作。这两个方法的调用结果都返回的是SerializationResult。那么具体的序列化结果是如何判断的呢？这个逻辑由getSerializationResult方法完成：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> SerializationResult getSerializationResult() &#123;</div><div class="line">    <span class="comment">//如果数据buffer中已没有更多的数据且长度buffer里也没有更多的数据，该判断可确认记录数据已全部写完</span></div><div class="line">    <span class="keyword">if</span> (!<span class="keyword">this</span>.dataBuffer.hasRemaining() &amp;&amp; !<span class="keyword">this</span>.lengthBuffer.hasRemaining()) &#123;</div><div class="line">        <span class="comment">//紧接着判断写入位置跟内存段的结束位置之间的关系，如果写入位置小于结束位置，则说明数据全部写入，</span></div><div class="line">        <span class="comment">//否则说明数据全部写入且内存段也写满</span></div><div class="line">        <span class="keyword">return</span> (<span class="keyword">this</span>.position &lt; <span class="keyword">this</span>.limit)</div><div class="line">            ? SerializationResult.FULL_RECORD</div><div class="line">            : SerializationResult.FULL_RECORD_MEMORY_SEGMENT_FULL;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//任何一个buffer中仍存有数据，则记录只能被标记为部分写入</span></div><div class="line">    <span class="keyword">return</span> SerializationResult.PARTIAL_RECORD_MEMORY_SEGMENT_FULL;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>下面我们来分析记录反序列化器（RecordDeserializer）。跟RecordSerializer类似，考虑到记录的数据大小以及Buffer对应的内存段的容量大小。在反序列化时也存在不同的反序列化结果，以枚举DeserializationResult表示：</p>
+<ul>
+<li>PARTIAL_RECORD：表示记录并未完全被读取，但缓冲中的数据已被消费完成；</li>
+<li>INTERMEDIATE_RECORD_FROM_BUFFER：表示记录的数据已被完全读取，但缓冲中的数据并未被完全消费；</li>
+<li>LAST_RECORD_FROM_BUFFER：记录被完全读取，且缓冲中的数据也正好被完全消费；</li>
+</ul>
+<p>RecordDeserializer接口有两个实现，分别是：</p>
+<ul>
+<li>AdaptiveSpanningRecordDeserializer：适用于数据大小适中且跨段的记录的反序列化；</li>
+<li>SpillingAdaptiveSpanningRecordDeserializer：适用于数据大小相对较大且跨段的记录的反序列化，它支持将溢出的数据写入临时文件；</li>
+</ul>
+<p>这两个实现在内部都某种程度上依赖于特定的数据输入视图（DataInputView），完整的类图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Deserializer-class-diagram.png" alt="Deserializer-class-diagram"></p>
+<p>每个反序列化器内部都各自实现了跨段数据读取包装器和不跨段的数据读取包装器，其中跨段的数据读取包装器都依赖各自的不跨段的读取包装器。将Buffer中的数据反序列化为记录由getNextRecord方法和setNextBuffer方法协作完成。getNextRecord方法会传入目标记录的引用并在内部将数据填入目标记录。</p>
+<p>虽然不同的反序列化器有各自适用的场景，但它们的实现绝大部分是类似的，主要的差别在于两者对SpanningWrapper的实现上。AdaptiveSpanningRecordDeserializer主要应用了临时缓冲区在内存中处理跨段数据的读取，而SpillingAdaptiveSpanningRecordDeserializer则有一个溢出阈值（5MB），如果记录的数据大于这个阈值将会采用临时文件来将溢出数据写入到临时文件中，然后再从溢出文件对应的文件流构建数据输入视图（DataInputViewStreamWrapper）进行读取。由于支持大记录的SpillingAdaptiveSpanningRecordDeserializer在数据大小不大于溢出阈值时处理方式跟AdaptiveSpanningRecordDeserializer类似，所以SpillingAdaptiveSpanningRecordDeserializer能适应更一般的场景，更具实用性，这也导致了在源码中没有见到AdaptiveSpanningRecordDeserializer的使用踪迹。</p>
+<p>除了记录序列化器与反序列化器之外，Flink为事件也提供了序列化器来进行序列化和反序列化操作。事件序列化器（EventSerializer）可将事件在AbstractEvent跟Buffer、ByteBuffer的表示之间进行转换。Flink为其所支持的事件类型进行了编号，这些事件大致分为如下几种：</p>
+<ul>
+<li>EndOfPartitionEvent：分区数据写入结束事件，类型编号为0；</li>
+<li>CheckpointBarrier：检查点屏障事件，类型编号为1；</li>
+<li>EndOfSuperstepEvent：超步结束事件，类型编号为2；</li>
+<li>其他事件类型统一都编号为3；</li>
+</ul>
+<p>事件被序列化为二进制表示时，首先写入事件编号，然后再写入具体数据。从二进制再反序列化为事件对象表示时，首先读取一个整形的字节数，也就是先读取事件类型编号，然后根据不同编号的事件针对性处理。</p>
+<h2 id="写入器"><a href="#写入器" class="headerlink" title="写入器"></a>写入器</h2><p>在通信层API提供了两种写入器，分别是记录写入器（RecordWriter）以及结果分区写入器（ResultPartitionWriter）。这两个写入器的主要差别是它们所面向的层级不同。RecordWriter面向记录，而ResultPartitionWriter面向的是Buffer，下面我们会分别对这两种写入器进行介绍。</p>
+<p>RecordWriter相比ResultPartitionWriter所处的层面更高，并且它依赖于ResultPartitionWriter，所以我们先分析ResultPartitionWriter。一个ResultPartitionWriter通常负责为一个ResultPartition特定子分区生产Buffer和Event。同时还提供了将特定的事件广播到所有的子分区中的方法。</p>
+<p>接下来，我们将关注点回到RecordWriter上来，记录写入器是对我们上文分析的ResultPartitionWriter进行了包装，同时添加了对记录的序列化功能，以使其可被放入Buffer。在构建RecordWriter时，允许指定通道选择器（ChannelSelector）。</p>
+<blockquote>
+<p>所谓的通道选择器允许用户自定义某个记录的要存放在哪个输出通道中，如果不指定，那么Flink将会选择简单的顺序轮转选择器（RoundRobinChannelSelector）。</p>
+</blockquote>
+<p>在RecordWriter被初始化时，它所对应的ResultPartition的每个ResultSubpartition（输出信道）都会有对应一个独立的RecordSerializer，具体的类型是我们之前分析的SpanningRecordSerializer。</p>
+<p>RecordWriter会接收要写入的记录然后借助于ResultPartitionWriter将序列化后的Buffer写入特定的ResultSubpartition中去。它提供了单播、广播的写入方式，支持记录、事件的写入。</p>
+<p>我们主要分析一下写入单个记录的emit方法的实现：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> emit(T record) throws IOException, InterruptedException &#123;</div><div class="line">    <span class="comment">//遍历通道选择器选择出的通道（有可能选择多个通道），所谓的通道其实就是ResultSubpartition</span></div><div class="line">    <span class="built_in">for</span> (<span class="keyword">int</span> targetChannel : channelSelector.selectChannels(record, numChannels)) &#123;</div><div class="line">        <span class="comment">//获得当前通道对应的序列化器</span></div><div class="line">        RecordSerializer&lt;T&gt; serializer = serializers[targetChannel];</div><div class="line"></div><div class="line">        synchronized (serializer) &#123;</div><div class="line">            <span class="comment">//向序列化器中加入记录，加入的记录会被序列化并存入到序列化器内部的Buffer中</span></div><div class="line">            SerializationResult result = serializer.addRecord(record);</div><div class="line">            <span class="comment">//如果Buffer已经存满</span></div><div class="line">            <span class="built_in">while</span> (result.isFullBuffer()) &#123;</div><div class="line">                <span class="comment">//获得当前存储记录数据的Buffer</span></div><div class="line">                Buffer <span class="built_in">buffer</span> = serializer.getCurrentBuffer();</div><div class="line"></div><div class="line">                <span class="comment">//将Buffer写入ResultPartition中特定的ResultSubpartition</span></div><div class="line">                <span class="built_in">if</span> (<span class="built_in">buffer</span> != null) &#123;</div><div class="line">                    writeBuffer(<span class="built_in">buffer</span>, targetChannel, serializer);</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                <span class="comment">//向缓冲池请求一个新的Buffer</span></div><div class="line">                <span class="built_in">buffer</span> = writer.getBufferProvider().requestBufferBlocking();</div><div class="line">                <span class="comment">//将新Buffer继续用来序列化记录的剩余数据，然后再次循环这段逻辑，直到数据全部被写入Buffer</span></div><div class="line">                result = serializer.setNextBuffer(<span class="built_in">buffer</span>);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从上述代码段中我们可以看到，如果记录的数据无法被单个Buffer所容纳，将会被拆分成多个Buffer存储，直到数据写完。而如果是广播记录或者广播事件，整个过程也是类似的，只不过变成了挨个遍历写入每个ResultSubpartition，而不是像上面这样通过通道选择器来选择。</p>
+<p>当所有数据都写入完成后需要调用flush方法将可能残留在序列化器Buffer中的数据都强制输出。flush方法会遍历每个ResultSubpartition，然后依次取出该ResultSubpartition对应的序列化器，如果其中还有残留的数据，则将数据全部输出。这也是每个ResultSubpartition都对应一个序列化器的原因。</p>
+<h2 id="读取器"><a href="#读取器" class="headerlink" title="读取器"></a>读取器</h2><p>写入器负责将生产者任务产生的中间结果数据写入到ResultSubpartition供消费者任务消费，而读取器则读取消费者任务所消费的数据并反序列化为记录。</p>
+<p>读取器有着比写入器相对复杂的设计，总得来说可以按照两个维度来进行分类：</p>
+<ul>
+<li>层级：底层的Buffer读取器（BufferReader）和高层的记录读取器（RecordReader）；</li>
+<li>可变性：不可变记录读取器（RecordReader）和可变记录读取器（MutableRecordReader）；</li>
+</ul>
+<p>整体的类关系图如下：<br><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Reader-class-diagram.png" alt="Reader-class-diagram"></p>
+<p>这其中，最关键的是两个抽象类：AbstractReader和AbstractRecordReader。从类图来看，AbstractReader提供了最基础的实现。在分析写入器时，每个写入器都关联着结果分区（ResultPartition）。相应地，每个读取器也关联着对等的输入网关（InputGate）。AbstractReader主要对读取到的事件提供处理，以下代码段是处理事件的主逻辑：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">protected</span> <span class="keyword">boolean</span> handleEvent(AbstractEvent event) <span class="keyword">throws</span> IOException &#123;</div><div class="line">    <span class="keyword">final</span> <span class="keyword">Class</span>&lt;?&gt; eventType = event.getClass();</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="comment">//如果事件为消费完的特定结果子分区中的数据，则直接返回true</span></div><div class="line">        <span class="keyword">if</span> (eventType == EndOfPartitionEvent.<span class="keyword">class</span>) &#123;</div><div class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//如果事件是针对迭代的超步完成，则增加相应的超步完成计数 </span></div><div class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (eventType == EndOfSuperstepEvent.<span class="keyword">class</span>) &#123;</div><div class="line">            <span class="keyword">return</span> incrementEndOfSuperstepEventAndCheck();</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//如果事件是TaskEvent，则直接用任务事件处理器发布</span></div><div class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (event <span class="keyword">instanceof</span> TaskEvent) &#123;</div><div class="line">            taskEventHandler.publish((TaskEvent) event);</div><div class="line"></div><div class="line">            <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Received unexpected event of type "</span> </div><div class="line">                + eventType + <span class="string">" at reader."</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IOException(<span class="string">"Error while handling event of type "</span> + eventType + <span class="string">": "</span> + t.getMessage(), t);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>AbstractReader对迭代的超步提供了统计，它内部维护了一个超步事件计数器currentNumberOfEndOfSuperstepEvents。这一点的实现跟检查点的屏障对齐机制类似。当计数器跟InputGate所包含的InputChannel数量相等时，说明超步事件已到达每个InputChannel，则可认为超步结束。</p>
+<p>接下来我们来分析直接继承自AbstractReader的面向Buffer的读取器BufferReader。其主要借助于AbstractReader的handleEvent方法对事件进行处理，而对于普通的数据Buffer则直接放行。</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function">Buffer <span class="title">getNextBuffer</span><span class="params">()</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</div><div class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</div><div class="line">        <span class="keyword">final</span> BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (bufferOrEvent.isBuffer()) &#123;</div><div class="line">            <span class="function"><span class="keyword">return</span> bufferOrEvent.<span class="title">getBuffer</span><span class="params">()</span></span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">if</span> (handleEvent(bufferOrEvent.getEvent())) &#123;</div><div class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从以上代码段中可见，代码逻辑处于 <code>while(true)</code>块中。因此当调用handleEvent方法返回false时将会重复从InputGate里获取Buffer并处理。</p>
+<p>分析完了面向Buffer的读取器BufferReader，接下来我们来分析面向记录的读取器。面向记录的读取器分为可变记录和不可变记录读取器。无论是哪种读取器都继承自AbstractRecordReader。记录读取器需要从二进制表示反序列化为记录，这依赖于我们之前分析的反序列化器。正如我们在分析序列化时所提及的，反序列化器的实例对应着InputChannel的实例。记录读取器关联着InputGate，因而它内部维护了一组反序列化器，且反序列化器类型为支持大记录溢出到磁盘的SpillingAdaptiveSpanningRecordDeserializer。</p>
+<p>接下来，我们来看一下它获得记录的getNextRecord方法的实现，它是可变记录读取器和非可变记录读取器的基础，其返回值是一个布尔值表示是否还有下一条记录。</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">protected</span> <span class="function"><span class="keyword">boolean</span> <span class="title">getNextRecord</span><span class="params">(T <span class="keyword">target</span>)</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</div><div class="line">    <span class="keyword">if</span> (isFinished) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</div><div class="line">        <span class="comment">//如果当前反序列化器已被初始化，说明它当前正在序列化一个记录</span></div><div class="line">        <span class="keyword">if</span> (currentRecordDeserializer != <span class="keyword">null</span>) &#123;</div><div class="line">            <span class="comment">//以当前反序列化器对记录进行反序列化，并返回反序列化结果枚举DeserializationResult</span></div><div class="line">            DeserializationResult result = currentRecordDeserializer.getNextRecord(<span class="keyword">target</span>);</div><div class="line"></div><div class="line">            <span class="comment">//如果获得结果是当前的Buffer已被消费（还不是记录的完整结果），获得当前的Buffer，将其回收，</span></div><div class="line">            <span class="comment">//后续会继续反序列化当前记录的剩余数据</span></div><div class="line">            <span class="keyword">if</span> (result.isBufferConsumed()) &#123;</div><div class="line">                <span class="keyword">final</span> Buffer currentBuffer = currentRecordDeserializer.getCurrentBuffer();</div><div class="line"></div><div class="line">                currentBuffer.recycle();</div><div class="line">                currentRecordDeserializer = <span class="keyword">null</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//如果结果表示记录已被完全消费，则返回true，跳出循环</span></div><div class="line">            <span class="keyword">if</span> (result.isFullRecord()) &#123;</div><div class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//从输入闸门获得下一个Buffer或者事件对象</span></div><div class="line">        <span class="keyword">final</span> BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();</div><div class="line"></div><div class="line">        <span class="comment">//如果是Buffer</span></div><div class="line">        <span class="keyword">if</span> (bufferOrEvent.isBuffer()) &#123;</div><div class="line">            <span class="comment">//设置当前的反序列化器，并将当前记录对应的Buffer给反序列化器</span></div><div class="line">            currentRecordDeserializer = recordDeserializers[bufferOrEvent.getChannelIndex()];</div><div class="line">            currentRecordDeserializer.setNextBuffer(bufferOrEvent.getBuffer());</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">//如果不是Buffer而是事件，则根据其对应的通道索引拿到对应的反序列化器判断其是否还有未完成的数据，</span></div><div class="line">            <span class="comment">//如果有则抛出异常，因为这是一个新的事件，在处理它之前，反序列化器中不应该存在残留数据</span></div><div class="line">            <span class="keyword">if</span> (recordDeserializers[bufferOrEvent.getChannelIndex()].hasUnfinishedData()) &#123;</div><div class="line">                <span class="keyword">throw</span> <span class="keyword">new</span> IOException(</div><div class="line">                    <span class="string">"Received an event in channel "</span> + bufferOrEvent.getChannelIndex() </div><div class="line">                    + <span class="string">" while still having "</span></div><div class="line">                    + <span class="string">"data from a record. This indicates broken serialization logic. "</span></div><div class="line">                    + <span class="string">"If you are using custom serialization code (Writable or Value types), check their "</span></div><div class="line">                    + <span class="string">"serialization routines. In the case of Kryo, check the respective Kryo serializer."</span>);</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//处理事件，当该事件表示分区的子分区消费完成或者超步整体结束</span></div><div class="line">            <span class="keyword">if</span> (handleEvent(bufferOrEvent.getEvent())) &#123;</div><div class="line">                <span class="comment">//如果是整个ResultPartition都消费完成</span></div><div class="line">                <span class="keyword">if</span> (inputGate.isFinished()) &#123;</div><div class="line">                    isFinished = <span class="keyword">true</span>;</div><div class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">                &#125;</div><div class="line">                <span class="comment">//否则判断如果到达超步尾部</span></div><div class="line">                <span class="keyword">else</span> <span class="keyword">if</span> (hasReachedEndOfSuperstep()) &#123;</div><div class="line">                    <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">                &#125;</div><div class="line">                <span class="comment">//剩下的可能就是还有部分结果分区的子分区没有消费完成</span></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可变记录读取器和不可变记录读取器的差别是：不可变记录读取器的getNextRecord方法的record参数是其内部实例化的而可变记录读取器中该引用是外部提供的。事实上，Flink源码中没有找到可变记录读取器（RecordReader）的使用场景。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2016/12/28/flink-runtime-communicate-api/" data-id="cix90meek002crwvulu1ilfpg" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/12/20/flink-runtime-unified-data-exchange/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之统一的数据交换对象</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-communicate-api" data-title="Flink运行时之通信层API" data-url="http://vinoyang.com/2016/12/28/flink-runtime-communicate-api/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">33</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2016/12/28/flink-runtime-communicate-api/">Flink运行时之通信层API</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/20/flink-runtime-unified-data-exchange/">Flink运行时之统一的数据交换对象</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/14/flink-runtime-NetworkEnvironment/">Flink运行时之网络通信NetworkEnvironment分析</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/12/flink-streaming-iteration-task/">Flink流处理之迭代任务</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/06/flink-streaming-iteration-resolve-feedback-cycle/">Flink流处理迭代之化解反馈环</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2016 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
