@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之结果分区消费端 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="结果分区消费端在前一篇，我们讲解了生产者分区，生产者分区是生产者任务生产中间结果数据的过程。消费者任务在获得结果分区可用的通知之后，会发起对数据的请求。我们仍然以生产者分区的例子作为假设，其在消费端示意图如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之结果分区消费端">
+<meta property="og:url" content="http://vinoyang.com/2017/01/04/flink-runtime-consumer-input-gate/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="结果分区消费端在前一篇，我们讲解了生产者分区，生产者分区是生产者任务生产中间结果数据的过程。消费者任务在获得结果分区可用的通知之后，会发起对数据的请求。我们仍然以生产者分区的例子作为假设，其在消费端示意图如下：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/task-exchange-dataflow-for-consumer.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/consumer-end-at-runtime.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-01-04T09:32:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之结果分区消费端">
+<meta name="twitter:description" content="结果分区消费端在前一篇，我们讲解了生产者分区，生产者分区是生产者任务生产中间结果数据的过程。消费者任务在获得结果分区可用的通知之后，会发起对数据的请求。我们仍然以生产者分区的例子作为假设，其在消费端示意图如下：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/task-exchange-dataflow-for-consumer.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-consumer-input-gate" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/04/flink-runtime-consumer-input-gate/" class="article-date">
+  <time datetime="2017-01-04T11:14:19.000Z" itemprop="datePublished">2017-01-04</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之结果分区消费端
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#结果分区消费端"><span class="toc-number">1.</span> <span class="toc-text">结果分区消费端</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#输入网关"><span class="toc-number">1.1.</span> <span class="toc-text">输入网关</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#输入通道"><span class="toc-number">1.2.</span> <span class="toc-text">输入通道</span></a></li></ol></li></ol>
+          </div>
+        
+        <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/task-exchange-dataflow-for-consumer.jpg" alt="task-exchange-dataflow-for-consumer"></p>
+<h1 id="结果分区消费端"><a href="#结果分区消费端" class="headerlink" title="结果分区消费端"></a>结果分区消费端</h1><p>在前一篇，我们讲解了生产者分区，生产者分区是生产者任务生产中间结果数据的过程。消费者任务在获得结果分区可用的通知之后，会发起对数据的请求。我们仍然以生产者分区的例子作为假设，其在消费端示意图如下：</p>
+<a id="more"></a>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/consumer-end-at-runtime.png" alt="consumer-end-at-runtime"></p>
+<p>可以看到在生产端和消费端存在对等的模型，具体ResultSubpartition中的数据如何被消费，我们将在本篇进行深入剖析。</p>
+<h2 id="输入网关"><a href="#输入网关" class="headerlink" title="输入网关"></a>输入网关</h2><p>输入网关（InputGate）用于消费中间结果（IntermediateResult）在并行执行时由子任务生产的一个或多个结果分区（ResultPartition）。</p>
+<blockquote>
+<p>可以认为生产端的ResultPartition跟消费端的InputGate是对等的。</p>
+</blockquote>
+<p>Flink当前提供了两个输入网关的实现，分别是：</p>
+<ul>
+<li>SingleInputGate：常规输入网关；</li>
+<li>UnionInputGate：联合输入网关，它允许将多个输入网关联合起来；</li>
+</ul>
+<p>我们主要分析SingleInputGate，因为它是消费ResultPartition的实体，而UnionInputGate主要充当InputGate容器的角色。</p>
+<p>SingleInputGate主要的初始化逻辑被封装在其静态的create方法中，当一个Task被实例化时在其构造器中会调用该create方法初始化它对应的SingleInputGate实例。create方法根据传递进来的InputGateDeploymentDescriptor完成对其包含的所有InputChannel的实例化。因为InputChannel记录是按照跟生产端任务的位置来分类的（我们会在下面进行具体分析），所以其实例化也是按照InputGateDeploymentDescriptor中每个InputChannelDeploymentDescriptor包含的ResultPartitionLocation属性来初始化的。</p>
+<blockquote>
+<p>不同的ResultPartitionLocation，消费端任务其请求结果子分区的方式也不同，这一点我们在讲解生产者分区是有所说明。</p>
+</blockquote>
+<p>作为数据的消费者，InputGate最关键的方法自然是获取生产者所生产的缓冲区，提供该功能的方法为getNextBufferOrEvent，它返回的对象是我们之前谈到的统一的数据交换对象BufferOrEvent。</p>
+<blockquote>
+<p>BufferOrEvent的直接消费对象是通信层API中的记录读取器，它会将Buffer中的数据反序列化为记录供上层任务使用。</p>
+</blockquote>
+<p>我们以getNextBufferOrEvent方法为主线来分析SingleInputGate类。</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> BufferOrEvent <span class="title">getNextBufferOrEvent</span>(<span class="params"></span>) throws IOException, InterruptedException </span>&#123;</div><div class="line">    <span class="comment">//如果已接收到所有EndOfPartitionEvent事件，则说明每个ResultSubpartition中的数据都被消费完成</span></div><div class="line">    <span class="keyword">if</span> (hasReceivedAllEndOfPartitionEvents) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="literal">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//触发所有的输入通道向ResultSubpartition发起请求</span></div><div class="line">    requestPartitions();</div><div class="line"></div><div class="line">    InputChannel currentChannel = <span class="literal">null</span>;</div><div class="line">    <span class="comment">//阻塞并循环等待有可获取数据的通道可用</span></div><div class="line">    <span class="keyword">while</span> (currentChannel == <span class="literal">null</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (isReleased) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Released"</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//从阻塞队列中请求（并删除）队首的输入通道，阻塞两秒钟，如果没有获取到则不断请求，直到获取到一个输入通道位置</span></div><div class="line">        currentChannel = inputChannelsWithData.poll(<span class="number">2</span>, TimeUnit.SECONDS);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//从输入通道中获得下一个Buffer</span></div><div class="line">    final Buffer buffer = currentChannel.getNextBuffer();</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (buffer == <span class="literal">null</span>) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Bug in input gate/channel logic: input gate got "</span> +</div><div class="line">            <span class="string">"notified by channel about available data, but none was available."</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//如果该Buffer是用户数据，则构建BufferOrEvent对象并返回</span></div><div class="line">    <span class="keyword">if</span> (buffer.isBuffer()) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> BufferOrEvent(buffer, currentChannel.getChannelIndex());</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//否则把它当作事件来处理</span></div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        final AbstractEvent <span class="keyword">event</span> = EventSerializer.fromBuffer(buffer, getClass().getClassLoader());</div><div class="line"></div><div class="line">        <span class="comment">//如果获取到的是标识某ResultSubpartition已经生产完数据的事件</span></div><div class="line">        <span class="keyword">if</span> (<span class="keyword">event</span>.getClass() == EndOfPartitionEvent.class) &#123;</div><div class="line">            <span class="comment">//对获取该ResultSubpartition的通道进行标记</span></div><div class="line">            channelsWithEndOfPartitionEvents.<span class="keyword">set</span>(currentChannel.getChannelIndex());</div><div class="line">            <span class="comment">//如果所有信道都被标记了，置全部通道获取数据完成</span></div><div class="line">            <span class="keyword">if</span> (channelsWithEndOfPartitionEvents.cardinality() == numberOfInputChannels) &#123;</div><div class="line">                hasReceivedAllEndOfPartitionEvents = <span class="literal">true</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="comment">//对外发出ResultSubpartition已被消费的通知同时释放资源</span></div><div class="line">            currentChannel.notifySubpartitionConsumed();</div><div class="line">            currentChannel.releaseAllResources();</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//以事件来构建BufferOrEvent对象</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> BufferOrEvent(<span class="keyword">event</span>, currentChannel.getChannelIndex());</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>以上代码段中，第一个关键调用是requestPartitions方法。它会触发所有InputChannel发起对requestSubpartition方法的调用以请求生产端的ResultSubpartition。</p>
+<blockquote>
+<p>有一种占位目的的UnknowInputChannel不响应该方法，因为它最终会被确定为是LocalInputChannel还是RemoteInputChannel，确定的时机通常是JobManager通知器其可消费，TaskManager调用当前SingleInputGate的updateInputChannel方法，确定UnknowInputChannel会转变的具体的通道类型后再调用requestSubpartition方法。</p>
+</blockquote>
+<p>由于requestPartitions只是起到触发其内部的InputChannel去请求的作用，这个调用可能并不会阻塞等待远程数据被返回。因为不同的InputChannel其请求的机制并不相同，RemoteChannel就是利用Netty异步请求的。所以SingleInputGate采用阻塞等待以及事件回调的方式来等待InputChannel上的数据可用。具体而言，它在while代码块中循环阻塞等待有可获取数据的InputChannel。而可用的InputChannel则由它们自己通过回调SingleInputGate的onAvailableBuffer添加到阻塞队列inputChannelsWithData中来。当有可获取数据的InputChannel之后，即可获取到Buffer。</p>
+<p>Flink除了提供了SingleInputGate这种常规的输入网关之外，还提供了UnionInputGate，它更像一个包含SingleInputGate的容器，同时可以这些SingleInputGate拥有的InputChannel联合起来。并且多数InputGate约定的接口方法的实现，都被委托给了每个SingleInputGate。</p>
+<p>那么它在实现getNextBufferOrEvent方法的时候，到底从哪个InputGate来获得缓冲区呢。它采用的是事件通知机制，所有加入UnionInputGate的InputGate都会将自己注册到InputGateListener。当某个InputGate上有数据可获取，该InputGate将会被加入一个阻塞队列。接着我们再来看getNextBufferOrEvent方法的实现：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function">BufferOrEvent <span class="title">getNextBufferOrEvent</span><span class="params">()</span> <span class="keyword">throws</span> IOException, InterruptedException </span>&#123;</div><div class="line">    <span class="keyword">if</span> (inputGatesWithRemainingData.isEmpty()) &#123;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//遍历每个InputGate，依次调用其requestPartitions方法</span></div><div class="line">    requestPartitions();</div><div class="line"></div><div class="line">    <span class="comment">//阻塞等待输入网关队列中有可获取数据的输入网关</span></div><div class="line">    <span class="keyword">final</span> InputGate inputGate = inputGateListener.getNextInputGateToReadFrom();</div><div class="line"></div><div class="line">    <span class="comment">//从输入网关中获得数据</span></div><div class="line">    <span class="keyword">final</span> BufferOrEvent bufferOrEvent = inputGate.getNextBufferOrEvent();</div><div class="line"></div><div class="line">    <span class="comment">//如果获取到的是事件且该事件为EndOfPartitionEvent且输入网关已完成</span></div><div class="line">    <span class="keyword">if</span> (bufferOrEvent.isEvent()</div><div class="line">        &amp;&amp; bufferOrEvent.getEvent().getClass() == EndOfPartitionEvent.class</div><div class="line">        &amp;&amp; inputGate.isFinished()) &#123;</div><div class="line">        <span class="comment">//尝试将该输入网关从仍然可消费数据的输入网关集合中删除</span></div><div class="line">        <span class="keyword">if</span> (!inputGatesWithRemainingData.remove(inputGate)) &#123;</div><div class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Couldn't find input gate in set of remaining "</span> +</div><div class="line">                <span class="string">"input gates."</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//获得通道索引偏移</span></div><div class="line">    <span class="keyword">final</span> <span class="keyword">int</span> channelIndexOffset = inputGateToIndexOffsetMap.get(inputGate);</div><div class="line">    <span class="comment">//计算真实通道索引</span></div><div class="line">    bufferOrEvent.setChannelIndex(channelIndexOffset + bufferOrEvent.getChannelIndex());</div><div class="line"></div><div class="line">    <span class="keyword">return</span> bufferOrEvent;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>基本上这个机制跟SingleInputGate是一致的，只不过在UnionInputGate中它是从InputGate中而非从InputChannel中罢了。</p>
+<h2 id="输入通道"><a href="#输入通道" class="headerlink" title="输入通道"></a>输入通道</h2><p>一个InputGate包含多个输入通道（InputChannel），输入通道用于请求ResultSubpartitionView，并从中消费数据。</p>
+<blockquote>
+<p>所谓的ResultSubpartitionView是由ResultSubpartition所创建的用于供消费者任务消费数据的视图对象。</p>
+</blockquote>
+<p>对于每个InputChannel，消费的生命周期会经历如下的方法调用过程：</p>
+<ol>
+<li>requestSubpartition：请求ResultSubpartition；</li>
+<li>getNextBuffer：获得下一个Buffer；</li>
+<li>releaseAllResources：释放所有的相关资源；</li>
+</ol>
+<p>InputChannel根据ResultPartitionLocation提供了三种实现：</p>
+<ul>
+<li>LocalInputChannel：用于请求同实例中生产者任务所生产的ResultSubpartitionView的输入通道；</li>
+<li>RemoteInputChannel：用于请求远程生产者任务所生产的ResultSubpartitionView的输入通道；</li>
+<li>UnknownInputChannel：一种用于占位目的的输入通道，需要占位通道是因为暂未确定相对于生产者任务位置，但最终要么被替换为RemoteInputChannel，要么被替换为LocalInputChannel。</li>
+</ul>
+<p>LocalInputChannel会从相同的JVM实例中消费生产者任务所生产的Buffer。因此，这种模式是直接借助于方法调用和对象共享的机制完成消费，无需跨节点网络通信。具体而言，它是通过ResultPartitionManager来直接创建对应的ResultSubpartitionView的实例，这种通道相对简单。</p>
+<p>RemoteInputChannel是我们重点关注的输入通道，因为它涉及到远程请求结果子分区。远程数据交换的通信机制建立在Netty框架的基础之上，因此会有一个主交互对象PartitionRequestClient来衔接通信层跟输入通道。</p>
+<p>我们以请求子分区的requestSubpartition为入口来进行分析。首先，通过一个ConnectionManager根据连接编号（对应着目的主机）来创建PartitionRequestClient实例。接着具体的请求工作被委托给PartitionRequestClient的实例：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">partitionRequestClient.requestSubpartition(partitionId, subpartitionIndex, <span class="keyword">this</span>, <span class="number">0</span>);</div></pre></td></tr></table></figure>
+<p>因为Netty以异步的方式处理请求。因此，上面的代码段中会看到将代表当前RemoteChannel实例的this对象作为参数注入到Netty的特定的ChannelHandler中去，在处理时根据特定的处理逻辑会触发RemoteChannel中相应的回调方法。</p>
+<p>在RemoteChannel中定义了多个“onXXX”回调方法来衔接Netty的事件回调。其中，较为关键的自然是接收到数据的onBuffer方法：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> onBuffer(Buffer buffer, <span class="built_in">int</span> sequenceNumber) &#123;</div><div class="line">    <span class="built_in">boolean</span> success = <span class="keyword">false</span>;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="keyword">synchronized</span> (receivedBuffers) &#123;</div><div class="line">            <span class="keyword">if</span> (!isReleased.<span class="built_in">get</span>()) &#123;</div><div class="line">                <span class="comment">//如果实际的序列号跟所期待的序列号相等</span></div><div class="line">                <span class="keyword">if</span> (expectedSequenceNumber == sequenceNumber) &#123;</div><div class="line">                    <span class="comment">//将数据加入接收队列同时将预期序列号计数器加一</span></div><div class="line">                    receivedBuffers.<span class="built_in">add</span>(buffer);</div><div class="line">                    expectedSequenceNumber++;</div><div class="line"></div><div class="line">                    <span class="comment">//发出有可用Buffer的通知，该通知随后会被传递给其所归属的SingleInputGate，</span></div><div class="line">                    <span class="comment">//以通知其订阅者，有可用数据</span></div><div class="line">                    notifyAvailableBuffer();</div><div class="line"></div><div class="line">                    success = <span class="keyword">true</span>;</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">else</span> &#123;</div><div class="line">                    <span class="comment">//如果实际序列号跟所期待的序列号不一致，则会触发onError回调，并相应以一个特定的异常对象</span></div><div class="line">                    <span class="comment">//该方法调用在成功设置完错误原因后，同样会触发notifyAvailableBuffer方法调用</span></div><div class="line">                    onError(<span class="keyword">new</span> BufferReorderingException(expectedSequenceNumber, sequenceNumber));</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">finally</span> &#123;</div><div class="line">        <span class="comment">//如果不成功，则该Buffer会被回收</span></div><div class="line">        <span class="keyword">if</span> (!success) &#123;</div><div class="line">            buffer.recycle();</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从代码段可以看出，消费时首先会进行序列号比对，这可以看作是一种“校验”机制。服务端每响应客户端一个Buffer都会将序列号加一并随响应数据一起发回给客户端，而客户端则会在消费时也同时累加本地的序列号计数器。在消费的过程中，两个序列号必须一致才能保证消费的顺利进行，否则InputChannel将会抛出IOException异常。</p>
+<p>onBuffer方法的执行处于Netty的I/O线程上，但RemoteInputChannel中getNextBuffer却不会在Netty的I/O线程上被调用，所以必须有一个数据共享的容器，这个容器就是receivedBuffers队列。getNextBuffer就是直接从receivedBuffers队列中出队一条数据然后返回。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/01/04/flink-runtime-consumer-input-gate/" data-id="cixiqxlkp00242qvu51hjz1zx" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2016/12/30/flink-runtime-producer-result-partition/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之生产端结果分区</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-consumer-input-gate" data-title="Flink运行时之结果分区消费端" data-url="http://vinoyang.com/2017/01/04/flink-runtime-consumer-input-gate/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">35</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/01/04/flink-runtime-consumer-input-gate/">Flink运行时之结果分区消费端</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/30/flink-runtime-producer-result-partition/">Flink运行时之生产端结果分区</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/28/flink-runtime-communicate-api/">Flink运行时之通信层API</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/20/flink-runtime-unified-data-exchange/">Flink运行时之统一的数据交换对象</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/14/flink-runtime-NetworkEnvironment/">Flink运行时之网络通信NetworkEnvironment分析</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
