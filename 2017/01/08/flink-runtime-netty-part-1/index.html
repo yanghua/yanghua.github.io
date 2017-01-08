@@ -5,22 +5,21 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>MySQL性能调优之MemoryorSSD? | yanghua</title>
+  <title>Flink运行时之基于Netty的网络通信上 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="当一个传统的向外扩展的方式对于MySQL来讲变得流行，看看我们不得不扩充哪一方面（便宜的内存？快速存储？更好的电源效率？）将会变得非常有趣。这里确实有很多种选择——我每周大概会遇到一个客户使用Fushion-IO 卡。然而，我却看到了他们一个有趣的选择——他们选择购买一个SSD，当他们每秒仍然能读取很多页的时候（这时，我宁愿选择购买内存来取代），而使用存储驱动器做“写操作”使用。">
+  <meta name="description" content="概述本文以及接下来的几篇文章将介绍Flink运行时TaskManager间进行数据交换的核心部分——基于Netty通信框架远程请求ResultSubpartition。作为系列文章的第一篇，先列出需要了解的基础对象。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="MySQL性能调优之MemoryorSSD?">
-<meta property="og:url" content="http://vinoyang.com/2012/04/22/MySQL性能调优之MemoryorSSD/index.html">
+<meta property="og:title" content="Flink运行时之基于Netty的网络通信上">
+<meta property="og:url" content="http://vinoyang.com/2017/01/08/flink-runtime-netty-part-1/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="当一个传统的向外扩展的方式对于MySQL来讲变得流行，看看我们不得不扩充哪一方面（便宜的内存？快速存储？更好的电源效率？）将会变得非常有趣。这里确实有很多种选择——我每周大概会遇到一个客户使用Fushion-IO 卡。然而，我却看到了他们一个有趣的选择——他们选择购买一个SSD，当他们每秒仍然能读取很多页的时候（这时，我宁愿选择购买内存来取代），而使用存储驱动器做“写操作”使用。">
-<meta property="og:image" content="http://my.csdn.net/uploads/201204/21/1335016221_6165.png">
-<meta property="og:image" content="http://my.csdn.net/uploads/201204/21/1335016309_2494.png">
-<meta property="og:image" content="http://my.csdn.net/uploads/201204/21/1335016368_8826.png">
-<meta property="og:updated_time" content="2015-11-27T05:26:27.000Z">
+<meta property="og:description" content="概述本文以及接下来的几篇文章将介绍Flink运行时TaskManager间进行数据交换的核心部分——基于Netty通信框架远程请求ResultSubpartition。作为系列文章的第一篇，先列出需要了解的基础对象。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-01-08T04:13:25.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="MySQL性能调优之MemoryorSSD?">
-<meta name="twitter:description" content="当一个传统的向外扩展的方式对于MySQL来讲变得流行，看看我们不得不扩充哪一方面（便宜的内存？快速存储？更好的电源效率？）将会变得非常有趣。这里确实有很多种选择——我每周大概会遇到一个客户使用Fushion-IO 卡。然而，我却看到了他们一个有趣的选择——他们选择购买一个SSD，当他们每秒仍然能读取很多页的时候（这时，我宁愿选择购买内存来取代），而使用存储驱动器做“写操作”使用。">
-<meta name="twitter:image" content="http://my.csdn.net/uploads/201204/21/1335016221_6165.png">
+<meta name="twitter:title" content="Flink运行时之基于Netty的网络通信上">
+<meta name="twitter:description" content="概述本文以及接下来的几篇文章将介绍Flink运行时TaskManager间进行数据交换的核心部分——基于Netty通信框架远程请求ResultSubpartition。作为系列文章的第一篇，先列出需要了解的基础对象。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -80,10 +79,10 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main"><article id="post-MySQL性能调优之MemoryorSSD" class="article article-type-post" itemscope itemprop="blogPost">
+        <section id="main"><article id="post-flink-runtime-netty-part-1" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
-    <a href="/2012/04/22/MySQL性能调优之MemoryorSSD/" class="article-date">
-  <time datetime="2012-04-21T21:46:00.000Z" itemprop="datePublished">2012-04-22</time>
+    <a href="/2017/01/08/flink-runtime-netty-part-1/" class="article-date">
+  <time datetime="2017-01-08T03:56:47.000Z" itemprop="datePublished">2017-01-08</time>
 </a>
     
   </div>
@@ -94,7 +93,7 @@
         
   
     <h1 class="article-title" itemprop="name">
-      MySQL性能调优之MemoryorSSD?
+      Flink运行时之基于Netty的网络通信上
     </h1>
   
 
@@ -104,41 +103,112 @@
       
         <!-- Table of Contents -->
         
-        <div><br><br>当一个传统的向外扩展的方式对于MySQL来讲变得流行，看看我们不得不扩充哪一方面（便宜的内存？快速存储？更好的电源效率？）将会变得非常有趣。这里确实有很多种选择——我每周大概会遇到一个客户使用Fushion-IO 卡。然而，我却看到了他们一个有趣的选择——他们选择购买一个SSD，当他们每秒仍然能读取很多页的时候（这时，我宁愿选择购买内存来取代），而使用存储驱动器做“写操作”使用。<br><br><a id="more"></a><br><br>&nbsp;<br><br>在这里，我提出几个参考标准来供你确认是否是以上我说的这种情况：<br><br><em>   Percona-XtraDB-9.1 release
-</em>   Sysbench(开源性能测试工具)的OLTP有8千万行的“工作量”（大概等同于18GB的数据+索引）<br><em>   XFS 文件系统选择nobarrier选项安装
-</em>   测试运行具有：<br><br><span style="white-space:pre"></span>1.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;带有BBU的RAID 10硬盘超过8块（所谓BBU，社区的解释是在掉电的情况下，能够cache数据72h，当机器供电正常，再从cache中将数据写入磁盘）<br><br><span style="white-space:pre"></span>2.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Inter SSD X25-E 32GB<br><br><span style="white-space:pre"></span>3.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FushionIO 320GB MLC【1】<br><br><em>   对于每一次测试，在运行的时候将缓冲池设置在2G到22G之间（为了和合适的内存比较性能）
-</em>   硬件配置：<br><br><span style="white-space:pre"></span>Dell PowerEdgeR900<br><br><span style="white-space:pre"></span>4 QuadCoreIntel(R) Xeon(R) CPU E7320 @ 2.13GHz (16 cores in total)<br><br><span style="white-space:pre"></span>32GB of RAM<br><br><span style="white-space:pre"></span>RAID10 on 8disks 2.5” 15K RPMS<br><br><span style="white-space:pre"></span>FusionIO 160GBSLC<br><br><span style="white-space:pre"></span>FusionIO 320GBMLC<br><br><span style="white-space:pre"></span>OS:<br><br><span style="white-space:pre"></span>CentOS 5.5<br><br><span style="white-space:pre"></span>XFS filesystem<br><br>开始，我们对RAID 10的存储做一个测试以建立一个基线。Y轴是每秒传输的数据（传输速率，它越大越好）。X轴是innodb_buffer_pool_size的大小。<br><br><img src="http://my.csdn.net/uploads/201204/21/1335016221_6165.png" alt=""><br><br>我特地挑选了关于该测试中的三个有趣的点<br><br><em>   A点，当数据完全符合缓冲池大小（最佳性能）。一旦你达到该点，简直就像内存的进一步增加，了解该信息很重要。
-</em>   B坐标出现在当数据刚开始超过缓冲池的大小。这对于许多用户来讲是最让人头疼的一点了。因为当内存下降仅10%，而性能却比原来降低了2.6倍。在产品中，这通常应对着这样的说辞——“上个星期一切看起来都还OK，但它却正在变得越来越慢！”。我想建议你，增加内存是迄今为止最好的做法，在这种情况下。<br><em>   C点展示数据大约是缓冲池三倍的地方。它是一个有趣的点，既然你不能够计算出内存的花费（可能不了解未来遇到瓶颈需要耗费多少购买内存的成本），这是购买一个SSD可能更为合适。<img src="http://my.csdn.net/uploads/201204/21/1335016309_2494.png" alt=""><br><br>在C点，在这幅图中，一个Fusion-IO卡提升性能达5（如果你采用Interl SSD将会是2倍）。为了用增加内存的方式获得相同的性能提升，你将需要增加多于60%的内存-或者如果你想提升5倍的性能，需要增加超过260%的内存大小。想象一下这样一个生产环境：你的C点（假设像上面说的系统越来越慢）产生是在当你采用了32GB的RAM以及100GB的数据时。那么它将变得有趣了：
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#NettyConnectionManager"><span class="toc-number">1.1.</span> <span class="toc-text">NettyConnectionManager</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NettyBufferPool"><span class="toc-number">1.2.</span> <span class="toc-text">NettyBufferPool</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NettyClient"><span class="toc-number">1.3.</span> <span class="toc-text">NettyClient</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#NettyServer"><span class="toc-number">1.4.</span> <span class="toc-text">NettyServer</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>本文以及接下来的几篇文章将介绍Flink运行时TaskManager间进行数据交换的核心部分——基于Netty通信框架远程请求ResultSubpartition。作为系列文章的第一篇，先列出需要了解的基础对象。</p>
+<a id="more"></a>
+<h2 id="NettyConnectionManager"><a href="#NettyConnectionManager" class="headerlink" title="NettyConnectionManager"></a>NettyConnectionManager</h2><p>Netty连接管理器（NettyConnectionManager）是连接管理器接口（ConnectionManager）针对基于Netty的远程连接管理的实现者。它是TaskManager中负责网络通信的网络环境对象（NetworkEnvironment）的核心部件之一。</p>
+<p>一个TaskManager中可能同时运行着很多任务实例，有时某些任务需要消费某远程任务所生产的结果分区，有时某些任务可能会生产结果分区供其他任务消费。所以对一个TaskManager来说，其职责并非单一的，它既可能充当客户端的角色也可能充当服务端角色。因此，一个NettyConnectionManager会同时管理着一个Netty客户端（NettyClient）和一个Netty服务器（NettyServer）实例。当然除此之外还有一个Netty缓冲池（NettyBufferPool）以及一个分区请求客户端工厂（PartitionRequestClientFactory，用于创建分区请求客户端PartitionRequestClient），这些对象都在NettyConnectionManager构造器中被初始化。</p>
+<blockquote>
+<p>每个PartitionRequestClientFactory实例都依赖一个NettyClient。也就是说所有PartitionRequestClient底层都共用一个NettyClient。</p>
+</blockquote>
+<p>Netty客户端和服务器对象的启动和停止都是由NettyConnectionManager统一控制的。NettyConnectionManager启动的时机是当TaskManager跟JobManager关联上之后调用NetworkEnvironment的associateWithTaskManagerAndJobManager方法时。而当TaskManager跟JobManager解除关联时停止。</p>
+<h2 id="NettyBufferPool"><a href="#NettyBufferPool" class="headerlink" title="NettyBufferPool"></a>NettyBufferPool</h2><p>NettyClient和NettyServer在实例化Netty通信的核心对象时都需要配置各自的“字节缓冲分配器”用于为Netty读写数据分配内存单元。Netty自身提供了一个池化的字节缓冲分配器（PooledByteBufAllocator），但Flink又在此基础上进行了包装并提供了Netty缓冲池（NettyBufferPool）。此举的目的是严格控制所创建的分配器（Arena）的个数，转而依赖TaskManager的相关配置指定。</p>
+<blockquote>
+<p>什么是Arena？当指定PooledByteBufAllocator来执行ByteBuf分配时，最终的内存分配工作被委托给类PoolArena。由于Netty通常用于高并发系统，所以各个线程进行内存分配时竞争不可避免，这可能会极大的影响内存分配的效率，为了缓解高并发时的线程竞争，Netty允许使用者创建多个分配器（Arena）来分离锁，提高内存分配效率。</p>
+</blockquote>
+<p>NettyBufferPool在构造器内部以固定的参数实例化PooledByteBufAllocator并作为自己的内部分配器。具体做了哪些限制呢？首先，PooledByteBufAllocator本身既支持堆内存分配也支持堆外内存分配，NettyBufferPool将其限定为只在堆外内存上进行分配。其次， 显式指定了pageSize大小为8192，maxOrder值为11。这两个参数是什么意思呢？Netty中的内存池包含页（page）和块（chunk）两种分配单位，通过PooledByteBufAllocator构造器可以设置页大小（也即pageSize参数），该参数在PooledByteBufAllocator中的默认值为8192，而参数maxOder则用于计算块的大小。</p>
+<blockquote>
+<p>计算公式为：chunkSize = pageSize &lt;&lt; maxOrder；因此这里块大小为16MB。</p>
+</blockquote>
+<p>另外，NettyBufferPool通过反射还拿到了PooledByteBufAllocator中的PoolArena分配器对象集合，但此举更多的是出于调试目的。并且显式关闭了对堆内存相关的操作方法。</p>
+<h2 id="NettyClient"><a href="#NettyClient" class="headerlink" title="NettyClient"></a>NettyClient</h2><p>NettyClient的主要职责是初始化Netty客户端的核心对象，并根据NettyProtocol配置用于客户端事件处理的ChannelPipeline。</p>
+<blockquote>
+<p>NettyClient并不用于发起远程结果子分区请求，该工作将由PartitionRequestClient完成。</p>
+</blockquote>
+<p>一个Netty引导客户端的创建步骤如下：</p>
+<ul>
+<li>创建Bootstrap对象用来引导启动客户端：</li>
+</ul>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">bootstrap</span> = new Bootstrap()<span class="comment">;</span></div></pre></td></tr></table></figure>
+<ul>
+<li>创建NioEventLoopGroup或EpollEventLoopGroup对象并设置到Bootstrap中，EventLoopGroup可以理解为是一个线程池，用来处理连接、接收数据、发送数据：</li>
+</ul>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">switch</span> (config.getTransportType()) &#123;</div><div class="line">    <span class="keyword">case</span> NIO:</div><div class="line">        initNioBootstrap();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">    <span class="keyword">case</span> EPOLL:</div><div class="line">        initEpollBootstrap();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">    <span class="keyword">case</span> AUTO:</div><div class="line">        <span class="keyword">if</span> (Epoll.isAvailable()) &#123;</div><div class="line">            initEpollBootstrap();</div><div class="line">            LOG.info(<span class="string">"Transport type 'auto': using EPOLL."</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            initNioBootstrap();</div><div class="line">            LOG.info(<span class="string">"Transport type 'auto': using NIO."</span>);</div><div class="line">        &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>Netty自版本4.0.16开始，对于Linux系统提供原生的套接字通信传输支持（也即，epoll机制，借助于JNI调用），这种传输机制拥有更高的性能。</p>
+</blockquote>
+<ul>
+<li>进行一系列配置，并设置ChannelHandler用来处理逻辑：</li>
+</ul>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">bootstrap.<span class="keyword">handler</span>(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel channel)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        channel.pipeline().addLast(protocol.getClientChannelHandlers());</div><div class="line">    &#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<blockquote>
+<p>注意以上设置的是基于NettyPotocol获得的一个ChannelHandler数组组成的管道。</p>
+</blockquote>
+<ul>
+<li>调用Bootstrap.connect()来连接服务器：</li>
+</ul>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">return</span> bootstrap.<span class="built_in">connect</span>(serverSocketAddress);</div></pre></td></tr></table></figure>
+<p>以上就是一个Netty客户端从初始化到跟服务器建立连接的大致过程。但这里需要注意的是，一个TaskManager根本上只会存在一个NettyClient对象（对应的也只有一个Bootstrap实例）。但一个TaskManager中的子任务实例很有可能会跟多个不同的远程TaskManager通信，所以同一个Bootstrap实例可能会跟多个目标服务器建立连接，所以它是复用的，这一点不存在问题因为无论跟哪个目标服务器通信，Bootstrap的配置都是不变的。至于不同的RemoteChannel如何跟某个连接建立对应关系，这一点由PartitionRequestClientFactory来保证。</p>
+<blockquote>
+<p>Netty自版本4.0.16开始，对于Linux系统提供原生的套接字通信传输支持（也即，epoll机制，借助于JNI调用），这种传输机制拥有更高的性能。</p>
+</blockquote>
+<h2 id="NettyServer"><a href="#NettyServer" class="headerlink" title="NettyServer"></a>NettyServer</h2><p>跟NettyClient一样，NettyServer也会初始化Netty服务端的核心对象，除此之外它会启动对特定端口的侦听并准备接收客户端发起的请求。下面是NettyServer的初始化与启动步骤：</p>
+<ul>
+<li>创建ServerBootstrap实例来引导绑定和启动服务器：</li>
+</ul>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">bootstrap</span> = new ServerBootstrap()<span class="comment">;</span></div></pre></td></tr></table></figure>
+<ul>
+<li>根据配置创建NioEventLoopGroup或EpollEventLoopGroup对象来处理事件，如接收新连接、接收数据、写数据等等：</li>
+</ul>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">switch</span> (config.getTransportType()) &#123;</div><div class="line">    <span class="keyword">case</span> NIO:</div><div class="line">        initNioBootstrap();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">    <span class="keyword">case</span> EPOLL:</div><div class="line">        initEpollBootstrap();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">    <span class="keyword">case</span> AUTO:</div><div class="line">        <span class="keyword">if</span> (Epoll.isAvailable()) &#123;</div><div class="line">            initEpollBootstrap();</div><div class="line">            LOG.info(<span class="string">"Transport type 'auto': using EPOLL."</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            initNioBootstrap();</div><div class="line">            LOG.info(<span class="string">"Transport type 'auto': using NIO."</span>);</div><div class="line">        &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<ul>
+<li>指定InetSocketAddress，服务器监听此端口：</li>
+</ul>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">bootstrap</span><span class="selector-class">.localAddress</span>(<span class="selector-tag">config</span><span class="selector-class">.getServerAddress</span>(), <span class="selector-tag">config</span><span class="selector-class">.getServerPort</span>());</div></pre></td></tr></table></figure>
+<ul>
+<li>进行各种参数配置，设置childHandler执行所有的连接请求：</li>
+</ul>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">bootstrap.childHandler(<span class="keyword">new</span> ChannelInitializer&lt;SocketChannel&gt;() &#123;</div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">initChannel</span><span class="params">(SocketChannel channel)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">        channel.pipeline().addLast(protocol.getServerChannelHandlers());</div><div class="line">    &#125;</div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<blockquote>
+<p>注意以上设置的是基于NettyPotocol获得的一个ChannelHandler数组组成的管道。</p>
+</blockquote>
+<ul>
+<li>都设置完毕了，最后调用ServerBootstrap.bind()方法来绑定服务器：</li>
+</ul>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">bindFuture</span> = bootstrap.bind().syncUninterruptibly()<span class="comment">;</span></div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-</em>   你能简单地增加另一个32G的RAM（你的内存插槽以及被插满了吗？）<br><em>   你的预算允许你安装一个SSD卡吗？（你可能仍然需要不止一个，因为它们都相对较小。已经有一些市场上的家电，它们使用了8块Intel的SSD设备）。
-</em>   是否2倍或者5倍的性能提升能够足够满足你的需求？如果你能够买得起所有需要的内存，我想你可能会获得更好的性能。<br><br>这里的测试被设计为——尽可能多地保证“热”数据，但我猜想这里最需要吸取的教训是不要低估你的“活动集”数据的大小。比如，某些人他只是追加数据到一些排序的日志表，它可能只需要很小的百分比，但在其他情况下，它可能被认为需要占用很大的百分比（比如日志记录地相对频繁）。<br><br>重要的注意点：该图以及这些结论只是在sysbenchuniform中被验证。在你特殊的工作场合中，B点和C点可能的分布位置会有所不同。<br><br>图中的源结果数据：<br>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<img src="http://my.csdn.net/uploads/201204/21/1335016368_8826.png" alt=""><br><br>引用：<br><br>【1】：目前SSD硬盘使用两种形式的NAND闪存：单级单元（SLC）和多级单元（MLC）。两者之间的差额是每单元存储的数据量，SLC每单元存储1比特而 MLC每单元存储2比特。关键在于，SLC和MLC占据了相同大小的芯片面积。因此，在同样的价格下，MLC可以有两倍容量的效果。<br><br>SLC和MLC的擦除性能是一样的，MLC闪存的读取性能需花费两倍长的时间，写入性能需花费四倍长的时间。<br><br>SLC的最大优势不在于它的性能好而在于它的使用寿命长。<br><br>ps：SLC因为速度快，使用寿命长，一般被用在企业级SSD上。而MLC则多用在消费级市场，如workstation。Fusion-io开发出一种管理MLC闪存的新技术SMLC（Single Mode Level Cell），将SLC技术的企业可靠性与消费级MLC闪存结合起来。SMLC技术的带宽与SLC接近，其耐用性和写入性能也可以与SLC媲美，且成本大大低于传统SLC解决方案。<br><br></div>
-
-<!-- Baidu Button BEGIN -->
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2012/04/22/MySQL性能调优之MemoryorSSD/" data-id="cixo5bmgs002nw6vu0mmtux4j" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/01/08/flink-runtime-netty-part-1/" data-id="cixo5bmgd0024w6vuwveg63iz" class="article-share-link">Share</a>
       
       
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
     </footer>
   </div>
   
     
 <nav id="article-nav">
   
-    <a href="/2012/05/13/浅谈管道模型-Pipeline/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          浅谈管道模型(Pipeline)
-        
-      </div>
-    </a>
   
-  
-    <a href="/2012/04/22/多队列网卡简介以及Linux通过网卡发送数据包源码解读/" id="article-nav-older" class="article-nav-link-wrap">
+    <a href="/2017/01/04/flink-runtime-consumer-input-gate/" id="article-nav-older" class="article-nav-link-wrap">
       <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">多队列网卡简介以及Linux通过网卡发送数据包源码解读</div>
+      <div class="article-nav-title">Flink运行时之结果分区消费端</div>
     </a>
   
 </nav>
@@ -149,7 +219,7 @@
 
   <section id="comments">
     <!-- 多说评论框 start -->
-    <div class="ds-thread" data-thread-key="post-MySQL性能调优之MemoryorSSD" data-title="MySQL性能调优之MemoryorSSD?" data-url="http://vinoyang.com/2012/04/22/MySQL性能调优之MemoryorSSD/"></div>
+    <div class="ds-thread" data-thread-key="post-flink-runtime-netty-part-1" data-title="Flink运行时之基于Netty的网络通信上" data-url="http://vinoyang.com/2017/01/08/flink-runtime-netty-part-1/"></div>
     <!-- 多说评论框 end -->
     <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
     <script type="text/javascript">
