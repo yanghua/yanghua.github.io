@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之基于Netty的网络通信(下) | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="客户端核心处理器这一篇，我们分析一下客户端协议栈中的核心的处理器PartitionRequestClientHandler，该处理器用于处理服务端的响应消息。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之基于Netty的网络通信(下)">
+<meta property="og:url" content="http://vinoyang.com/2017/01/15/flink-runtime-netty-part-3/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="客户端核心处理器这一篇，我们分析一下客户端协议栈中的核心的处理器PartitionRequestClientHandler，该处理器用于处理服务端的响应消息。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-01-15T12:11:59.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之基于Netty的网络通信(下)">
+<meta name="twitter:description" content="客户端核心处理器这一篇，我们分析一下客户端协议栈中的核心的处理器PartitionRequestClientHandler，该处理器用于处理服务端的响应消息。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-netty-part-3" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/15/flink-runtime-netty-part-3/" class="article-date">
+  <time datetime="2017-01-15T11:50:16.000Z" itemprop="datePublished">2017-01-15</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之基于Netty的网络通信(下)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#客户端核心处理器"><span class="toc-number">1.</span> <span class="toc-text">客户端核心处理器</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#服务端核心处理器"><span class="toc-number">2.</span> <span class="toc-text">服务端核心处理器</span></a></li></ol>
+          </div>
+        
+        <h1 id="客户端核心处理器"><a href="#客户端核心处理器" class="headerlink" title="客户端核心处理器"></a>客户端核心处理器</h1><p>这一篇，我们分析一下客户端协议栈中的核心的处理器PartitionRequestClientHandler，该处理器用于处理服务端的响应消息。</p>
+<a id="more"></a>
+<p>我们以客户端获取到响应之后回调该处理器的channelRead方法为入口来进行分析：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> channelRead(ChannelHandlerContext ctx, <span class="keyword">Object</span> msg) <span class="keyword">throws</span> Exception &#123;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="comment">//当没有待解析的原始消息时，直接解码消息，否则将消息加入到stagedMessages队列中，等待排队处理</span></div><div class="line">        <span class="keyword">if</span> (!bufferListener.hasStagedBufferOrEvent() &amp;&amp; stagedMessages.isEmpty()) &#123;</div><div class="line">            decodeMsg(msg);</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            stagedMessages.<span class="built_in">add</span>(msg);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">        notifyAllChannelsOfErrorAndClose(t);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>这里涉及到两个对象，首先是bufferListener，用于感知可用Buffer的事件侦听器，它是内部实现的BufferListenerTask类型。其次是stagedMessages，用于接收原始未解码消息的队列。</p>
+<p>解码方法decodeMsg的主要逻辑包含对两种类型消息的解析。一种是服务端的错误响应消息ErrorResponse，另一种是正常的Buffer请求响应消息BufferResponse。对于错误响应消息会判断是否是致命错误，如果是致命错误，则直接通知所有的InputChannel并关闭它们；如果不是，则让该消息对应的InputChannel按不同情况处理。我们重点关注对BufferResponse的处理：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (msgClazz == NettyMessage.BufferResponse.<span class="keyword">class</span>) &#123;</div><div class="line">    NettyMessage.BufferResponse bufferOrEvent = (NettyMessage.BufferResponse) msg;</div><div class="line">    <span class="comment">//根据响应消息里的receiverId，从注册map里获取到接收该消息的RemoteInputChannel实例</span></div><div class="line">    RemoteInputChannel inputChannel = inputChannels.<span class="keyword">get</span>(bufferOrEvent.receiverId);</div><div class="line">    <span class="comment">//如果该响应没有对应的接收者，则释放该Buffer，同时通知服务端取消该请求</span></div><div class="line">    <span class="keyword">if</span> (inputChannel == <span class="literal">null</span>) &#123;</div><div class="line">        bufferOrEvent.releaseBuffer();</div><div class="line">        cancelRequestFor(bufferOrEvent.receiverId);</div><div class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//接下来才进入到真正的解析逻辑</span></div><div class="line">    <span class="keyword">return</span> decodeBufferOrEvent(inputChannel, bufferOrEvent);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在decodeBufferOrEvent中，它会对该消息具体是Buffer还是Event进行区分，如果是Buffer：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (bufferOrEvent.isBuffer()) &#123;</div><div class="line">    <span class="comment">//空Buffer</span></div><div class="line">    <span class="keyword">if</span> (bufferOrEvent.getSize() == <span class="number">0</span>) &#123;</div><div class="line">        inputChannel.onEmptyBuffer(bufferOrEvent.sequenceNumber);</div><div class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//获得Buffer提供者，如果为空，则通知服务端取消请求</span></div><div class="line">    BufferProvider bufferProvider = inputChannel.getBufferProvider();</div><div class="line">    <span class="keyword">if</span> (bufferProvider == <span class="literal">null</span>) &#123;</div><div class="line">        cancelRequestFor(bufferOrEvent.receiverId);</div><div class="line">        <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</div><div class="line">        <span class="comment">//从Buffer提供者请求Buffer，以放置响应结果数据</span></div><div class="line">        Buffer buffer = bufferProvider.requestBuffer();</div><div class="line">        <span class="comment">//如果请求到Buffer，则读取数据同时触发InputChannel的onBuffer回调</span></div><div class="line">        <span class="comment">//该方法在前文分析输入通道时我们早已提及过，它会将Buffer加入到队列中</span></div><div class="line">        <span class="keyword">if</span> (buffer != <span class="literal">null</span>) &#123;</div><div class="line">            buffer.setSize(bufferOrEvent.getSize());</div><div class="line">            bufferOrEvent.getNettyBuffer().readBytes(buffer.getNioBuffer());</div><div class="line">            inputChannel.onBuffer(buffer, bufferOrEvent.sequenceNumber);</div><div class="line">            <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//否则进入等待模式，当有Buffer可用时，会触发bufferListener的onEvent方法</span></div><div class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (bufferListener.waitForBuffer(bufferProvider, bufferOrEvent)) &#123;</div><div class="line">            releaseNettyBuffer = <span class="literal">false</span>;</div><div class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (bufferProvider.isDestroyed()) &#123;</div><div class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>如果从Buffer提供者没有获取到Buffer，说明当前没有可用的Buffer资源了，那么将进入等待模式。这里等待Buffer可用是基于事件侦听机制，这个机制是如何实现的呢？在上面的waitForBuffer方法的实现中，通过将当前的BufferListenerTask的bufferListener实例反向注册到Buffer提供者，当Buffer提供者中有Buffer可用时，将会触发bufferListener的onEvent回调方法。这里需要注意的是，当Buffer提供者中的Buffer从无到有，说明有Buffer被回收了，所以onEvent方法是被回收Buffer的线程所调用，而非Netty的I/O线程。</p>
+<p>到此，我们才获取到可用的Buffer并读取了响应消息的原始数据，但数据还没有被解码。是不是解码的过程也发生在onEvent方法中呢？其实不然，在onEvent方法里，它将对原始消息的处理权交还给了Netty的I/O线程：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (buffer != <span class="literal">null</span>) &#123;</div><div class="line">    <span class="keyword">if</span> (availableBuffer.compareAndSet(<span class="literal">null</span>, buffer)) &#123;</div><div class="line">        ctx.channel().eventLoop().execute(<span class="built_in">this</span>);</div><div class="line"></div><div class="line">        success = <span class="literal">true</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IllegalStateException</span>(<span class="string">"Received a buffer notification, "</span> +</div><div class="line">            <span class="string">" but the previous one has not been handled yet."</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码段中会通过上下文对象获取到Channel所处的EventLoop，然后通过它的execute方法接收一个Runnable实例并在新线程执行。这里接收的this就是当前的bufferListener实例（因为BufferListenerTask也实现了Runnable接口）。所以在BufferListenerTask的onEvent方法中其实存在着一个线程执行的桥接过程。</p>
+<p>以上就是NettyClient接收到NettyServer的响应后的处理器逻辑。由于Buffer资源受限，这里并没有直接将原始消息直接交与Netty的I/O线程并写到Buffer中，而是采取了队列缓存原始消息外加Buffer可用事件通知的机制来进行处理。</p>
+<h1 id="服务端核心处理器"><a href="#服务端核心处理器" class="headerlink" title="服务端核心处理器"></a>服务端核心处理器</h1><p>服务端有两个核心处理器，分别是PartitionRequestServerHandler和PartitionRequestQueue。其中，PartitionRequestServerHandler会依赖PartitionRequestQueue的实例。</p>
+<p>我们先来看PartitionRequestServerHandler，它是一种通道流入处理器（ChannelInboundHandler），主要用于初始化数据传输同时分发事件。</p>
+<p>首先，PartitionRequestServerHandler会在Channel启动时创建一个容量至少为1的BufferPool。当然最关键的方法还是消息的处理方法channelRead0。</p>
+<blockquote>
+<p>Netty提供了一个简化版的ChannelInboundHandler的实现，名为SimpleChannelInboundHandler。通过继承这个类，你可以非常方便得专注于实现自己的业务逻辑。因此，SimpleChannelInboundHandler类已经对ChannelInboundHandler的channelRead接口方法提供了基础实现，然后提供了名为channelRead0的抽象方法供派生类扩展。</p>
+</blockquote>
+<p>从channelRead0方法的实现来看，客户端的请求消息被划分为三类：</p>
+<ul>
+<li>常规的结果分区请求；</li>
+<li>任务事件请求；</li>
+<li>其他请求；</li>
+</ul>
+<p>我们分别来看针对这三类请求消息的处理逻辑，首先是常规的结果分区请求：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (msgClazz == PartitionRequest.<span class="keyword">class</span>) &#123;</div><div class="line">    PartitionRequest request = (PartitionRequest) msg;</div><div class="line"></div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="comment">//构建结果子分区视图对象，并将其“加入队列”</span></div><div class="line">        ResultSubpartitionView subpartition =</div><div class="line">            partitionProvider.createSubpartitionView(</div><div class="line">            request.partitionId,</div><div class="line">            request.queueIndex,</div><div class="line">            bufferPool);</div><div class="line"></div><div class="line">        outboundQueue.enqueue(subpartition, request.receiverId);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">catch</span> (PartitionNotFoundException notFound) &#123;</div><div class="line">        respondWithError(ctx, notFound, request.receiverId);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码段中的outboundQueue是PartitionRequestQueue的实例，这里注意不要被其类名误导，它本身并不是一个队列数据结构的实现，但它内部的处理机制确实借助了队列结构来排队请求。outboundQueue同时也是在协议栈中紧随着PartitionRequestServerHandler的流入处理器PartitionRequestQueue的实例，这一点下文还会提到。</p>
+<p>接着是任务事件请求：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (msgClazz == TaskEventRequest.<span class="keyword">class</span>) &#123;</div><div class="line">    TaskEventRequest request = (TaskEventRequest) msg;</div><div class="line"></div><div class="line">    <span class="comment">//针对事件请求，将会通过任务事件分发器进行分发，如果分发失败，将会以错误消息予以响应</span></div><div class="line">    <span class="keyword">if</span> (!taskEventDispatcher.publish(request.partitionId, request.event)) &#123;</div><div class="line">        respondWithError(ctx, <span class="keyword">new</span> IllegalArgumentException(<span class="string">"Task event receiver not found."</span>), </div><div class="line">            request.receiverId);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>什么情况下会导致事件分发失败呢？当事件分发时根据其partitionId如果找不到对应的侦听者时，就会认为事件分发失败。</p>
+</blockquote>
+<p>除了上面两种请求之外的其他请求：</p>
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//如果是取消请求，则调用队列的取消方法</span></div><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (msgClazz == CancelPartitionRequest.<span class="keyword">class</span>) &#123;</div><div class="line">    CancelPartitionRequest request = (CancelPartitionRequest) msg;</div><div class="line"></div><div class="line">    outboundQueue.cancel(request.receiverId);</div><div class="line">&#125;</div><div class="line"><span class="comment">//如果是关闭请求，则关闭队列</span></div><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (msgClazz == CloseRequest.<span class="keyword">class</span>) &#123;</div><div class="line">    outboundQueue.<span class="keyword">close</span>();</div><div class="line">&#125;</div><div class="line"><span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">LOG</span>.warn(<span class="string">"Received unexpected client request: &#123;&#125;"</span>, msg);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从上面的代码段可见，PartitionRequestServerHandler主要起到消息分发的作用。因此我们会重点分析消息的处理者PartitionRequestQueue。</p>
+<p>我们首先分析一下PartitionRequestServerHandler在处理消息时调用的PartitionRequestQueue的实例方法enqueue和cancel起到了什么作用。enqueue方法的实现如下：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">enqueue</span><span class="params">(ResultSubpartitionView partitionQueue, InputChannelID receiverId)</span> <span class="keyword">throws</span> Exception </span>&#123;</div><div class="line">    ctx.pipeline().fireUserEventTriggered(<span class="keyword">new</span> SequenceNumberingSubpartitionView(partitionQueue, receiverId));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>可以看到它把原先的ResultSubpartitionView包装为SequenceNumberingSubpartitionView。然后调用fireUserEventTriggered来触发管道中的下一个ChannelInboundHandler的userEventTriggered方法。</p>
+<p>SequenceNumberingSubpartitionView是什么？它是PartitionRequestQueue内部实现的一个ResultSubpartitionView的包装器。该包装器对原始的ResultSubpartitionView做了两件事：对每个即将返回的Buffer累加序列号同时保存相应的接收者（InputChannel）编号。</p>
+<blockquote>
+<p>Buffer的序列号主要用于跟客户端校验消费Buffer的过程是否跟服务端的处理过程保持一致，这主要用于防止Buffer丢失。</p>
+</blockquote>
+<p>那么下一个ChannelInboundHandler是谁呢？我们先回顾一下，在PartitionRequestProtocol协议中所组建的管道中的处理器的顺序：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> ChannelHandler[] getServerChannelHandlers() &#123;</div><div class="line">    PartitionRequestQueue queueOfPartitionQueues = <span class="keyword">new</span> <span class="type">PartitionRequestQueue</span>();</div><div class="line">    PartitionRequestServerHandler serverHandler = <span class="keyword">new</span> <span class="type">PartitionRequestServerHandler</span>(</div><div class="line">            partitionProvider, taskEventDispatcher, queueOfPartitionQueues, networkbufferPool);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">ChannelHandler</span>[] &#123;</div><div class="line">            messageEncoder,</div><div class="line">            createFrameLengthDecoder(),</div><div class="line">            messageDecoder,</div><div class="line">            serverHandler,</div><div class="line">            queueOfPartitionQueues</div><div class="line">    &#125;;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从上面的代码可见，queueOfPartitionQueues这一实例既作为参数传入PartitionRequestServerHandler的构造器又在ChannelHandler数组中充当处理器。而此处的queueOfPartitionQueues跟PartitionRequestServerHandler中的outboundQueue指向同一个对象。而因为enqueue方法的调用者是PartitionRequestServerHandler的实例方法，所以，下一个ChannelInboundHandler的实例其实就是这里的outboundQueue本身。</p>
+<p>所以，fireUserEventTriggered方法的调用，将会触发同一个PartitionRequestQueue实例的userEventTriggered方法。在userEventTriggered方法的实现中，也是按照不同的消息类型来区分处理的。首先当然是SequenceNumberingSubpartitionView类型：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (msg.getClass() == SequenceNumberingSubpartitionView.<span class="keyword">class</span>) &#123;</div><div class="line">    boolean triggerWrite = <span class="built_in">queue</span>.isEmpty();</div><div class="line">    <span class="comment">//将消息强制转型并加入队列</span></div><div class="line">    <span class="built_in">queue</span>.add((SequenceNumberingSubpartitionView) msg);</div><div class="line">    <span class="comment">//如果队列在消息加入前是空的，则说明可以响应消息给客户端了</span></div><div class="line">    <span class="keyword">if</span> (triggerWrite) &#123;</div><div class="line">        writeAndFlushNextMessageIfPossible(ctx.channel());</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>看完了enqueue方法，下面我们来看cancel如何实现：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">cancel</span><span class="params">(InputChannelID receiverId)</span> </span>&#123;</div><div class="line">    ctx.pipeline().fireUserEventTriggered(receiverId);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>该调用对应了userEventTriggered中的另一段处理逻辑：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (msg.getClass() == InputChannelID.<span class="keyword">class</span>) &#123;</div><div class="line">    InputChannelID toCancel = (InputChannelID) msg;</div><div class="line"></div><div class="line">    <span class="comment">//如果当前InputChannelID已包含在释放过的集合中，那么直接返回</span></div><div class="line">    <span class="keyword">if</span> (released.contains(toCancel)) &#123;</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//如果当前的结果子分区视图不为空且其接收者编号跟当前待取消的编号相等，则释放相关资源，并将该编号加入已释放集合</span></div><div class="line">    <span class="keyword">if</span> (currentPartitionQueue != <span class="keyword">null</span> &amp;&amp; currentPartitionQueue.getReceiverId().equals(toCancel)) &#123;</div><div class="line">        currentPartitionQueue.releaseAllResources();</div><div class="line">        markAsReleased(currentPartitionQueue.receiverId);</div><div class="line">        currentPartitionQueue = <span class="keyword">null</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">int</span> <span class="keyword">size</span> = queue.<span class="keyword">size</span>();</div><div class="line"></div><div class="line">        <span class="comment">//遍历队列，将接收者编号跟当前准备取消的InputChannelID进行比较，</span></div><div class="line">        <span class="comment">//如果相等则对视图的相关资源进行释放同时将编号加入已释放集合</span></div><div class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="keyword">size</span>; i++) &#123;</div><div class="line">            SequenceNumberingSubpartitionView curr = queue.poll();</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (curr.getReceiverId().equals(toCancel)) &#123;</div><div class="line">                curr.releaseAllResources();</div><div class="line">                markAsReleased(curr.receiverId);</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">else</span> &#123;</div><div class="line">                queue.add(curr);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来，我们来分析一下处理器输出响应消息的writeAndFlushNextMessageIfPossible方法。在分析该方法的实现之前，我们先看一下，该方法何时会触发？当前在PartitionRequestQueue中该方法共有三个调用点。</p>
+<p>第一个调用点位于ChannelInboundHandler的channelWritabilityChanged事件回调方法中。</p>
+<blockquote>
+<p>channelWritabilityChanged方法是ChannelInboundHandler的接口方法，当Channel的可写状态发生改变时会被调用。Channel的isWritable()方法可以用来检测其可写性。可写性的阈值范围可以通过Channel.config().setWriteHighWaterMark()以及Channel.config().setWriteLowWaterMark()进行设置。</p>
+</blockquote>
+<p>第二个调用点位于userEventTriggered回调方法中，这在我们上文分析该方法时已经提及过。</p>
+<p>第三个调用点处于PartitionRequestQueue内部对ChannelFutureListener接口的实现类WriteAndFlushNextMessageIfPossibleListener中。</p>
+<blockquote>
+<p>ChannelFutureListener用于注册到ChannelFuture中，当I/O操作完成之后，会触发对其方法operationComplete的调用。</p>
+</blockquote>
+<p>而WriteAndFlushNextMessageIfPossibleListener的实现，就是在其operationComplete方法中触发了对writeAndFlushNextMessageIfPossible方法的调用。那么WriteAndFlushNextMessageIfPossibleListener何时会被注册到ChannelFuture呢，毕竟不注册是不会触发operationComplete的。而注册点正好位于writeAndFlushNextMessageIfPossible的实现中。</p>
+<p>现在，我们就来分析该方法的实现，其核心代码段如下：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//如果channel的状态为可写才会继续执行如下逻辑</span></div><div class="line"><span class="keyword">if</span> (channel.isWritable()) &#123;</div><div class="line">    <span class="keyword">while</span> (<span class="literal">true</span>) &#123;</div><div class="line">        <span class="comment">//如果当前结果子分区视图为空，同时队列里也没有待处理的记录了，则退出循环</span></div><div class="line">        <span class="keyword">if</span> (currentPartitionQueue == <span class="literal">null</span> &amp;&amp; (currentPartitionQueue = queue.poll()) == <span class="literal">null</span>) &#123;</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//从结果子分区视图获得待响应的原始数据</span></div><div class="line">        buffer = currentPartitionQueue.getNextBuffer();</div><div class="line"></div><div class="line">        <span class="comment">//如果为null，则不做响应，继续循环处理队列中的记录</span></div><div class="line">        <span class="keyword">if</span> (buffer == <span class="literal">null</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (currentPartitionQueue.registerListener(<span class="literal">null</span>)) &#123;</div><div class="line">                currentPartitionQueue = <span class="literal">null</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (currentPartitionQueue.isReleased()) &#123;</div><div class="line">                markAsReleased(currentPartitionQueue.getReceiverId());</div><div class="line"></div><div class="line">                Throwable cause = currentPartitionQueue.getFailureCause();</div><div class="line"></div><div class="line">                <span class="keyword">if</span> (cause != <span class="literal">null</span>) &#123;</div><div class="line">                    ctx.writeAndFlush(<span class="keyword">new</span> <span class="type">NettyMessage</span>.ErrorResponse(</div><div class="line">                        <span class="keyword">new</span> <span class="type">ProducerFailedException</span>(cause),</div><div class="line">                        currentPartitionQueue.receiverId));</div><div class="line">                &#125;</div><div class="line"></div><div class="line">                currentPartitionQueue = <span class="literal">null</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">//buffer不为null，给予客户端响应</span></div><div class="line">        <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">//构建出最终的响应对象，这里就能看出，为什么要实现SequenceNumberingSubpartitionView这一包装器了</span></div><div class="line">            <span class="comment">//因为这里用到了sequenceNumber以及receiverId</span></div><div class="line">            BufferResponse resp = <span class="keyword">new</span> <span class="type">BufferResponse</span>(buffer, currentPartitionQueue.getSequenceNumber(), </div><div class="line">                currentPartitionQueue.getReceiverId());</div><div class="line"></div><div class="line">            <span class="comment">//如果该Buffer并不是数据，而是表示子分区消费结束的事件，则会进行特殊的处理</span></div><div class="line">            <span class="keyword">if</span> (!buffer.isBuffer() &amp;&amp;</div><div class="line">                EventSerializer.fromBuffer(buffer, getClass().getClassLoader()).getClass() == </div><div class="line">                EndOfPartitionEvent.class) &#123;</div><div class="line"></div><div class="line">                <span class="comment">//通知子分区消费完成，并释放相关资源</span></div><div class="line">                currentPartitionQueue.notifySubpartitionConsumed();</div><div class="line">                currentPartitionQueue.releaseAllResources();</div><div class="line">                markAsReleased(currentPartitionQueue.getReceiverId());</div><div class="line"></div><div class="line">                currentPartitionQueue = <span class="literal">null</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//将响应对象写入网络准备发送给请求客户端，这里就是第三个调用点中注册ChannelFutureListener的位置了</span></div><div class="line">            <span class="comment">//等到Netty的I/O线程处理完成后，将会触发writeAndFlushNextMessageIfPossible被再次调用</span></div><div class="line">            <span class="comment">//从而形成了处理数据与注册回调之间的循环</span></div><div class="line">            channel.writeAndFlush(resp).addListener(writeListener);</div><div class="line"></div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>以上就是PartitionRequestQueue的核心逻辑，它自身不是队列结构的实现，但是它内部采用队列来对用于响应数据的ResultSubpartitionView进行缓冲，从而保证了服务端的响应速度处于合适的范围。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/01/15/flink-runtime-netty-part-3/" data-id="cixymkhax0071p4vunppb6u8h" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/01/12/flink-runtime-netty-part-2/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之基于Netty的网络通信中</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-netty-part-3" data-title="Flink运行时之基于Netty的网络通信(下)" data-url="http://vinoyang.com/2017/01/15/flink-runtime-netty-part-3/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">38</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/01/15/flink-runtime-netty-part-3/">Flink运行时之基于Netty的网络通信(下)</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/12/flink-runtime-netty-part-2/">Flink运行时之基于Netty的网络通信中</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/08/flink-runtime-netty-part-1/">Flink运行时之基于Netty的网络通信上</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/04/flink-runtime-consumer-input-gate/">Flink运行时之结果分区消费端</a>
+          </li>
+        
+          <li>
+            <a href="/2016/12/30/flink-runtime-producer-result-partition/">Flink运行时之生产端结果分区</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
