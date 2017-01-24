@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之TaskManager执行Task | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="TaskManager执行任务当一个任务被JobManager部署到TaskManager之后，它将会被执行。本篇我们将分析任务的执行细节。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之TaskManager执行Task">
+<meta property="og:url" content="http://vinoyang.com/2017/01/24/flink-runtime-taskmanager-run-task/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="TaskManager执行任务当一个任务被JobManager部署到TaskManager之后，它将会被执行。本篇我们将分析任务的执行细节。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/AbstructInvokable-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-01-24T10:05:17.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之TaskManager执行Task">
+<meta name="twitter:description" content="TaskManager执行任务当一个任务被JobManager部署到TaskManager之后，它将会被执行。本篇我们将分析任务的执行细节。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/AbstructInvokable-class-diagram.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-taskmanager-run-task" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/24/flink-runtime-taskmanager-run-task/" class="article-date">
+  <time datetime="2017-01-24T10:17:51.000Z" itemprop="datePublished">2017-01-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之TaskManager执行Task
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#TaskManager执行任务"><span class="toc-number">1.</span> <span class="toc-text">TaskManager执行任务</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#submitTask方法分析"><span class="toc-number">1.1.</span> <span class="toc-text">submitTask方法分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Task线程的执行"><span class="toc-number">1.2.</span> <span class="toc-text">Task线程的执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#最终的可执行体"><span class="toc-number">1.3.</span> <span class="toc-text">最终的可执行体</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="TaskManager执行任务"><a href="#TaskManager执行任务" class="headerlink" title="TaskManager执行任务"></a>TaskManager执行任务</h1><p>当一个任务被JobManager部署到TaskManager之后，它将会被执行。本篇我们将分析任务的执行细节。</p>
+<a id="more"></a>
+<h2 id="submitTask方法分析"><a href="#submitTask方法分析" class="headerlink" title="submitTask方法分析"></a>submitTask方法分析</h2><p>一个任务实例被部署所产生的实际影响就是JobManager会将一个TaskDeploymentDescriptor对象封装在SubmitTask消息中发送给TaskManager。而处理该消息的入口方法是submitTask方法，它是TaskManager接收任务部署并启动任务执行的入口方法，值得我们关注一下它的实现细节。</p>
+<p>submitTask方法中的第一个关键点是它先构建一个Task对象：</p>
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">val <span class="keyword">task</span> = <span class="keyword">new</span> <span class="keyword">Task</span>(</div><div class="line">    tdd,</div><div class="line">    memoryManager,</div><div class="line">    ioManager,</div><div class="line">    network,</div><div class="line">    bcVarManager,</div><div class="line">    selfGateway,</div><div class="line">    jobManagerGateway,</div><div class="line">    config.timeout,</div><div class="line">    libCache,</div><div class="line">    fileCache,</div><div class="line">    runtimeInfo,</div><div class="line">    taskMetricGroup)</div></pre></td></tr></table></figure>
+<p>该Task封装了其在TaskManager中执行时需要的一些关键对象。task对象将会被加入TaskManager中的一个ExecutionAttemptID与Task的Map中，如果发现该ExecutionAttemptID所对应的Task对象已存在于Map中，则将原先的Task实例重新放回到Map中，同时抛出异常：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">val</span> execId = tdd.getExecutionId</div><div class="line"><span class="keyword">val</span> prevTask = runningTasks.put(execId, task)</div><div class="line"><span class="keyword">if</span> (prevTask != <span class="literal">null</span>) &#123;</div><div class="line">    runningTasks.put(execId, prevTask)</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IllegalStateException</span>(<span class="string">"TaskManager already contains a task for id "</span> + execId)</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>如果一切正常，接下来就启动线程并执行任务，接着发送应答消息进行回复：</p>
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">task</span><span class="selector-class">.startTaskThread</span>()</div><div class="line"><span class="selector-tag">sender</span> ! <span class="selector-tag">decorateMessage</span>(Acknowledge)</div></pre></td></tr></table></figure>
+<p>submitTask方法比起JobManager的submitJob方法，逻辑和代码量都相对简单。我们会进一步分析两个过程：</p>
+<ol>
+<li>Task对象的构造方法</li>
+<li>Task作为一个线程，其run方法的实现</li>
+</ol>
+<p>首先关注的是Task的构造方法，Task作为TaskManager的启动对象，其需要的参数基本都跟其执行有关，参数如下：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="built_in">Task</span>(TaskDeploymentDescriptor tdd,            <span class="comment">//任务描述符        </span></div><div class="line">    MemoryManager memManager,                        <span class="comment">//内存管理器</span></div><div class="line">    IOManager ioManager,                             <span class="comment">//IO管理器</span></div><div class="line">    NetworkEnvironment networkEnvironment,           <span class="comment">//网络环境对象，处理网络请求</span></div><div class="line">    BroadcastVariableManager bcVarManager,           <span class="comment">//广播变量管理器</span></div><div class="line">    ActorGateway taskManagerActor,                   <span class="comment">//TaskManager对应的actor通信网关</span></div><div class="line">    ActorGateway jobManagerActor,                    <span class="comment">//JobManager对应的actor通信网关</span></div><div class="line">    FiniteDuration actorAskTimeout,                  <span class="comment">//actor响应超时时间</span></div><div class="line">    LibraryCacheManager libraryCache,                <span class="comment">//用户程序的Jar、类库缓存         </span></div><div class="line">    FileCache fileCache,                             <span class="comment">//用户定义的文件缓存，执行时需要</span></div><div class="line">    TaskManagerRuntimeInfo taskManagerConfig         <span class="comment">//TaskManager运行时配置</span></div><div class="line">)</div></pre></td></tr></table></figure>
+<p>构造方法的第一段代码是将TaskDeploymentDescriptor封装的大量信息“转交”给Task对象。</p>
+<p>接下来会根据结果分区部署描述符ResultPartitionDeploymentDescriptor和输入网关部署描述符InputGateDeploymentDescriptor来初始化结果分区以及输入网关，其中结果分区是当前的task实例产生的，而输入网关是用来从网络上消费前一个任务的结果分区。首先看一下结果分区的初始化：</p>
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">this</span>.producedPartitions = <span class="keyword">new</span> ResultPartition[partitions.size()];</div><div class="line"><span class="keyword">this</span>.writers = <span class="keyword">new</span> ResultPartitionWriter[partitions.size()];</div><div class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="keyword">this</span>.producedPartitions.length; i++) &#123;   </div><div class="line">    ResultPartitionDeploymentDescriptor <span class="keyword">desc</span> = partitions.get(i);   </div><div class="line">    ResultPartitionID partitionId = <span class="keyword">new</span> ResultPartitionID(<span class="keyword">desc</span>.getPartitionId(), executionId);   </div><div class="line">    <span class="keyword">this</span>.producedPartitions[i] = <span class="keyword">new</span> ResultPartition(         </div><div class="line">        taskNameWithSubtaskAndId,         </div><div class="line">        jobId,         </div><div class="line">        partitionId,         </div><div class="line">        <span class="keyword">desc</span>.getPartitionType(),         </div><div class="line">        <span class="keyword">desc</span>.getEagerlyDeployConsumers(),         </div><div class="line">        <span class="keyword">desc</span>.getNumberOfSubpartitions(),         </div><div class="line">        networkEnvironment.getPartitionManager(),         </div><div class="line">        networkEnvironment.getPartitionConsumableNotifier(),         </div><div class="line">        ioManager,         </div><div class="line">        networkEnvironment.getDefaultIOMode());   </div><div class="line"></div><div class="line">    <span class="keyword">this</span>.writers[i] = <span class="keyword">new</span> ResultPartitionWriter(<span class="keyword">this</span>.producedPartitions[i]);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>以上代码主要的逻辑是循环初始化结果分区对象数组producedPartitions以及结果分区写入器数组writers。结果分区对象初始化时，会根据ResultPartitionType的类型来判断是创建阻塞式的子分区还是创建管道式的子分区，这涉及到数据传输的方式。ResultPartitionWriter是面向结果分区的运行时结果写入器对象。</p>
+<p>下面的代码用于输入网关的初始化：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">this</span>.inputGates = <span class="keyword">new</span> SingleInputGate[consumedPartitions.<span class="built_in">size</span>()];</div><div class="line"><span class="keyword">this</span>.inputGatesById = <span class="keyword">new</span> HashMap&lt;IntermediateDataSetID, SingleInputGate&gt;();</div><div class="line"><span class="built_in">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="keyword">this</span>.inputGates.length; i++) &#123;   </div><div class="line">    SingleInputGate gate = SingleInputGate.create(         </div><div class="line">        taskNameWithSubtaskAndId, jobId, executionId, consumedPartitions.<span class="built_in">get</span>(i), networkEnvironment);   </div><div class="line">    <span class="keyword">this</span>.inputGates[i] = gate;   inputGatesById.<span class="built_in">put</span>(gate.getConsumedResultId(), gate);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>输入网关的初始化则是根据上游task产生的结果分区来进行挨个初始化。</p>
+<p>最终它会为该任务的执行创建一个线程：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">executingThread = <span class="keyword">new</span> <span class="type">Thread</span>(TASK_THREADS_GROUP, <span class="built_in">this</span>, taskNameWithSubtask);</div></pre></td></tr></table></figure>
+<p>其实Task类实现了Runnable接口，它的实例本身就可以被线程执行，然后它又在内部实例化了一个线程对象并保存了执行它自身的线程引用，进而获得了对该线程的完全控制。比如，用startTaskThread方法来启动执行Task的线程。Task线程的执行细节，我们将会在接下来进行分析。</p>
+<blockquote>
+<p>从这里我们也能看到，每个任务的部署会产生一个Task对象，而一个Task对象恰好对应一个执行它的线程实例。</p>
+</blockquote>
+<h2 id="Task线程的执行"><a href="#Task线程的执行" class="headerlink" title="Task线程的执行"></a>Task线程的执行</h2><p>Task实现了Runnable接口，那么毫无疑问其run方法承载了Task被执行的核心逻辑。而之前，我们将会分析Task线程的执行流程。</p>
+<p>首先，第一步先对Task的执行状态进行转换：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">while</span> (<span class="literal">true</span>) &#123;</div><div class="line">    ExecutionState current = <span class="keyword">this</span>.executionState;</div><div class="line">    <span class="comment">//如果当前的执行状态为CREATED，则对其应用CAS操作，将其设置为DEPLOYING状态，如果设置成功，将退出while无限循环</span></div><div class="line">    <span class="keyword">if</span> (current == ExecutionState.CREATED) &#123;</div><div class="line">        <span class="keyword">if</span> (STATE_UPDATER.compareAndSet(<span class="keyword">this</span>, ExecutionState.CREATED, ExecutionState.DEPLOYING)) &#123;</div><div class="line">            <span class="comment">// success, we can start our work</span></div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//如果当前执行状态为FAILED，则发出最终状态的通知消息，并退出run方法的执行</span></div><div class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (current == ExecutionState.FAILED) &#123;</div><div class="line">        notifyFinalState();</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//如果当前执行状态为CANCELING，则对其应用cas操作，并将其修改为CANCELED状态，如果修改成功则发出最终状态通知消息，</span></div><div class="line">    <span class="comment">//同时退出run方法的执行</span></div><div class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (current == ExecutionState.CANCELING) &#123;</div><div class="line">        <span class="keyword">if</span> (STATE_UPDATER.compareAndSet(<span class="keyword">this</span>, ExecutionState.CANCELING, ExecutionState.CANCELED)) &#123;</div><div class="line">            notifyFinalState();</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//如果当前的执行状态为其他状态，则抛出异常</span></div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">throw</span> new IllegalStateException(<span class="string">"Invalid state for beginning of task operation"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来，是对用户代码所打成的jar包的加载并生成对应的类加载器，同时获取到程序的执行配置ExecutionConfig。根据类加载器以及用户的可执行体在Flink中所对应的具体的实现类名来加载该类：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">invokable</span> = loadAndInstantiateInvokable(userCodeClassLoader, nameOfInvokableClass);</div></pre></td></tr></table></figure>
+<p>Flink中所有类型的操作都有特定的可执行体，它们无一例外都是对AbstractInvokable类的扩展。每个的可执行体的名称在生产JobGraph时就已确定。</p>
+<p>紧接着的一个关键操作就是向网络栈注册该任务对象：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">network.registerTask(<span class="keyword">this</span>);</div></pre></td></tr></table></figure>
+<p>这个操作是为了让Task之间可以基于网络互相进行数据交换，包含了分配网络缓冲、结果分区注册等一系列内部操作，并且有可能会由于系统无足够的内存而发生失败。</p>
+<p>然后会把各种配置、管理对象都打包到Task在执行时的统一环境对象Environment中，并将该环境对象赋予可执行体：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">invokable.setEnvironment(env)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>在此之后，对于有状态的任务，如果它们的状态不为空，则会对这些有状态的任务进行状态初始化：</p>
+<figure class="highlight pf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">SerializedValue<span class="variable">&lt;StateHandle&lt;?&gt;</span>&gt; operatorState = this.operatorState;</div><div class="line"></div><div class="line">if (operatorState != null) &#123;</div><div class="line">    if (invokable instanceof StatefulTask) &#123;</div><div class="line">    try &#123;</div><div class="line">        StateHandle<span class="variable">&lt;?&gt;</span> <span class="keyword">state</span> = operatorState.deserializeValue(<span class="keyword">user</span>CodeClassLoader);</div><div class="line">        StatefulTask<span class="variable">&lt;?&gt;</span> op = (StatefulTask<span class="variable">&lt;?&gt;</span>) invokable;</div><div class="line">        StateUtils.<span class="built_in">set</span>OperatorState(op, <span class="keyword">state</span>);</div><div class="line">    &#125;</div><div class="line">    catch (Exception e) &#123;</div><div class="line">        throw new RuntimeException(<span class="string">"Failed to deserialize state handle and "</span> </div><div class="line">            + <span class="string">" setup initial operator state."</span>, e);</div><div class="line">    &#125;</div><div class="line">    &#125;</div><div class="line">    else &#123;</div><div class="line">        throw new IllegalStateException(<span class="string">"Found operator state for a non-stateful task invokable"</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>通常什么情况下任务会有初始状态呢？当任务并不是首次运行，比如之前发生过失败从某个检查点恢复时会从检查点中获取当前任务的状态，在执行之前先进行初始化。</p>
+</blockquote>
+<p>接下来，会将任务的执行状态变更为RUNNING，并向观察者以及TaskManager发送通知：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (!STATE_UPDATER.compareAndSet(<span class="built_in">this</span>, ExecutionState.DEPLOYING, ExecutionState.RUNNING)) &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">CancelTaskException</span>();</div><div class="line">&#125;</div><div class="line"></div><div class="line">notifyObservers(ExecutionState.RUNNING, <span class="literal">null</span>);</div><div class="line">taskManager.tell(<span class="keyword">new</span> <span class="type">UpdateTaskExecutionState</span>(</div><div class="line">    <span class="keyword">new</span> <span class="type">TaskExecutionState</span>(jobId, executionId, ExecutionState.RUNNING)));</div></pre></td></tr></table></figure>
+<p>然后将执行线程的类加载器设置为用户代码的类加载器，然后调用可执行体的invoke方法，invoke方法实现了每个可执行体所要执行的核心逻辑。</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">executingThread.setContextClassLoader(userCodeClassLoader)<span class="comment">;</span></div><div class="line">invokable.invoke()<span class="comment">;</span></div></pre></td></tr></table></figure>
+<blockquote>
+<p>invoke方法的执行是个分界点，在执行之前用户逻辑还没有被触发执行；而该方法被执行之后，说明用户逻辑已被执行完成。</p>
+</blockquote>
+<p>然后对当前任务所生产的所有结果分区调用finish方法进行资源释放：</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span> (ResultPartition <span class="built_in">partition</span> : producedPartitions) &#123;</div><div class="line">    <span class="keyword">if</span> (<span class="built_in">partition</span> != null) &#123;</div><div class="line">        <span class="built_in">partition</span>.finish();</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>最后将任务的执行状态修改为FINISHED，并发出通知：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (STATE_UPDATER.compareAndSet(<span class="built_in">this</span>, ExecutionState.RUNNING, ExecutionState.FINISHED)) &#123;</div><div class="line">    notifyObservers(ExecutionState.FINISHED, <span class="literal">null</span>);</div><div class="line">&#125;</div><div class="line"><span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">CancelTaskException</span>();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来在finally块里进行一系列资源释放操作。</p>
+<h2 id="最终的可执行体"><a href="#最终的可执行体" class="headerlink" title="最终的可执行体"></a>最终的可执行体</h2><p>Task是在TaskManager中执行任务的统一抽象，它的核心仍然是如何执行，而不是如何表述。比如，批处理任务和流处理任务，它们有很大的差别，但我们需要一种表述层面上的抽象，使得它们最终都能被Task所接收，然后得到执行。而该表述层面上的抽象即为AbstractInvokable。它是所有在TaskManager中真正被执行的主体。其类图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/AbstructInvokable-class-diagram.png" alt="AbstructInvokable"></p>
+<p>AbstractInvokable定义了一系列的“上下文”对象，同时提供了核心两个方法：</p>
+<ul>
+<li>invoke：该抽象方法是描述用户逻辑的核心方法，最终在Task线程中被执行的就是该方法；</li>
+<li>cancel：取消执行用户逻辑的方法，提供了默认为空的实现，用户取消执行或者执行失败会触发该方法的调用；</li>
+</ul>
+<p>跟Flink提供了流处理和批处理的API一致，AbstractInvokable也相应的具有两个派生类：</p>
+<ul>
+<li>StreamTask：所有流处理任务的基类，实现位于flink-streaming-java模块中；</li>
+<li>BatchTask：所有批处理任务的基类，实现位于runtime模块中；</li>
+</ul>
+<p>无论是哪种形式的任务，在生成JobGraph阶段就已经被确定并加入到JobVertex中：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">void</span> setInvokableClass(<span class="keyword">Class</span>&lt;? <span class="keyword">extends</span> AbstractInvokable&gt; invokable) &#123;   </div><div class="line">    Preconditions.checkNotNull(invokable);   </div><div class="line">    <span class="keyword">this</span>.invokableClassName = invokable.getName();   </div><div class="line">    <span class="keyword">this</span>.isStoppable = StoppableTask.<span class="keyword">class</span>.isAssignableFrom(invokable);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>随后被一直携带到Task类中，并通过反射的机制从特定的类加载器中创建其实例，最终调用其invoke方法执行：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> AbstractInvokable loadAndInstantiateInvokable(ClassLoader classLoader, String className) </div><div class="line">    <span class="keyword">throws</span> Exception &#123;   </div><div class="line">    <span class="keyword">Class</span>&lt;? <span class="keyword">extends</span> AbstractInvokable&gt; invokableClass;   </div><div class="line">    <span class="keyword">try</span> &#123;      </div><div class="line">        invokableClass = <span class="keyword">Class</span>.forName(className, <span class="keyword">true</span>, classLoader)            </div><div class="line">            .asSubclass(AbstractInvokable.<span class="keyword">class</span>);   </div><div class="line">    &#125;   <span class="keyword">catch</span> (Throwable t) &#123;      </div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> Exception(<span class="string">"Could not load the task's invokable class."</span>, t);   </div><div class="line">    &#125;   </div><div class="line">    <span class="keyword">try</span> &#123;      </div><div class="line">        <span class="keyword">return</span> invokableClass.newInstance();   </div><div class="line">    &#125;   <span class="keyword">catch</span> (Throwable t) &#123;      </div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> Exception(<span class="string">"Could not instantiate the task's invokable class."</span>, t);   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>关于更多用户逻辑的执行细节，我们后续会进行分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/01/24/flink-runtime-taskmanager-run-task/" data-id="ciybcwcl100249nvuvcf54x21" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/01/15/flink-runtime-netty-part-3/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之基于Netty的网络通信(下)</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-taskmanager-run-task" data-title="Flink运行时之TaskManager执行Task" data-url="http://vinoyang.com/2017/01/24/flink-runtime-taskmanager-run-task/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">39</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/01/24/flink-runtime-taskmanager-run-task/">Flink运行时之TaskManager执行Task</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/15/flink-runtime-netty-part-3/">Flink运行时之基于Netty的网络通信(下)</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/12/flink-runtime-netty-part-2/">Flink运行时之基于Netty的网络通信中</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/08/flink-runtime-netty-part-1/">Flink运行时之基于Netty的网络通信上</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/04/flink-runtime-consumer-input-gate/">Flink运行时之结果分区消费端</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
