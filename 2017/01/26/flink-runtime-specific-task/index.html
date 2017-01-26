@@ -5,17 +5,24 @@
   <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
   <meta name="baidu-site-verification" content="yEdVDDBr1C" />
   
-  <title>Archives: 2011 | yanghua</title>
+  <title>Flink运行时之合久必分的特定任务 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="yanghua blog github">
-<meta property="og:type" content="website">
-<meta property="og:title" content="yanghua">
-<meta property="og:url" content="http://vinoyang.com/archives/2011/page/2/index.html">
+  <meta name="description" content="合久必分的特定任务前面我们谈到了TaskManager对每个Task实例会启动一个独立的线程来执行。在分析线程执行的核心代码时，我们看到最终执行的是AbstractInvokable这样执行体的invoke方法。所谓合久必分，鉴于流处理任务跟批处理任务执行模式上存在巨大的差异，在对AbstractInvokable的实现时，它们将会走向两个不同的分支。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之合久必分的特定任务">
+<meta property="og:url" content="http://vinoyang.com/2017/01/26/flink-runtime-specific-task/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="yanghua blog github">
+<meta property="og:description" content="合久必分的特定任务前面我们谈到了TaskManager对每个Task实例会启动一个独立的线程来执行。在分析线程执行的核心代码时，我们看到最终执行的是AbstractInvokable这样执行体的invoke方法。所谓合久必分，鉴于流处理任务跟批处理任务执行模式上存在巨大的差异，在对AbstractInvokable的实现时，它们将会走向两个不同的分支。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/AbstractInvokable-for-streaming.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/all-StreamOperator-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/AbstractInvokable-for-batch.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-01-26T14:07:43.000Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="yanghua">
-<meta name="twitter:description" content="yanghua blog github">
+<meta name="twitter:title" content="Flink运行时之合久必分的特定任务">
+<meta name="twitter:description" content="合久必分的特定任务前面我们谈到了TaskManager对每个Task实例会启动一个独立的线程来执行。在分析线程执行的核心代码时，我们看到最终执行的是AbstractInvokable这样执行体的invoke方法。所谓合久必分，鉴于流处理任务跟批处理任务执行模式上存在巨大的差异，在对AbstractInvokable的实现时，它们将会走向两个不同的分支。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/AbstractInvokable-for-streaming.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
   
@@ -75,210 +82,138 @@
   </div>
 </header>
       <div class="outer">
-        <section id="main">
-  
-  
-    
-    
-      
-      
-      <section class="archives-wrap">
-        <div class="archive-year-wrap">
-          <a href="/archives/2011" class="archive-year">2011</a>
-        </div>
-        <div class="archives">
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/31/使用AOP使C-代码更清晰/" class="archive-article-date">
-  <time datetime="2011-10-30T21:47:00.000Z" itemprop="datePublished">10月 31</time>
+        <section id="main"><article id="post-flink-runtime-specific-task" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/01/26/flink-runtime-specific-task/" class="article-date">
+  <time datetime="2017-01-26T14:00:47.000Z" itemprop="datePublished">2017-01-26</time>
 </a>
-      
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/31/使用AOP使C-代码更清晰/">使用AOP使C#代码更清晰</a>
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之合久必分的特定任务
     </h1>
   
 
-    </header>
-  </div>
-</article>
-  
+      </header>
     
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/28/Dnode-基于Node-js给浏览器提供异步远程方法调用/" class="archive-article-date">
-  <time datetime="2011-10-27T21:41:00.000Z" itemprop="datePublished">10月 28</time>
-</a>
+    <div class="article-entry" itemprop="articleBody">
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/28/Dnode-基于Node-js给浏览器提供异步远程方法调用/">Dnode:基于Node.js给浏览器提供异步远程方法调用</a>
-    </h1>
-  
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#合久必分的特定任务"><span class="toc-number">1.</span> <span class="toc-text">合久必分的特定任务</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#流处理相关的任务"><span class="toc-number">1.1.</span> <span class="toc-text">流处理相关的任务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#批处理相关的任务"><span class="toc-number">1.2.</span> <span class="toc-text">批处理相关的任务</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#殊途同归的UDF"><span class="toc-number">1.3.</span> <span class="toc-text">殊途同归的UDF</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="合久必分的特定任务"><a href="#合久必分的特定任务" class="headerlink" title="合久必分的特定任务"></a>合久必分的特定任务</h1><p>前面我们谈到了TaskManager对每个Task实例会启动一个独立的线程来执行。在分析线程执行的核心代码时，我们看到最终执行的是AbstractInvokable这样执行体的invoke方法。所谓合久必分，鉴于流处理任务跟批处理任务执行模式上存在巨大的差异，在对AbstractInvokable的实现时，它们将会走向两个不同的分支。</p>
+<a id="more"></a>
+<h2 id="流处理相关的任务"><a href="#流处理相关的任务" class="headerlink" title="流处理相关的任务"></a>流处理相关的任务</h2><p>流处理所对应的任务的继承关系图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/AbstractInvokable-for-streaming.png" alt="AbstractInvokable-for-streaming"></p>
+<p>从上面的继承关系图可见，StreamTask是流处理任务的抽象。因为在DataStream API中允许算子链接（operator-chain），算子链中的第一个算子称之为“head”，根据“head”算子输入端个数以及角色的差别派生出三种不同类型的任务：</p>
+<ul>
+<li>SourceStreamTask：输入源对应的流任务；</li>
+<li>OneInputStreamTask：单输入端流任务；</li>
+<li>TwoInputStreamTask：双输入端流任务；</li>
+</ul>
+<p>在这三大类流任务之下又会有其他一些特殊的流任务被派生。但StreamTask为所有流任务的实现提供了基础。它在AbstracInvokable的invoke核心方法中规定了一套统一的执行流程，这个流程会被任何一个流处理任务在执行时所遵循。这套流程步骤如下：</p>
+<ol>
+<li>创建基本的辅助部件并加载算子链；</li>
+<li>启动算子；</li>
+<li><em>特定任务相关的初始化；</em></li>
+<li>打开算子；</li>
+<li><em>执行run方法；</em></li>
+<li>关闭算子；</li>
+<li>销毁算子；</li>
+<li>公共的清理操作；</li>
+<li><em>特定任务相关的清理操作；</em></li>
+</ol>
+<blockquote>
+<p>以上步骤中被标记为斜体字的步骤（3，5，9）都被定义为抽象方法让实现类填充逻辑。</p>
+</blockquote>
+<p>除去SourceStreamTask之外，为什么要以输入端的个数来区分任务呢？这一点跟Flink的设计是分不开的，它从API层到算子再到任务的设计都以输入端的个数为中心。我们可以看一下流处理中的所有算子的继承关系图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/all-StreamOperator-class-diagram.png" alt="all-StreamOperator-class-diagram"></p>
+<p>可以看到除了StreamSource没有扩展OneInputStreamOperator和TwoInputStreamOperator。其他所有算子都无一例外的扩展自这两个接口。这一点跟在Task层面的继承关系是一致的。</p>
+<h2 id="批处理相关的任务"><a href="#批处理相关的任务" class="headerlink" title="批处理相关的任务"></a>批处理相关的任务</h2><p>批处理对应的任务继承关系如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/AbstractInvokable-for-batch.png" alt="AbstractInvokable-for-batch"></p>
+<p>在批处理的任务设计中，将source和sink这两个角色对应的任务独立开，而其他承载业务逻辑的算子所对应的任务都由BatchTask来表示，迭代相关的任务也直接继承自BatchTask。</p>
+<p>如同流处理中的StreamTask一样，BatchTask主要也是提供一套执行的流程并提供了基于驱动（Driver）的用户逻辑代码的抽象。</p>
+<p>所谓Driver，它其实是衔接用户逻辑代码跟Flink运行时的任务（BatchTask）一个载体，这一点跟类似于计算机中介于软硬件之间的驱动程序。</p>
+<h2 id="殊途同归的UDF"><a href="#殊途同归的UDF" class="headerlink" title="殊途同归的UDF"></a>殊途同归的UDF</h2><p>其实不管Flink如何执行你的代码，对终端用户而言，它编写Flink程序时做得最多的一件事是什么？是覆写Flink提供的一些函数并在其中实现自己的业务逻辑，这些包含业务逻辑的类，我们通常就称之为UDF（user-defined function，也即用户定义的函数）。接下来，我们将关注点放在封装了UDF的执行体上，看看在流处理和批处理中它们都是如何被实现的。我们选择了一个很常见的函数Map，它在流处理中的实现为StreamMap，在批处理中的实现为MapDriver。</p>
+<p>StreamMap在其processElement中的逻辑为：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">processElement</span><span class="params">(StreamRecord&lt;IN&gt; element)</span> throws Exception </span>&#123;</div><div class="line">    output.collect(element.replace(userFunction.<span class="built_in">map</span>(element.getValue())));</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>流处理算子的必须实现逐元素处理的processElement方法。</p>
+</blockquote>
+<p>代码段中的userFunction是MapFunction接口的实例。</p>
+<p>接下来再看批处理中的MapDriver中的run方法：</p>
+<figure class="highlight verilog"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">public <span class="keyword">void</span> run() throws Exception &#123;</div><div class="line">    <span class="keyword">final</span> MutableObjectIterator&lt;IT&gt; <span class="keyword">input</span> = <span class="keyword">this</span><span class="variable">.taskContext</span><span class="variable">.getInput</span>(<span class="number">0</span>);</div><div class="line">    <span class="keyword">final</span> MapFunction&lt;IT, OT&gt; <span class="keyword">function</span> = <span class="keyword">this</span><span class="variable">.taskContext</span><span class="variable">.getStub</span>();</div><div class="line">    <span class="keyword">final</span> Collector&lt;OT&gt; <span class="keyword">output</span> = <span class="keyword">new</span> CountingCollector&lt;&gt;(</div><div class="line">        <span class="keyword">this</span><span class="variable">.taskContext</span><span class="variable">.getOutputCollector</span>(), numRecordsOut);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (objectReuseEnabled) &#123;</div><div class="line">        IT record = <span class="keyword">this</span><span class="variable">.taskContext</span>.&lt;IT&gt;getInputSerializer(<span class="number">0</span>)<span class="variable">.getSerializer</span>()<span class="variable">.createInstance</span>();</div><div class="line"></div><div class="line">    <span class="keyword">while</span> (<span class="keyword">this</span><span class="variable">.running</span> &amp;&amp; ((record = <span class="keyword">input</span><span class="variable">.next</span>(record)) != <span class="literal">null</span>)) &#123;</div><div class="line">        numRecordsIn<span class="variable">.inc</span>();</div><div class="line">        <span class="keyword">output</span><span class="variable">.collect</span>(<span class="keyword">function</span><span class="variable">.map</span>(record));</div><div class="line">    &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;</div><div class="line">        IT record = <span class="literal">null</span>;</div><div class="line"></div><div class="line">        <span class="keyword">while</span> (<span class="keyword">this</span><span class="variable">.running</span> &amp;&amp; ((record = <span class="keyword">input</span><span class="variable">.next</span>()) != <span class="literal">null</span>)) &#123;</div><div class="line">            numRecordsIn<span class="variable">.inc</span>();</div><div class="line">            <span class="keyword">output</span><span class="variable">.collect</span>(<span class="keyword">function</span><span class="variable">.map</span>(record));</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从Collector的collect方法中可以看到同样会执行MapFunction的map方法。</p>
+<blockquote>
+<p>两者的MapFunction是同一个接口，来自org.apache.flink.api.common.functions。</p>
+</blockquote>
+<p>所以归根结底，不论流处理和批处理中它们的执行模式有何不同，对于相同语义的函数，UDF中用户逻辑的执行是殊途同归的。</p>
+<p>关于更多用户逻辑的执行细节，我们后续会进行分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
 
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/25/开发中常见的十种对缓存的错误使用/" class="archive-article-date">
-  <time datetime="2011-10-24T21:39:00.000Z" itemprop="datePublished">10月 25</time>
-</a>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/25/开发中常见的十种对缓存的错误使用/">开发中常见的十种对缓存的错误使用</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/" class="archive-article-date">
-  <time datetime="2011-10-20T22:24:00.000Z" itemprop="datePublished">10月 21</time>
-</a>
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/01/26/flink-runtime-specific-task/" data-id="ciyegfrgx00243xvubwv6hbvj" class="article-share-link">Share</a>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/21/快速可扩展的Ajax流代理——提供持续下载跨域数据/">快速可扩展的Ajax流代理——提供持续下载跨域数据</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/16/Node-js应用之静态文件分发器/" class="archive-article-date">
-  <time datetime="2011-10-16T11:19:00.000Z" itemprop="datePublished">10月 16</time>
-</a>
       
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/16/Node-js应用之静态文件分发器/">Node.js应用之静态文件分发器</a>
-    </h1>
-  
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
 
-    </header>
+    </footer>
   </div>
-</article>
   
     
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/16/Node-js学习笔记-一-概述/" class="archive-article-date">
-  <time datetime="2011-10-15T17:05:00.000Z" itemprop="datePublished">10月 16</time>
-</a>
-      
+<nav id="article-nav">
   
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/16/Node-js学习笔记-一-概述/">Node.js学习笔记(一)概述</a>
-    </h1>
   
+    <a href="/2017/01/24/flink-runtime-taskmanager-run-task/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之TaskManager执行Task</div>
+    </a>
+  
+</nav>
 
-    </header>
-  </div>
+  
 </article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/14/asp-net的10个提升性能或扩展性的秘密-二/" class="archive-article-date">
-  <time datetime="2011-10-13T21:21:00.000Z" itemprop="datePublished">10月 14</time>
-</a>
-      
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/14/asp-net的10个提升性能或扩展性的秘密-二/">asp.net的10个提升性能或扩展性的秘密(二)</a>
-    </h1>
-  
 
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/" class="archive-article-date">
-  <time datetime="2011-10-07T22:25:00.000Z" itemprop="datePublished">10月 8</time>
-</a>
-      
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/08/asp-net的10个提升性能或扩展性的秘密-一/">asp.net的10个提升性能或扩展性的秘密(一)</a>
-    </h1>
-  
 
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/10/03/asp-net使用httphandler打包多CSS或JS文件以加快页面加载速度/" class="archive-article-date">
-  <time datetime="2011-10-02T18:37:00.000Z" itemprop="datePublished">10月 3</time>
-</a>
-      
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/10/03/asp-net使用httphandler打包多CSS或JS文件以加快页面加载速度/">asp.net使用httphandler打包多CSS或JS文件以加快页面加载速度</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-    
-    
-    <article class="archive-article archive-type-post">
-  <div class="archive-article-inner">
-    <header class="archive-article-header">
-      <a href="/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/" class="archive-article-date">
-  <time datetime="2011-09-25T21:02:00.000Z" itemprop="datePublished">9月 26</time>
-</a>
-      
-  
-    <h1 itemprop="name">
-      <a class="archive-article-title" href="/2011/09/26/多映射通用集合类-C-实现-支持一键多值存储/">多映射通用集合类(C#实现)--支持一键多值存储</a>
-    </h1>
-  
-
-    </header>
-  </div>
-</article>
-  
-  
-    </div></section>
-  
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-specific-task" data-title="Flink运行时之合久必分的特定任务" data-url="http://vinoyang.com/2017/01/26/flink-runtime-specific-task/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
 </section>
         
           <aside id="sidebar">
