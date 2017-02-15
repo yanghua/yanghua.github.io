@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之批处理程序生成计划 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="批处理程序生成计划DataSet API所编写的批处理程序跟DataStream API所编写的流处理程序在生成作业图（JobGraph）之前的实现差别很大。流处理程序是生成流图（StreamGraph），而批处理程序是生成计划（Plan）并由优化器对其进行优化并生成优化后的计划（OptimizedPlan）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之批处理程序生成计划">
+<meta property="og:url" content="http://vinoyang.com/2017/02/15/flink-runtime-generate-batch-plan/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="批处理程序生成计划DataSet API所编写的批处理程序跟DataStream API所编写的流处理程序在生成作业图（JobGraph）之前的实现差别很大。流处理程序是生成流图（StreamGraph），而批处理程序是生成计划（Plan）并由优化器对其进行优化并生成优化后的计划（OptimizedPlan）。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/OperatorTranslation-method-call-chain.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/DataSet-Operator-DataSource-DataSink-relationship.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/translate-supported-DataSet-type.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/core-module-operators-package-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Batch-WordCount-OptimizedPlan.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-02-15T14:07:27.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之批处理程序生成计划">
+<meta name="twitter:description" content="批处理程序生成计划DataSet API所编写的批处理程序跟DataStream API所编写的流处理程序在生成作业图（JobGraph）之前的实现差别很大。流处理程序是生成流图（StreamGraph），而批处理程序是生成计划（Plan）并由优化器对其进行优化并生成优化后的计划（OptimizedPlan）。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/OperatorTranslation-method-call-chain.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-generate-batch-plan" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/02/15/flink-runtime-generate-batch-plan/" class="article-date">
+  <time datetime="2017-02-15T14:23:16.000Z" itemprop="datePublished">2017-02-15</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之批处理程序生成计划
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#批处理程序生成计划"><span class="toc-number">1.</span> <span class="toc-text">批处理程序生成计划</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#什么是计划"><span class="toc-number">1.1.</span> <span class="toc-text">什么是计划</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#生成计划源码分析"><span class="toc-number">1.2.</span> <span class="toc-text">生成计划源码分析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#计划优化"><span class="toc-number">1.3.</span> <span class="toc-text">计划优化</span></a></li></ol></li></ol>
+          </div>
+        
+        <h1 id="批处理程序生成计划"><a href="#批处理程序生成计划" class="headerlink" title="批处理程序生成计划"></a>批处理程序生成计划</h1><p>DataSet API所编写的批处理程序跟DataStream API所编写的流处理程序在生成作业图（JobGraph）之前的实现差别很大。流处理程序是生成流图（StreamGraph），而批处理程序是生成计划（Plan）并由优化器对其进行优化并生成优化后的计划（OptimizedPlan）。</p>
+<a id="more"></a>
+<h2 id="什么是计划"><a href="#什么是计划" class="headerlink" title="什么是计划"></a>什么是计划</h2><p>计划（Plan）以数据流（dataflow）的形式来表示批处理程序，但它只是批处理程序最初的表示，在一个批处理程序生成作业图之前，计划还会被进行优化以产生更高效的方案。Plan不同于流图（StreamGraph），它以sink为入口，因为一个批处理程序可能存在若干个sink，所以Plan采用集合来存储它：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">List</span>&lt;GenericDataSinkBase<span class="meta">&lt;?</span>&gt;&gt; sinks = <span class="keyword">new</span> ArrayList&lt;&gt;(<span class="number">4</span>);</div></pre></td></tr></table></figure>
+<p>另外Plan还封装了批处理作业的一些基本属性：jobId、jobName以及defaultParallelism等。</p>
+<p>Plan实现了Visitable接口，该接口表示其实现者是可遍历的。Visitable要求实现者完善其accept方法，该方法接收一个Visitor作为遍历器对实现Visitable接口的对象进行遍历。Plan对accept方法的实现是依次对所有的sink进行遍历：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">accept</span><span class="params">(Visitor&lt;Operator&lt;?&gt;&gt; visitor)</span> </span>&#123;   </div><div class="line">    <span class="keyword">for</span> (GenericDataSinkBase&lt;?&gt; sink : <span class="keyword">this</span>.sinks) &#123;      </div><div class="line">        sink.accept(visitor);   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码段中的GenericDataSinkBase也间接实现了Visitable接口，在for循环中会调用它的accept方法。</p>
+<p>Visitor接口提供了两个遍历方法，分别是前置遍历的preVisit和用于后置遍历的postVisit方法。Plan在内部实现了获得当前批处理程序最大并行度的MaxDopVisitor遍历器，preVisit会将当前遍历算子的并行度跟已知的最大并行度进行对比，在两者之间取较大值：</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> boolean preVisit(Operator&lt;?&gt; visitable) &#123;   </div><div class="line">    <span class="keyword">this</span>.maxDop = Math.max(<span class="keyword">this</span>.maxDop, visitable.getParallelism());   </div><div class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>获取最大并行度的getMaximumParallelism方法，会实例化该遍历器并调用accept方法进行遍历来获得整个批处理程序的最大并行度：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">getMaximumParallelism</span><span class="params">()</span> </span>&#123;   </div><div class="line">    MaxDopVisitor visitor = <span class="keyword">new</span> MaxDopVisitor();   </div><div class="line">    accept(visitor);   </div><div class="line">    <span class="function"><span class="keyword">return</span> Math.<span class="title">max</span><span class="params">(visitor.maxDop, <span class="keyword">this</span>.defaultParallelism)</span></span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码段中的accept方法即为我们之前所展示的那个实现。由此可见accept内部定义了一种遍历模式，而具体遍历过程中要实现的逻辑，取决于对其应用的Visitor。这种设计将遍历模式和遍历逻辑进行了分离。</p>
+<h2 id="生成计划源码分析"><a href="#生成计划源码分析" class="headerlink" title="生成计划源码分析"></a>生成计划源码分析</h2><p>跟流处理程序中生成流图（StreamGraph）的方式类似，批处理程序中生成计划（Plan）的触发位置也位于执行环境类中。具体而言，是通过createProgramPlan方法来生成Plan的。生成Plan的核心部件是算子翻译器（OperatorTranslation），createProgramPlan方法通过它来”翻译“出计划，核心代码如下：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">OperatorTranslation translator</span> = new OperatorTranslation();</div><div class="line"><span class="attribute">Plan plan</span> = translator.translateToPlan(this.sinks, jobName);</div></pre></td></tr></table></figure>
+<p>根据之前我们对Plan的介绍，可知它是以sink为源头的，所以这里在对计划进行翻译时，也接收的是sink集合。</p>
+<p>OperatorTranslation，该类提供了大量的翻译方法来对批处理程序进行翻译。大致来看，它们之间的调用关系如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/OperatorTranslation-method-call-chain.png" alt="OperatorTranslation-method-call-chain"></p>
+<blockquote>
+<p>上图中的蓝色带箭头的线表示调用关系，而红色的线表示互相调用的关系，也就是说它们之间存在递归调用</p>
+</blockquote>
+<p>可以看出translateToPlan是这个类对外提供能力的入口方法。translateToPlan的完整实现如下代码段：</p>
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> Plan translateToPlan(<span class="keyword">List</span>&lt;DataSink<span class="meta">&lt;?</span>&gt;&gt; sinks, String jobName) &#123;   </div><div class="line">    <span class="keyword">List</span>&lt;GenericDataSinkBase<span class="meta">&lt;?</span>&gt;&gt; planSinks = <span class="keyword">new</span> ArrayList&lt;GenericDataSinkBase<span class="meta">&lt;?</span>&gt;&gt;();</div><div class="line">    <span class="comment">//遍历sinks集合      </span></div><div class="line">    <span class="keyword">for</span> (DataSink<span class="meta">&lt;?</span>&gt; sink : sinks) &#123;      </div><div class="line">        <span class="comment">//将翻译生成的GenericDataSinkBase加入planSinks集合</span></div><div class="line">        planSinks.add(</div><div class="line">            <span class="comment">//对每个sink进行”翻译“</span></div><div class="line">            translate(sink)</div><div class="line">        );   </div><div class="line">    &#125;      </div><div class="line">    <span class="comment">//以planSins集合构建Plan对象</span></div><div class="line">    Plan p = <span class="keyword">new</span> Plan(planSinks);   </div><div class="line">    p.setJobName(jobName);   </div><div class="line">    <span class="keyword">return</span> p;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面代码段中的translate方法， 它接收每个需遍历的DataSink对象，然后将其转换成GenericDataSinkBase对象。其实现如下：</p>
+<figure class="highlight r"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">private &lt;<span class="literal">T</span>&gt; GenericDataSinkBase&lt;<span class="literal">T</span>&gt; translate(DataSink&lt;<span class="literal">T</span>&gt; sink) &#123;        </div><div class="line">    Operator&lt;<span class="literal">T</span>&gt; input = translate(sink.getDataSet());      </div><div class="line">    GenericDataSinkBase&lt;<span class="literal">T</span>&gt; translatedSink = sink.translateToDataFlow(input);            </div><div class="line">    <span class="keyword">return</span> translatedSink;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>translate方法内部分为两步，第一步是对当前遍历的sink的DataSet进行递归翻译并获得其输入端的Operator对象：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">Operator&lt;T&gt; input = translate(<span class="name">sink</span>.getDataSet())<span class="comment">;</span></div></pre></td></tr></table></figure>
+<blockquote>
+<p>注意这里的Operator对象是Flink core包中的Operator类型，而非批处理API包中的。</p>
+</blockquote>
+<p>批处理相关的设计、命名相比流处理略显混乱，这里面当然有一些历史包袱存在，不过这不是我们关心的重点。为了避免产生混淆，同时为下文作铺垫，我们先分析一下批处理API的顶层设计以及core包中相关的类型设计。批处理API中的几个关键对象DataSet、Operator、DataSource、DataSink之间的继承和关联关系如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/DataSet-Operator-DataSource-DataSink-relationship.png" alt="DataSet-Operator-DataSource-DataSink-relationship"></p>
+<p>DataSet作为批处理API抽象的同时也是Operator的父类，而Operator则是批处理中所有算子的父类。DataSource和DataSink在哪里都是特殊的，这里也不例外。DataSource继承自Operator，因此它是一种特殊的算子。而DataSink跟上述这三个类不存在继承关系，但它保持了对DataSet的引用，表示跟它关联的数据集。</p>
+<blockquote>
+<p>批处理API模块跟流处理API模块是完全独立的，就算名称相同的类，也不是双方API所共享的。</p>
+</blockquote>
+<p>上面紧接着的这行代码中的translate方法在对DataSet进行翻译的过程中会枚举所有具体被支持的DataSet，并进行有针对性的翻译，具体被支持的DataSet总共有下图中被框起来的五个：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/translate-supported-DataSet-type.png" alt="translate-supported-DataSet-type"></p>
+<blockquote>
+<p>对于Operator分支而言，因为这这三种基本的Operator类型处于继承链的最顶端，所以它们基本代表了所有后续派生的Operator。</p>
+</blockquote>
+<p>注意，translate方法返回的Operator并不是批处理API包中的Operator类型，而是基础包中的。具体而言，Flink提供了两套Operator的抽象，它们分别是处于<code>org.apache.flink.api.common.operators</code>包以及<code>org.apache.flink.api.java.operators</code>包。上面展示的继承关系图中的Operator就是批处理的API模块中的，在这个体系中，DataSink是独立的。而core模块中的operators包中的Operator是所有算子的抽象，在这个包中，source、sink都派生自Operator，继承体系如下图所示：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/core-module-operators-package-class-diagram.png" alt="core-module-operators-package-class-diagram"></p>
+<p>因此批处理Java API模块中的operators包不是核心模块中的operators包的扩展与延伸。核心模块中只是提供了一套公共的抽象，而批处理Java API提供的是面向编程接口的抽象。但他们之间并不是毫无联系，因为在translate方法中，会从批处理Java API模块中operators包往核心模块中operators包的转换，对应的转换关系如下：</p>
+<ul>
+<li>DataSource -&gt; GenericDataSourceBase (通过DataSource的translateToDataFlow方法)</li>
+<li>DataSink -&gt; GenericDataSinkBase（通过DataSink的translateToDataFlow方法）</li>
+<li>SingleInputOperator -&gt; Operator (通过SingleInputOperator抽象的translateToDataFlow方法，供子类实现)</li>
+<li>TwoInputOperator -&gt; Operator (通过TwoInputOperator抽象的translateToDataFlow方法，供子类实现)</li>
+<li>BulkIterationResultSet -&gt; BulkIterationBase (直接构建)</li>
+<li>DeltaIterationResultSet -&gt; DeltaIterationBase (直接构建)</li>
+</ul>
+<p>translate方法将会在对特定类型的DataSet的翻译中触发对其递归调用，其顺序是从sink开始逆向往source方向进行的，同时会在它们之间建立关系。</p>
+<blockquote>
+<p>这里需要注意的是，这种模式跟流处理中的生成StreamGraph的差别很大。StreamGraph是依靠StreamNode以及StreamEdge来建立节点和边之间的关系，并基于一个统一的StreamGraph数据结构在遍历中收集所有的StreamNode以及StreamEdge。而批处理所生成的Plan却并非是依靠一个中心化的数据结构，在从sink开始进行逆向遍历时，只构建当前算子跟其输入端算子这种临近算子之间的关系，这些关系被封装在各个算子对象中。如果需要串联起它们或者需要访问DAG整体，那么就需要通过遍历器从sink开始依据这种两两之间的关系进行遍历，因此这种模式可以看成是非中心化的。</p>
+</blockquote>
+<p>每翻译一个DataSet会将其加入到一个名为translated的Map中去。translate方法最终返回的是sink紧邻接着的输入端的算子对象，该输入端算子目前还没有跟该sink进行关联。所以，第二步就是调用下面这句将它们建立关系同时将批处理API中的DataSink翻译为核心包中的GenericDataSinkBase表示：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">GenericDataSinkBase&lt;T&gt; translatedSink = sink.translateToDataFlow(input)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>最终在遍历完sinks集合后产生planSinks集合并以此创建Plan对象。</p>
+<p>现在我们将注意力收回到createProgramPlan方法中来，刚刚已经创建完Plan对象，如果配置了自动类型注册，那么Plan将注入一个用于类型注册的遍历器来遍历所有算子并对其类型进行注册：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (!config.isAutoTypeRegistrationDisabled()) &#123;   </div><div class="line">    plan.accept(<span class="keyword">new</span> Visitor&lt;org.apache.flink.api.common.operators.Operator&lt;?&gt;&gt;() &#123;            </div><div class="line">        <span class="keyword">private</span> <span class="keyword">final</span> HashSet&lt;Class&lt;?&gt;&gt; deduplicator = <span class="keyword">new</span> HashSet&lt;&gt;();            </div><div class="line">        <span class="meta">@Override</span>      </div><div class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">boolean</span> <span class="title">preVisit</span><span class="params">(org.apache.flink.api.common.operators.Operator&lt;?&gt; visitable)</span> </span>&#123;         </div><div class="line">            OperatorInformation&lt;?&gt; opInfo = visitable.getOperatorInfo();         </div><div class="line">            Serializers.recursivelyRegisterType(opInfo.getOutputType(), config, deduplicator);         </div><div class="line">            <span class="keyword">return</span> <span class="keyword">true</span>;      </div><div class="line">        &#125;      </div><div class="line">        <span class="meta">@Override</span>      </div><div class="line">        <span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">postVisit</span><span class="params">(org.apache.flink.api.common.operators.Operator&lt;?&gt; visitable)</span> </span>&#123;&#125;   </div><div class="line">    &#125;);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>完成自动类型注册之后，下一步是将缓存文件注册到Plan对象上：</p>
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">registerCachedFilesWithPlan(<span class="name">plan</span>)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<blockquote>
+<p>何谓缓存文件？这里的缓存文件是指用户通过执行环境对象注册的带有名称以及路径的文件，该路径可以是最终执行任务的工作节点本地的文件路径，也可以是分布式文件系统的路径（这种情况Flink会将文件拷贝到本地）。</p>
+</blockquote>
+<p>上面的这个方法会将注册到执行环境对象的缓存文件注册给Plan对象，以便后续生成JobGraph。</p>
+<h2 id="计划优化"><a href="#计划优化" class="headerlink" title="计划优化"></a>计划优化</h2><p>其实在Flink为批处理程序生成计划（Plan）之后，它会对计划进行优化产生优化后的计划（OptimizedPlan），而批处理程序对应的作业图（JobGraph）则是基于OptimizedPlan生成的。OptimizedPlan的生成涉及到优化器相关的内容，更深入的分析请参考“优化器”相关的内容。因为这里的重心是介绍用户程序的执行，而了解OptimizedPlan是分析JobGraph的前提，所以我们会对OptimizedPlan进行简单介绍。</p>
+<p>OptimizedPlan主要封装了如下这些属性：</p>
+<ul>
+<li>dataSources：SourcePlanNode集合；</li>
+<li>dataSinks：SinkPlanNode集合；</li>
+<li>allNodes：优化后计划中的所有PlanNode节点集合；</li>
+<li>originalProgram：最初未被优化的Plan对象</li>
+</ul>
+<p>在ClusterClient的run方法中生成OptimizedPlan：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">OptimizedPlan optPlan</span> = getOptimizedPlan(compiler, program, parallelism);</div></pre></td></tr></table></figure>
+<p>对getOptimizedPlan方法进行追踪会发现其实生成OptimizedPlan的核心代码就一句：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">compiler.compile(p)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>这里的compiler是优化器Optimizer的实例，而参数p是Plan的实例。</p>
+<blockquote>
+<p>在这之前optimizer模块的名称一直是compiler，近几个版本才完成更名，但模块内的很多注释、变量以及方法名还是能发现那些历史遗留痕迹。可以将后续遇到的所有compiler当作optimizer来理解。</p>
+</blockquote>
+<p>在分析流处理程序生成StreamGraph时，我们展示了通过Flink的计划可视化器生成StreamGraph的图形化表示。同样，计划可视化器也可以展示批处理的OptimizedPlan的图形化表示（遗憾的是无法展示Plan的图形化表示）。我们以flink-examples-batch模块中自带的WordCount作为示例程序来展示其执行计划图，在获得其OptimizedPlan的JSON表示之前，需要对源程序进行一些改造。</p>
+<p>首先，将执行环境的并行度设置为2：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">env.setParallelism(<span class="number">2</span>)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>然后将最终触发程序执行的这句注释掉：</p>
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">//env.execute(<span class="string">"WordCount Example"</span>)<span class="comment">;</span></div></pre></td></tr></table></figure>
+<p>换成下面这句：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">System</span><span class="selector-class">.out</span><span class="selector-class">.print</span>(<span class="selector-tag">env</span><span class="selector-class">.getExecutionPlan</span>());</div></pre></td></tr></table></figure>
+<p>将打印出来的OptimizedPlan的JSON字符串贴到Flink的计划可视化器中，点击下方的“Draw”按钮即可生成。生成的图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Batch-WordCount-OptimizedPlan.png" alt="Batch-WordCount-OptimizedPlan"></p>
+<blockquote>
+<p>从上图中各个算子的ID编号可以看出生成计划时其遍历的顺序是从sink开始的，因为ID生成器是一个静态计数器。</p>
+</blockquote>
+<p>最后我们来看一下生成OptimizedPlan的JSON字符串的代码：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function">String <span class="title">getExecutionPlan</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;   </div><div class="line">    Plan p = createProgramPlan(<span class="string">"plan"</span>, <span class="keyword">false</span>);     </div><div class="line">    <span class="keyword">if</span> (executor != <span class="keyword">null</span>) &#123;      </div><div class="line">        <span class="function"><span class="keyword">return</span> executor.<span class="title">getOptimizerPlanAsJSON</span><span class="params">(p)</span></span>;   </div><div class="line">    &#125;   <span class="keyword">else</span> &#123;      </div><div class="line">        PlanExecutor le = PlanExecutor.createLocalExecutor(<span class="keyword">null</span>);      </div><div class="line">        <span class="function"><span class="keyword">return</span> le.<span class="title">getOptimizerPlanAsJSON</span><span class="params">(p)</span></span>;   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>通过调用PlanExecutor的getOptimizerPlanAsJSON方法获得OptimizedPlan并输出其JSON字符串表示。</p>
+<p>更多生成OptimizedPlan的有待分析“优化器”时再分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/02/15/flink-runtime-generate-batch-plan/" data-id="ciz718b02002tzgvug3lymv7v" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/02/13/flink-batch-optimizer-interesting-properties/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink批处理优化器之InterestingProperties</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-generate-batch-plan" data-title="Flink运行时之批处理程序生成计划" data-url="http://vinoyang.com/2017/02/15/flink-runtime-generate-batch-plan/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">43</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/02/15/flink-runtime-generate-batch-plan/">Flink运行时之批处理程序生成计划</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/13/flink-batch-optimizer-interesting-properties/">Flink批处理优化器之InterestingProperties</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/05/flink-runtime-generate-stream-graph/">Flink运行时之流处理程序生成流图</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/26/flink-runtime-specific-task/">Flink运行时之合久必分的特定任务</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/24/flink-runtime-taskmanager-run-task/">Flink运行时之TaskManager执行Task</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
