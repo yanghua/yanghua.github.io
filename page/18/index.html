@@ -77,6 +77,47 @@
       <div class="outer">
         <section id="main">
   
+    <article id="post-OA系统权限管理设计-转载" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2010/05/26/OA系统权限管理设计-转载/" class="article-date">
+  <time datetime="2010-05-25T17:01:00.000Z" itemprop="datePublished">2010-05-26</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2010/05/26/OA系统权限管理设计-转载/">OA系统权限管理设计(转载)</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+        <a id="more"></a>
+<div><br><br><span>任何系统都离不开权限的管理</span><span lang="EN-US">,</span><span>有一个好的权限管理模块</span><span lang="EN-US">,</span><span>不仅使我们的系统操作自如</span><span lang="EN-US">,</span><span>管理方便</span><span lang="EN-US">,</span><span>也为系统添加亮点。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span lang="EN-US" style="font-family:Wingdings"><span>l<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>不同职责的人员，对于系统操作的权限应该是不同的。优秀的业务系统，这是最基本的功能。</span><br><br><span lang="EN-US" style="font-family:Wingdings"><span>l<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>可以对</span><span lang="EN-US">“</span><span>组</span><span lang="EN-US">”</span><span>进行权限分配。对于一个大企业的业务系统来说，如果要求管理员为其下员工逐一分配系统操作权限的话，是件耗时且不够方便的事情。所以，系统中就提出了对</span><span lang="EN-US">“</span><span>组</span><span lang="EN-US">”</span><span>进行操作的概念，将权限一致的人员编入同一组，然后对该组进行权限分配。</span><br><br><span lang="EN-US" style="font-family:Wingdings"><span>l<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>权限管理系统应该是可扩展的。它应该可以加入到任何带有权限管理功能的系统中。就像是组件一样的可以被不断的重用，而不是每开发一套管理系统，就要针对权限管理部分进行重新开发。</span><br><br><span lang="EN-US" style="font-family:Wingdings"><span>l<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>满足业务系统中的功能权限。传统业务系统中，存在着两种权限管理，其一是功能权限的管理，而另外一种则是资源权限的管理，在不同系统之间，功能权限是可以重用的，而资源权限则不能。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span>针对</span><span lang="EN-US">OA</span><span>系统的特点，权限说明：</span><br><br><span lang="EN-US">&nbsp;</span><br><br><strong><span>权限</span></strong><br><br><span>在系统中，权限通过<strong>模块</strong></span><strong><span lang="EN-US">&#43;</span><span>动作</span></strong><span>来产生，模块就是整个系统中的一个子模块，可能对应一个菜单，动作也就是整个模块中（在</span><span lang="EN-US">B/S</span><span>系统中也就是一个页面的所有操作，比如“浏览、添加、修改、删除”等）。将模块与之组合可以产生此模块下的所有权限。</span><br><br><strong><span>权限组</span></strong><br><br><span>为了更方便的权限的管理，另将一个模块下的所有权限组合一起，组成一个“<strong>权限组</strong>”，也就是一个模块管理权限，包括所有基本权限操作。比如一个权限组（用户管理），包括用户的浏览、添加、删除、修改、审核等操作权限，一个权限组也是一个权限。</span><br><br><strong><span>角色</span></strong><br><br><span>权限的集合，角色与角色之间属于平级关系，可以将基本权限或权限组添加到一个角色中，用于方便权限的分配。</span><br><br><strong><span>用户组</span></strong><br><br><span>将某一类型的人、具有相同特征人组合一起的集合体。通过对组授予权限（角色），快速使一类人具有相同的权限，来简化对用户授予权限的繁琐性、耗时性。用户组的划分，可以按<strong>职位、项目</strong>或其它来实现。用户可以属于某一个组或多个组。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span>通过给某个人赋予权限，有</span><span lang="EN-US">4</span><span>种方式</span><span lang="EN-US">(</span><span>参考飞思办公系统</span><span lang="EN-US">)</span><br><br><span lang="EN-US"><span>A.<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><strong><span>通过职位</span></strong><br><br><span lang="EN-US"><span>a)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>在职位中，职位成员的权限<strong>继承</strong>当前所在职位的权限，对于下级职位拥有的权限不可继承。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span lang="EN-US"><span>b)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><strong><span>实例中</span></strong><span>：如前台这个职位，对于考勤查询有权限，则可以通过对前台这个职位设置考勤查询的浏览权，使他们有使用这个对象的权限，然后再设置个，考勤查询权（当然也可以不设置，默认能进此模块的就能查询），则所有前台人员都拥有考勤查询的权利。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span style="font-weight:bold"><span lang="EN-US"><span>B.<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>通过项目</span></span><br><br><span lang="EN-US"><span>a)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>在项目中，项目成员的权限来自于所在项目的权限，他们同样不能继承下级项目的权限，而对于项目组长，他对项目有全权，对下级项目也一样。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span lang="EN-US"><span>b)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><strong><span>实例中</span></strong><span>：在项目中，项目成员可以对项目中上传文档，查看本项目的文档</span><span lang="EN-US">,</span><span>可以通过对项目设置一个对于本项目的浏览权来实现进口，这样每个成员能访问这个项目了，再加上项目文档的上传权和查看文档权即可。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span lang="EN-US"><span>c)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>对于组长，因为可以赋予组长一个组长权（组长权是个特殊的权限，它包含其他各种权限的一个权限包），所有组长对于本项目有全权，则项目组长可以对于项目文档查看，审批，删除，恢复等，这些权限对于本项目的下级项目依然有效。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span style="font-weight:bold"><span lang="EN-US"><span>C.<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>通过角色</span></span><br><br><span lang="EN-US"><span>a)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>角色中的成员继承角色的权限，角色与角色没有上下级关系，他们是平行的。通过角色赋予权限，是指没办法按职位或项目的分类来赋予权限的另一种方式，如：系统管理员，资料备份员</span><span lang="EN-US">…</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span lang="EN-US"><span>b)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><strong><span>实例中</span></strong><span>：对于本系统中，全体人员应该默认都有的模块，如我的邮件，我的文档，我的日志，我的考勤……，这些模块系统成员都应该有的，我们建立一个角色为系统默认角色，把所有默认访问的模块的浏览权加入到里面去，则系统成员都能访问这些模块。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><span style="font-weight:bold"><span lang="EN-US"><span>D.<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>直接指定</span></span><br><br><span lang="EN-US"><span>a)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><span>直接指定是通过对某个人具体指定一项权限，使其有使用这个权限的能力。直接指定是角色指定的一个简化版，为了是在建立像某个项目的组长这种角色时，省略创建角色这一个步骤，使角色不至于过多。</span><br><br><span lang="EN-US"><span>b)<span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br></span></span></span><strong><span>实例中</span></strong><span>：指定某个项目的组长，把组长权指定给某个人。</span><br><br><strong><span lang="EN-US">&nbsp;</span></strong><br><br><strong><span>针对职位、项目组：</span></strong><br><br><span>如果用添加新员工，员工调换职位、项目组，满足了员工会自动继承所在职位、项目组的权限，不需要重新分配权限的功能。</span><br><br><span lang="EN-US">&nbsp;</span><br><br><strong><span>用户管理</span></strong><br><br><span>用户可以属于某一个或多个用户组，可以通过对用户组授权，来对组中的所有用户进行权限的授予。一个用户可以属于多个项目组，或担任多个职位。</span><br><br><strong><span>授权管理</span></strong><br><br><span>将一个基本权限或角色授予用户或用户组，使用户或用户组拥有授予权限的字符串，如果角色、职位、项目中存在相同的基本权限，则取其中的一个；如脱离角色、职位、项目组，只是取消用户或用户组的中此角色、职位、项目组所授予的权限。用户所拥有的权限是所有途径授予权限的集合。管理员用户可以查看每个用户的最终权限列表。</span><br><br><strong><span>权限管理</span></strong><br><br><span>基本操作权限与权限组（基本操作权限的集合）的管理。<br><br><img src="http://hi.csdn.net/attachment/201005/25/2983011_1274778042gIt0.gif" alt="oa"></span><br><br>&nbsp;<br><br>&nbsp;<br><br><span>物理数据模型图如下：</span><br><br>&nbsp;<br><br><img src="http://hi.csdn.net/attachment/201005/25/2983011_1274778043jtT7.jpg" alt="oa2"><br><br>&nbsp;<br><br>&nbsp;<br><br>&nbsp;<br><br>根据以上设计思想,权限管理总共需要以下基本表：<br><br>tb_User：用户信息基本表；<br><br>tb_Department：部门表；<br><br>tb_Company：公司表；<br><br>tb_Module：系统模块表；<br><br>tb_Action：系统中所有操作的动作表；<br><br>tb_Permit：由tb_Module与tb_Action两表结合产生的系统基本权限表；<br><br>tb_Permit_Group：权限组表，将一模块的中的所有权限划分一个权限组中，可以通过权限组授予用户权限；<br><br>tb_Role：角色表，基本权限的集合。无上级与下级之分；<br><br>tb_Position：职位表，有上级与下级之分；<br><br>tb_Project：项目组表，<br><br>tb_Role_Permit：角色授权表；<br><br>tb_Postion_Permit：职位授权表；<br><br>tb_Project_Permit：项目授权表；<br><br>tb_Project_User：项目成员表，IsLead字段代表此成员为项目组长；<br><br>tb_Postion_User：职位成员表；<br><br>tb_User_Permit：用户授权表，用户ID与角色、职位、项目及直接授予的权限串表；<br><br>权限的产生：<br><br>由tb_Module中的ModuleCode与tb_Action中的ActionCode组成<br><br>权限代码PermitCode=ModuleCode&#43;ActionCode。<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 实例：ModuleCode=0101，ActionCode=01,则PermitCode=010101。<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 权限&#20540;则有ModuleValue与ActionCode组合而成，采用下划线来连接。<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 实例：ModuleValue=Sys_User,ActionValue=AdD，PermitValue= Sys_User_Add<br><br>权限组：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 包括一组同一模块下的权限的组合，如管理用户包括基本的权限：添加、删除、修改、查看等，将这些组合起来构成一个用户组——“用户管理”权限组。其它类&#20284;。只是为了更方便的查看系统权限与权限的分配。<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 实例：如管理用户的权限代码为010101à查看用户，010102à添加用户,010103à删除用户，010104à修改用户，010105à审核用户等，将这些基本权限组合起来一个集合而构成了“用户管理”权限组。<br><br>角色、职位、项目：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 也就是按特定的需要划分一种权限的集合。使用角色授权表、职位授权表、项目授权表来实现。授权表中存放的是权限代码PermitCode,而不是权限组的GroupCode代码。<br><br>用户授权：<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 由用户授权表来实现，用户授权表中的RoleCode、PositionCode、ProjectCode分别是角色表中RoleCode组成的串、职位表PositionCode组成的串、ProjectCode组成的串。与角色授权表中的角色代码RoleCode、职位授权表中PositionCode、项目授权表中的ProjectCode不对应（不是主表与从表之间外键关系）。<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 从而能够实现了一个用户可以拥有多个角色、多个职位、多个项目的情况。<br><br>用户授权表中的PermitCode为直接授权的权限代码串，直接给用户分配权限。<br><br>实例：<br><br>用户ID为UserId=1的用户权限授权表的记录为：<br><br>RoleCode=001,003<br><br>PostionCode = 001,002<br><br>ProjectCode=001,005<br><br>PermitCode = 010101,020102<br><br>表明此用户拥有两个角色，代码为001和003，并继承这两个角色的权限；<br><br>担任两个职位，代码为001与002，并继承两个职位的权限；<br><br>属于两个项目组中的成员，项目代码为001与005，并继承两个项目中的权限。<br><br>直接指定给用户的权限为010101与010102这两个权限代码的权限<br><br>用户权限字符串：<br><br>&nbsp;&nbsp;&nbsp; 根据用户授权表的角色代码、职位代码、项目代码得到权限字符串及表中直接分配的权限字符串组合成一个用户的所有权限字符串集合。<br><br></div>
+
+<!-- Baidu Button BEGIN -->
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2010/05/26/OA系统权限管理设计-转载/" data-id="cizfm9oe60038uyvuf0axuvcc" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+</article>
+
+
+  
     <article id="post-jQuery库的导入与选择符" class="article article-type-post" itemscope itemprop="blogPost">
   <div class="article-meta">
     <a href="/2010/04/25/jQuery库的导入与选择符/" class="article-date">
@@ -108,7 +149,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/04/25/jQuery库的导入与选择符/" data-id="ciz718b14003xzgvumrlt4ujy" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/04/25/jQuery库的导入与选择符/" data-id="cizfm9oeu003xuyvulej5ulm4" class="article-share-link">Share</a>
       
       
     </footer>
@@ -149,7 +190,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/04/11/改造asp-net日历控件为弹出式日期选择控件和GridView呈现长文本字段的两个技巧/" data-id="ciz718b2n005hzgvuui31jxfw" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/04/11/改造asp-net日历控件为弹出式日期选择控件和GridView呈现长文本字段的两个技巧/" data-id="cizfm9og6005kuyvua9c4od6e" class="article-share-link">Share</a>
       
       
     </footer>
@@ -190,7 +231,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/04/05/Asp-net实现即时消息通讯-Ajax/" data-id="ciz718axu0004zgvuactnjbzw" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/04/05/Asp-net实现即时消息通讯-Ajax/" data-id="cizfm9obm0006uyvutea7boqj" class="article-share-link">Share</a>
       
       
     </footer>
@@ -231,7 +272,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/03/23/C-编码规范——转载/" data-id="ciz718ayc000gzgvuwq330k91" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/03/23/C-编码规范——转载/" data-id="cizfm9obx000fuyvu0qqji52o" class="article-share-link">Share</a>
       
       
     </footer>
@@ -272,7 +313,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/03/23/大象之关于对UML的一些理解/" data-id="ciz718b2e0057zgvu68jcp9zr" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/03/23/大象之关于对UML的一些理解/" data-id="cizfm9ofu0057uyvu56uanudw" class="article-share-link">Share</a>
       
       
     </footer>
@@ -313,7 +354,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/03/22/关于更清楚地了解-net的垃圾回收机制/" data-id="ciz718b270050zgvuz9ct8vgp" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/03/22/关于更清楚地了解-net的垃圾回收机制/" data-id="cizfm9ofp0052uyvu672ax02y" class="article-share-link">Share</a>
       
       
     </footer>
@@ -354,7 +395,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/03/20/C-如何识别引用的真实类型-一-——转载/" data-id="ciz718ay7000bzgvukkhtdyuw" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/03/20/C-如何识别引用的真实类型-一-——转载/" data-id="cizfm9obu000duyvu0fab138u" class="article-share-link">Share</a>
       
       
     </footer>
@@ -395,7 +436,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/03/20/使用强类型数据集进行有效编码——转载/" data-id="ciz718b1p004uzgvusdoftgfr" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/03/20/使用强类型数据集进行有效编码——转载/" data-id="cizfm9ofh004vuyvuz05p10jk" class="article-share-link">Share</a>
       
       
     </footer>
@@ -436,48 +477,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/02/23/关于23种设计模式的有趣见解-转载/" data-id="ciz718b1q004vzgvu0ao3fduy" class="article-share-link">Share</a>
-      
-      
-    </footer>
-  </div>
-  
-</article>
-
-
-  
-    <article id="post-《C-2-0锐利体验系列课程》第一讲——泛型" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/" class="article-date">
-  <time datetime="2010-02-11T22:00:00.000Z" itemprop="datePublished">2010-02-12</time>
-</a>
-    
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 itemprop="name">
-      <a class="article-title" href="/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/">《C#2.0锐利体验系列课程》第一讲——泛型</a>
-    </h1>
-  
-
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <div><br><br>一个简单的泛型示例：<br><br>定义：<br><br>class Stack&lt;T&gt; {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; private T[] store;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; private int size;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public Stack()<br><br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;{<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;store = new T[10]; size = 0;<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public void Push(T x) {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;store[size++] = x; }<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public T Pop() {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return store[–size];<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br>}<br><br>&nbsp;<br><br>
-        
-          <p class="article-more-link">
-            <a href="/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/#more">Read More</a>
-          </p>
-        
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2010/02/12/《C-2-0锐利体验系列课程》第一讲——泛型/" data-id="ciz718b190044zgvu1yu81pyz" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2010/02/23/关于23种设计模式的有趣见解-转载/" data-id="cizfm9ofl004yuyvu9im9sltm" class="article-share-link">Share</a>
       
       
     </footer>
@@ -502,7 +502,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Tags</h3>
     <div class="widget">
-      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">43</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">44</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
     </div>
   </div>
 
@@ -520,7 +520,7 @@
   <div class="widget-wrap">
     <h3 class="widget-title">Archives</h3>
     <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
     </div>
   </div>
 
@@ -530,6 +530,10 @@
     <h3 class="widget-title">Recents</h3>
     <div class="widget">
       <ul>
+        
+          <li>
+            <a href="/2017/02/21/flink-runtime-generate-job-graph/">Flink运行时之生成作业图</a>
+          </li>
         
           <li>
             <a href="/2017/02/15/flink-runtime-generate-batch-plan/">Flink运行时之批处理程序生成计划</a>
@@ -545,10 +549,6 @@
         
           <li>
             <a href="/2017/01/26/flink-runtime-specific-task/">Flink运行时之合久必分的特定任务</a>
-          </li>
-        
-          <li>
-            <a href="/2017/01/24/flink-runtime-taskmanager-run-task/">Flink运行时之TaskManager执行Task</a>
           </li>
         
       </ul>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之生成作业图 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="生成作业图在分析完了流处理程序生成的流图（StreamGraph）以及批处理程序生成的优化后的计划（OptimizedPlan）之后，下一步就是生成它们面向Flink运行时执行引擎的共同抽象——作业图（JobGraph）。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之生成作业图">
+<meta property="og:url" content="http://vinoyang.com/2017/02/21/flink-runtime-generate-job-graph/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="生成作业图在分析完了流处理程序生成的流图（StreamGraph）以及批处理程序生成的优化后的计划（OptimizedPlan）之后，下一步就是生成它们面向Flink运行时执行引擎的共同抽象——作业图（JobGraph）。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/JobGraph-visualization.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/tasks-chains.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-02-21T14:18:20.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之生成作业图">
+<meta name="twitter:description" content="生成作业图在分析完了流处理程序生成的流图（StreamGraph）以及批处理程序生成的优化后的计划（OptimizedPlan）之后，下一步就是生成它们面向Flink运行时执行引擎的共同抽象——作业图（JobGraph）。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/JobGraph-visualization.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-generate-job-graph" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/02/21/flink-runtime-generate-job-graph/" class="article-date">
+  <time datetime="2017-02-21T14:05:31.000Z" itemprop="datePublished">2017-02-21</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之生成作业图
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#生成作业图"><span class="toc-number">1.</span> <span class="toc-text">生成作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#什么是作业图"><span class="toc-number">2.</span> <span class="toc-text">什么是作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#流图生成作业图"><span class="toc-number">3.</span> <span class="toc-text">流图生成作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#优化后的计划生成作业图"><span class="toc-number">4.</span> <span class="toc-text">优化后的计划生成作业图</span></a></li></ol>
+          </div>
+        
+        <h1 id="生成作业图"><a href="#生成作业图" class="headerlink" title="生成作业图"></a>生成作业图</h1><p>在分析完了流处理程序生成的流图（StreamGraph）以及批处理程序生成的优化后的计划（OptimizedPlan）之后，下一步就是生成它们面向Flink运行时执行引擎的共同抽象——作业图（JobGraph）。</p>
+<a id="more"></a>
+<h1 id="什么是作业图"><a href="#什么是作业图" class="headerlink" title="什么是作业图"></a>什么是作业图</h1><p>作业图（JobGraph）是唯一被Flink的数据流引擎所识别的表述作业的数据结构，也正是这一共同的抽象体现了流处理和批处理在运行时的统一。</p>
+<p>相比流图（StreamGraph）以及批处理优化计划（OptimizedPlan），JobGraph发生了一些变化，已经不完全是“静态”的数据结构了，因为它加入了中间结果集（IntermediateDataSet）这一“动态”概念。</p>
+<p>作业顶点（JobVertex）、中间数据集（IntermediateDataSet）、作业边（JobEdge）是组成JobGraph的基本元素。这三个对象彼此之间互为依赖：</p>
+<ul>
+<li>一个JobVertex关联着若干个JobEdge作为输入端以及若干个IntermediateDataSet作为其生产的结果集；</li>
+<li>一个IntermediateDataSet关联着一个JobVertex作为生产者以及若干个JobEdge作为消费者；</li>
+<li>一个JobEdge关联着一个IntermediateDataSet可认为是源以及一个JobVertex可认为是目标消费者；</li>
+</ul>
+<p>因此一个JobGraph可能的图形化表示如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/JobGraph-visualization.png" alt="JobGraph-visualization"></p>
+<p>那么JobGraph是怎么组织并存储这些元素的呢？其实JobGraph只以Map的形式存储了所有的JobVertex，键是JobVertexID：</p>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> Map&lt;JobVertexID, JobVertex&gt; taskVertices = <span class="keyword">new</span> LinkedHashMap&lt;JobVertexID, JobVertex&gt;();</div></pre></td></tr></table></figure>
+<p>至于其它的元素，通过JobVertex都可以根据关系找寻到。</p>
+<p>JobGraph包含了如下这些属性：</p>
+<ul>
+<li>描述作业相关的信息，比如上面的顶点、作业编号、名称等；</li>
+<li>用户程序包相关的信息，比如类路径等；</li>
+<li>执行的一些配置信息，比如异步快照的配置、会话超时、是否允许排队调度等；</li>
+</ul>
+<p>绝大部分的实例方法都是维护这些属性的。</p>
+<p>需要注意的是，用于迭代的反馈边（feedback edge）当前并不体现在JobGraph中，而是被内嵌在特殊的JobVertex中通过反馈信道（feedback channel）在它们之间建立关系。</p>
+<h1 id="流图生成作业图"><a href="#流图生成作业图" class="headerlink" title="流图生成作业图"></a>流图生成作业图</h1><p>这篇文章我们来分析流处理程序是如何从之前的Stream生成JobGraph的。这部分的实现位于类StreamingJobGraphGenerator中，它是流处理程序的JobGraph生成器，其核心是createJobGraph方法，它体现了生成JobGraph的主干调用，实现代码如下：</p>
+<figure class="highlight pony"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line">public <span class="type">JobGraph</span> createJobGraph() &#123;   </div><div class="line">    <span class="comment">//创建一个JobGraph实例对象</span></div><div class="line">    jobGraph = <span class="function"><span class="keyword">new</span> <span class="title">JobGraph</span>(streamGraph.getJobName());   </span></div><div class="line"></div><div class="line">    <span class="comment">//设置对task的调度模式为ALL，即所有的算子立即同时启动</span></div><div class="line">    <span class="title">jobGraph</span>.<span class="title">setScheduleMode</span>(<span class="type">ScheduleMode</span>.<span class="type">ALL</span>);   </div><div class="line"></div><div class="line">    <span class="comment">//对用于辅助生成JobGraph的一些实例变量进行初始化</span></div><div class="line">    <span class="title">init</span>();   </div><div class="line"></div><div class="line">    <span class="comment">//给StreamGraph的每个StreamNode生成一个hash值，该hash值在节点不发生改变的情况下多次生成始终是一致的，</span></div><div class="line">    <span class="comment">//可用来判断节点在多次提交时是否产生了变化并且该值也将作为JobVertex的ID</span></div><div class="line">    <span class="title">Map</span>&lt;<span class="title">Integer</span>, <span class="title">byte</span>[]&gt; <span class="title">hashes</span> = <span class="title">traverseStreamGraphAndGenerateHashes</span>();   </div><div class="line"></div><div class="line">    <span class="comment">//基于StreamGraph从所有的source开始构建task chain</span></div><div class="line">    <span class="title">setChaining</span>(hashes);   </div><div class="line"></div><div class="line">    <span class="comment">//给顶点设置物理边（入边）</span></div><div class="line">    <span class="title">setPhysicalEdges</span>();   </div><div class="line"></div><div class="line">    <span class="comment">//为每个JobVertex设置slotShareGroup，同时为迭代的source/sink对设置CoLocationGroup</span></div><div class="line">    <span class="title">setSlotSharing</span>();      </div><div class="line"></div><div class="line">    <span class="comment">//配置检查点</span></div><div class="line">    <span class="title">configureCheckpointing</span>();   </div><div class="line"></div><div class="line">    <span class="comment">//配置重启策略</span></div><div class="line">    <span class="title">configureRestartStrategy</span>();   </div><div class="line"></div><div class="line">    <span class="comment">//传递执行配置</span></div><div class="line">    <span class="title">jobGraph</span>.<span class="title">setExecutionConfig</span>(streamGraph.getExecutionConfig());    </div><div class="line"></div><div class="line">    <span class="title">return</span> <span class="title">jobGraph</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来我们挨个对几个关键的方法进行分析。第一个要分析的方法是traverseStreamGraphAndGenerateHashes，它会对StreamGraph进行遍历并为每一个StreamNode都生成其哈希值，生成的哈希值将用于为每个JobVertex创建JobVertexID。方法的完整实现如下：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> Map&lt;Integer, <span class="built_in">byte</span>[]&gt; traverseStreamGraphAndGenerateHashes() &#123;</div><div class="line">    <span class="comment">//hash函数      </span></div><div class="line">    <span class="keyword">final</span> HashFunction hashFunction = Hashing.murmur3_128(<span class="number">0</span>);   </div><div class="line">    <span class="keyword">final</span> Map&lt;Integer, <span class="built_in">byte</span>[]&gt; hashes = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;&gt;();   </div><div class="line">    <span class="comment">//存储访问过了的节点编号</span></div><div class="line">    Set&lt;Integer&gt; visited = <span class="keyword">new</span> HashSet&lt;&gt;();   </div><div class="line">    <span class="comment">//入队即将访问的节点对象</span></div><div class="line">    Queue&lt;StreamNode&gt; remaining = <span class="keyword">new</span> ArrayDeque&lt;&gt;();   </div><div class="line"></div><div class="line">    <span class="comment">//source是一个流拓扑的起点，从source开始遍历</span></div><div class="line">    <span class="comment">//hash值的生成是顺序敏感的（依赖于顺序），因此首先要对source ID集合进行排序</span></div><div class="line">    <span class="comment">//因为如果source的ID集合顺序不固定，那意味着多次提交包含该source ID集合的程序时可能导致不同的遍历路径，</span></div><div class="line">    <span class="comment">//从而破坏了hash生成的因素</span></div><div class="line">    List&lt;Integer&gt; sources = <span class="keyword">new</span> ArrayList&lt;&gt;();   </div><div class="line">    <span class="keyword">for</span> (Integer sourceNodeId : streamGraph.getSourceIDs()) &#123;      </div><div class="line">        sources.<span class="built_in">add</span>(sourceNodeId);   </div><div class="line">    &#125;   </div><div class="line">    Collections.<span class="built_in">sort</span>(sources);   </div><div class="line"></div><div class="line">    <span class="comment">//按照排好的顺序，进行广度遍历，注意这不是树结构，而是图，因为就一个节点而言，其输入和输出都可能有多条路径</span></div><div class="line">    <span class="keyword">for</span> (Integer sourceNodeId : sources) &#123;      </div><div class="line">        remaining.<span class="built_in">add</span>(streamGraph.getStreamNode(sourceNodeId));      </div><div class="line">        visited.<span class="built_in">add</span>(sourceNodeId);   </div><div class="line">    &#125;   </div><div class="line">    StreamNode currentNode;   </div><div class="line">    <span class="comment">//从即将访问的节点队列中出队首部的一个元素，没有元素了则结束</span></div><div class="line">    <span class="keyword">while</span> ((currentNode = remaining.poll()) != <span class="keyword">null</span>) &#123;      </div><div class="line">        <span class="comment">// 给当前节点生成哈希值，并返回是否生成成功</span></div><div class="line">        <span class="keyword">if</span> (generateNodeHash(currentNode, hashFunction, hashes)) &#123;         </div><div class="line">            <span class="comment">//遍历当前节点的所有输出边</span></div><div class="line">            <span class="keyword">for</span> (StreamEdge outEdge : currentNode.getOutEdges()) &#123;</div><div class="line">                <span class="comment">//获取输出边的目标顶点（该边另一头的顶点）            </span></div><div class="line">                StreamNode child = outEdge.getTargetVertex();</div><div class="line">                <span class="comment">//如果目标顶点没被访问过，则加入待访问队列和易访问元素集合            </span></div><div class="line">                <span class="keyword">if</span> (!visited.contains(child.getId())) &#123;               </div><div class="line">                    remaining.<span class="built_in">add</span>(child);               </div><div class="line">                    visited.<span class="built_in">add</span>(child.getId());            </div><div class="line">                &#125;         </div><div class="line">            &#125;      </div><div class="line">        &#125;      </div><div class="line">        <span class="keyword">else</span> &#123;         </div><div class="line">            <span class="comment">//如果对当前节点的哈希值生成操作失败，则将其从已访问的节点中移除，等待后续再次访问        </span></div><div class="line">            visited.remove(currentNode.getId());      </div><div class="line">        &#125;   </div><div class="line">    &#125;   </div><div class="line">    <span class="keyword">return</span> hashes;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>在上面代码段中调用的generateNodeHash方法，其实现逻辑大致分为两大部分，这两部分对应了生成哈希的两种方式：</p>
+<ul>
+<li>根据StreamTransformation的编号进行计算</li>
+<li>根据一些因素来综合计算</li>
+</ul>
+<p>第二种方式对应的因素有如下三种：</p>
+<ul>
+<li>节点相关的属性（ID、并行度、UDF的类名）</li>
+<li>链接在一起的输出节点相关的属性</li>
+<li>输入节点的哈希值</li>
+</ul>
+<p>这里值得注意的是节点相关的ID属性，它并不是StreamTransformation的ID，因为StreamTransformation的ID是一个静态计数器，它可能会导致逻辑相同的Job最终生成的哈希值却不同。考虑下面的示例：</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//program 1</span></div><div class="line">DataStream&lt;<span class="keyword">String</span>&gt; s1 = ...;     <span class="comment">//s1.ID = 1</span></div><div class="line">DataStream&lt;<span class="keyword">String</span>&gt; s2 = ...;     <span class="comment">//s2.ID = 2</span></div><div class="line">s1.<span class="keyword">union</span>(s2).<span class="built_in">print</span>();</div><div class="line"><span class="comment">//program 2</span></div><div class="line">DataStream&lt;<span class="keyword">String</span>&gt; s2 = ...;     <span class="comment">//s2.ID = 1</span></div><div class="line">DataStream&lt;<span class="keyword">String</span>&gt; s1 = ...;     <span class="comment">//s1.ID = 2</span></div><div class="line">s1.<span class="keyword">union</span>(s2).<span class="built_in">print</span>();</div></pre></td></tr></table></figure>
+<p>对于上面示例代码中的两个语义等价的程序，当借助StreamTransformation的ID属性来生成哈希值时会出现不一致。因此，Flink所使用的ID值其实是已完成哈希值计算的节点数目。这样就不会出现上述因为source定义的顺序不同而导致语义上等价的程序产生不一致哈希值的情况。最终traverseStreamGraphAndGenerateHashes方法将会为所有的StreamNode生成对应的哈希值。</p>
+<p>为了更高效得执行，Flink对DAG在调度上进行了优化，该优化称之为<strong>算子链接</strong>（operator chain）。它允许某些算子可以“链接”在一起，在调度时这些被链接到一起的算子会被视为一个任务（Task）。而在执行时，一个Task会被并行化成若干个subTask实例进行执行，一个subTask对应一个执行线程。算子链接的示意图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/tasks-chains.png" alt="tasks-chains"></p>
+<p>这种优化能减少线程之间的切换和跨节点的数据交换从而在减少时延的同时提升吞吐量。</p>
+<blockquote>
+<p>当算子互相链接之后，原先存在于互相链接的算子之间的边就只是逻辑上存在的。而被链接的算子整体跟其他无法与其链接的算子之间的边才是真正的物理边。另外，为了方便源码解读，需要对“链接”和“连接”加以区分。在当前的上下文中，“链接”指的是“算子链”的形成方式，而“连接”指的是在算子之间建立关系。</p>
+</blockquote>
+<p>接下来我们就来分析，将算子链接起来的setChaining方法。setChaining会沿着source生成算子链（但不要被其方法名误导，它其实还完成了很多额外的工作，比如创建JobVertex）。</p>
+<p>setChaining会遍历StreamGraph中的sourceID集合。为每个source调用createChain方法，该方法以当前source为起点向后遍历并创建算子链。createChain方法会收集当前节点所连接的物理边，并为链接头节点与物理边下游的算子建立连接关系。</p>
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/**</span></div><div class="line"> * @param startNodeId : 起始节点编号</div><div class="line"> * @param currentNodeId : 当前遍历节点编号</div><div class="line"> * @param hashes : 节点编号与hash值映射表</div><div class="line"> * @return 遍历过的边集合</div><div class="line"> */</div><div class="line"><span class="keyword">private</span> List&lt;StreamEdge&gt; createChain(Integer startNodeId, </div><div class="line">                                    Integer currentNodeId, </div><div class="line">                                    Map&lt;Integer, <span class="keyword">byte</span>[]&gt; hashes,</div><div class="line">                                    <span class="keyword">int</span> chainIndex) &#123;   </div><div class="line">    <span class="comment">//如果起始节点没有被构建过，才进入分支；否则直接返回一个空List（递归结束条件）</span></div><div class="line">    <span class="built_in">if</span> (!builtVertices.contains(startNodeId)) &#123;    </div><div class="line">        <span class="comment">//存储遍历过的边，该对象被作为最终结果返回  </span></div><div class="line">        List&lt;StreamEdge&gt; transitiveOutEdges = <span class="keyword">new</span> ArrayList&lt;StreamEdge&gt;();</div><div class="line">        <span class="comment">//存储可以被链接的出边      </span></div><div class="line">        List&lt;StreamEdge&gt; chainableOutputs = <span class="keyword">new</span> ArrayList&lt;StreamEdge&gt;();      </div><div class="line">        <span class="comment">//存储不可被链接的出边</span></div><div class="line">        List&lt;StreamEdge&gt; nonChainableOutputs = <span class="keyword">new</span> ArrayList&lt;StreamEdge&gt;();      </div><div class="line">        <span class="comment">//遍历当前节点的每个出边</span></div><div class="line">        <span class="built_in">for</span> (StreamEdge outEdge : streamGraph.getStreamNode(currentNodeId).getOutEdges()) &#123;</div><div class="line">            <span class="comment">//如果该出边是可被链接的，则加入可被链接的出边集合，否则加入不可被链接的出边集合         </span></div><div class="line">            <span class="built_in">if</span> (isChainable(outEdge)) &#123;            </div><div class="line">                chainableOutputs.add(outEdge);         </div><div class="line">            &#125; <span class="built_in">else</span> &#123;            </div><div class="line">                nonChainableOutputs.add(outEdge);         </div><div class="line">            &#125;      </div><div class="line">        &#125;      </div><div class="line">        <span class="comment">//遍历每个可被链接的出边，然后进行递归遍历</span></div><div class="line">        <span class="built_in">for</span> (StreamEdge chainable : chainableOutputs) &#123;      </div><div class="line">            <span class="comment">//起始节点不变，以该可被链接的出边的目标节点作为“当前”节点进行递归遍历并将遍历过的边集合加入到当前集合中  </span></div><div class="line">            <span class="comment">//这里值得注意的是所有可链接的边本身并不会被加入这个集合！ </span></div><div class="line">            transitiveOutEdges.addAll(</div><div class="line">                createChain(startNodeId, chainable.getTargetId(), hashes, chainIndex + <span class="number">1</span>));      </div><div class="line">        &#125;      </div><div class="line">        <span class="comment">//遍历不可链接的出边，同样进行递归遍历</span></div><div class="line">        <span class="built_in">for</span> (StreamEdge nonChainable : nonChainableOutputs) &#123;       </div><div class="line">            <span class="comment">//将当前不可链接的出边加入到遍历过的边集合中  </span></div><div class="line">            transitiveOutEdges.add(nonChainable);    </div><div class="line">            <span class="comment">//同样进行递归遍历，不过这里的起始节点和当前节点都被设置为该边的目标节点     </span></div><div class="line">            createChain(nonChainable.getTargetId(), nonChainable.getTargetId(), hashes, <span class="number">0</span>);      </div><div class="line">        &#125;      </div><div class="line">        <span class="comment">//为当前节点创建链接的完整名称，如果当前节点没有可链接的边，那么其名称将直接是当前节点的operator名称</span></div><div class="line">        chainedNames.<span class="built_in">put</span>(currentNodeId, createChainedName(currentNodeId, chainableOutputs));   </div><div class="line">        <span class="comment">//创建流配置对象，流配置对象针对单个作业顶点而言，包含了顶点相关的所有信息。</span></div><div class="line">        <span class="comment">//当创建配置对象的时候，如果当前节点即为起始节点（链接头），会先为该节点创建JobVertex对象</span></div><div class="line">        StreamConfig <span class="built_in">config</span> = currentNodeId.equals(startNodeId)            </div><div class="line">                                ? createJobVertex(startNodeId, hashes)            </div><div class="line">                                : <span class="keyword">new</span> StreamConfig(<span class="keyword">new</span> Configuration());  </div><div class="line">        <span class="comment">//然后为当前节点初始化流配置对象里的一系列属性    </span></div><div class="line">        setVertexConfig(currentNodeId, <span class="built_in">config</span>, chainableOutputs, nonChainableOutputs);  </div><div class="line">        <span class="comment">//如果当前节点是起始节点（chain头节点）    </span></div><div class="line">        <span class="built_in">if</span> (currentNodeId.equals(startNodeId)) &#123;         </div><div class="line">            <span class="comment">//设置该节点是chain的开始</span></div><div class="line">            <span class="built_in">config</span>.setChainStart();</div><div class="line">            <span class="built_in">config</span>.setChainIndex(<span class="number">0</span>);</div><div class="line">            <span class="comment">//设置不可链接的出边         </span></div><div class="line">            <span class="built_in">config</span>.setOutEdgesInOrder(transitiveOutEdges);         </div><div class="line">            <span class="comment">//设置所有出边</span></div><div class="line">            <span class="built_in">config</span>.setOutEdges(streamGraph.getStreamNode(currentNodeId).getOutEdges()); </div><div class="line">            <span class="comment">//遍历当前节点的所有不可链接的出边集合        </span></div><div class="line">            <span class="built_in">for</span> (StreamEdge edge : transitiveOutEdges) &#123;            </div><div class="line">                <span class="comment">//给当前节点到不可链接的出边之间建立连接</span></div><div class="line">                <span class="comment">//通过出边找到其下游流节点，根据边的分区器类型，构建下游流节点跟输入端上游流节点（也即起始节点）</span></div><div class="line">                <span class="comment">//的连接关系。在这个构建的过程中也就创建了IntermediateDataSet及JobEdge并跟当前节点的JobVertex</span></div><div class="line">                <span class="comment">//三者建立了关联关系</span></div><div class="line">                <span class="built_in">connect</span>(startNodeId, edge);         </div><div class="line">            &#125;         </div><div class="line">            <span class="comment">//将当前节点的所有子节点的流配置对象进行序列化</span></div><div class="line">            <span class="built_in">config</span>.setTransitiveChainedTaskConfigs(chainedConfigs.<span class="built_in">get</span>(startNodeId));      </div><div class="line">        &#125; <span class="built_in">else</span> &#123;         <span class="comment">//如果当前节点是chain中的节点，而非chain的头节点</span></div><div class="line">            Map&lt;Integer, StreamConfig&gt; chainedConfs = chainedConfigs.<span class="built_in">get</span>(startNodeId);         </div><div class="line">            <span class="built_in">if</span> (chainedConfs == null) &#123;            </div><div class="line">                chainedConfigs.<span class="built_in">put</span>(startNodeId, <span class="keyword">new</span> HashMap&lt;Integer, StreamConfig&gt;());         </div><div class="line">            &#125;</div><div class="line">            <span class="built_in">config</span>.setChainIndex(chainIndex);         </div><div class="line">            <span class="comment">//将当前节点的流配置对象加入到chain头节点点相关的配置中</span></div><div class="line">            chainedConfigs.<span class="built_in">get</span>(startNodeId).<span class="built_in">put</span>(currentNodeId, <span class="built_in">config</span>);      </div><div class="line">        &#125;      </div><div class="line">        <span class="comment">//返回所有不可链接的边</span></div><div class="line">        <span class="built_in">return</span> transitiveOutEdges;   </div><div class="line">    &#125; <span class="built_in">else</span> &#123;      </div><div class="line">        <span class="built_in">return</span> <span class="keyword">new</span> ArrayList&lt;&gt;();   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>上面的代码段中会先将当前节点的出边按照它们是否是可被链接进行分类，isChainable方法包含了判断逻辑，一个出边如果是可链接的，它需要满足的条件如下：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">return</span> downStreamVertex.getInEdges().<span class="keyword">size</span>() == <span class="number">1</span>         <span class="comment">//如果边的下游流节点的入边数目为1（也即其为单输入算子）</span></div><div class="line">        &amp;&amp; outOperator != <span class="keyword">null</span>                           <span class="comment">//边的下游节点对应的算子不为null</span></div><div class="line">        &amp;&amp; headOperator != <span class="keyword">null</span>                          <span class="comment">//边的上游节点对应的算子不为null</span></div><div class="line">        &amp;&amp; upStreamVertex.isSameSlotSharingGroup(downStreamVertex)      <span class="comment">//边两端节点有相同的槽共享组名称</span></div><div class="line">        &amp;&amp; outOperator.getChainingStrategy() == ChainingStrategy.ALWAYS <span class="comment">//边下游算子的链接策略为ALWAYS     </span></div><div class="line">        &amp;&amp; (headOperator.getChainingStrategy() == ChainingStrategy.HEAD ||         </div><div class="line">        headOperator.getChainingStrategy() == ChainingStrategy.ALWAYS)<span class="comment">//上游算子的链接策略为HEAD或者ALWAYS   </span></div><div class="line">        &amp;&amp; (edge.getPartitioner() <span class="keyword">instanceof</span> ForwardPartitioner)      <span class="comment">//边的分区器类型是ForwardPartitioner</span></div><div class="line">        &amp;&amp; upStreamVertex.getParallelism() == downStreamVertex.getParallelism()   <span class="comment">//上下游节点的并行度相等   </span></div><div class="line">        &amp;&amp; streamGraph.isChainingEnabled();        <span class="comment">//当前的streamGraph允许链接的</span></div></pre></td></tr></table></figure>
+<p>在createChain中会调用createJobVertex为链接头节点或者无法链接的节点创建JobVertex对象，创建完成之后会将它加入JobGraph并为当前的这个JobVertex创建流配置对象（StreamConfig）。</p>
+<p>对于无法链接的物理边，Flink会将链头（chain header）与这些物理边（以及物理边所连接着的目标算子）进行连接（代码段中的connect方法），连接的过程也是创建JobEdge与IntermediateDataSet并跟它们建立关系的过程。</p>
+<p>现在让我们回到createJobGraph方法的上下文中来，在setChaining方法调用中找出了物理出边以及从源到目的节点之间建立了连接。接着，会调用setPhysicalEdges从目标节点向源节点之间建立入边的连接。</p>
+<p>接下来，为相关的节点设置槽共享组（SlotSharingGroup）以及同位组（CoLocationGroup），这两种机制都用于限制算子的部署。其中，CoLocationGroup主要用于迭代算子的执行。</p>
+<p>当用户的Flink程序配置了检查点信息，那么需要将检查点相关的配置加入到JobGraph中去，这部分逻辑通过方法configureCheckpointing来完成，它将JobVertex划分成三类：</p>
+<ul>
+<li>triggerVertices：存储接收“触发检查点”消息的JobVertex集合，当前只收集source顶点；</li>
+<li>ackVertices：收集需要应答检查点消息的JobVertex集合，当前收集所有的JobVertex；</li>
+<li>commitVertices：存储接收“提交检查点”消息的JobVertex集合，当前收集所有JobVertex；</li>
+</ul>
+<p>这些信息都被封装在JobSnapshottingSettings对象中，然后被存储到JobGraph。</p>
+<p>基本生成JobGraph的主要步骤就是这些。接下来，我们将分析批处理程序在优化器生成的OptimizedPlan的基础之上如何生成的JobGraph。</p>
+<h1 id="优化后的计划生成作业图"><a href="#优化后的计划生成作业图" class="headerlink" title="优化后的计划生成作业图"></a>优化后的计划生成作业图</h1><p>分析完了流图如何生成作业图，下面我们来分析批处理程序经过优化后的计划如何生成作业图。其核心代码位于flink-clients模块下的ClusterClient类中的getJobGraph方法中：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">JobGraphGenerator gen</span> = new JobGraphGenerator(this.config);</div><div class="line"><span class="attribute">job</span> = gen.compileJobGraph((OptimizedPlan) optPlan);</div></pre></td></tr></table></figure>
+<p>这里的JobGraphGenerator位于optimizer模块中（注意跟流处理中生成JobGraph的StreamingJobGraphGenerator进行区别），它用于将优化器优化后的OptimizedPlan编译成JobGraph。编译的过程不作任何决策与假设，也就是说作业最终如何被执行早已被优化器确定，而编译也是在此基础上做确定性的映射。</p>
+<p>JobGraphGenerator实现了Visitor接口，因此它是一个遍历器，遍历的对象是计划节点（PlanNode）。</p>
+<blockquote>
+<p>关于遍历器、计划节点等更多的细节请参考“优化器”相关的文章。</p>
+</blockquote>
+<p>compileJobGraph方法在内部调用OptimizedPlan的accept方法遍历它，而遍历访问器就是JobGraphGenerator自身：</p>
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">program</span>.<span class="title">accept</span><span class="params">(this)</span></span>;</div></pre></td></tr></table></figure>
+<p>在OptimizedPlan中，accept会挨个在每个sink上调用accept：</p>
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">public void accept(Visitor<span class="tag">&lt;PlanNode&gt;</span> visitor) &#123;   </div><div class="line">    for (SinkPlanNode <span class="keyword">node</span> <span class="title">: this</span>.dataSinks) &#123;      </div><div class="line">        <span class="keyword">node</span>.<span class="title">accept</span>(visitor);   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<blockquote>
+<p>批处理中的计划是以sink作为起始点，然后通过遍历访问器逆向遍历直至source。</p>
+</blockquote>
+<p>从sink开始的逆向遍历是符合特定的模式的：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="function"><span class="keyword">void</span> <span class="title">accept</span><span class="params">(Visitor&lt;PlanNode&gt; visitor)</span> </span>&#123;</div><div class="line">    <span class="comment">//前置遍历，如果返回值为true，才会进行更进一步的后续操作   </span></div><div class="line">    <span class="keyword">if</span> (visitor.preVisit(<span class="keyword">this</span>)) &#123;</div><div class="line">        <span class="comment">//获取到当前sink的输入端继续遍历，该调用会引发递归调用      </span></div><div class="line">        <span class="keyword">this</span>.input.getSource().accept(visitor);      </div><div class="line">        <span class="comment">//获得所有的广播输入通道，对所有的广播输入通道源进行遍历      </span></div><div class="line">        <span class="keyword">for</span> (Channel broadcastInput : getBroadcastInputs()) &#123;         </div><div class="line">            broadcastInput.getSource().accept(visitor);      </div><div class="line">        &#125;</div><div class="line">        <span class="comment">//进行后置遍历            </span></div><div class="line">        visitor.postVisit(<span class="keyword">this</span>);   </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>先来分析一下preVisit方法，它是遍历时的“前进”方法，它会对要遍历的PlanNode的具体类型进行枚举推断，针对不同的类型为其创建对应的JobVertex对象，接着为JobVertex对象设置相关属性，最后将其加入到一个公共的PlanNode与JobVertex的映射字典中去。</p>
+<p>接下来是postVisit方法，它可以看成是遍历时的“后退”方法，当在某个节点上调用到postVisit方法时，表明该节点的前任（从正常的source往sink方向）都已经遍历完成。因此该方法在这里用来将当前节点与其前任建立连接。</p>
+<p>postVisit方法同样会判断节点的类型，特殊节点特殊处理。例如，如果节点的类型是IterationPlanNode，那么它将立即遍历迭代路径中的节点。这里有可能存在递归遍历，所以使用了一个“栈”结构来保存当前节点。</p>
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (<span class="keyword">this</span>.currentIteration != <span class="literal">null</span>) &#123;   </div><div class="line">    <span class="keyword">this</span>.iterationStack.add(<span class="keyword">this</span>.currentIteration);</div><div class="line">&#125;</div><div class="line"><span class="keyword">this</span>.currentIteration = (IterationPlanNode) node;</div><div class="line"><span class="keyword">this</span>.currentIteration.acceptForStepFunction(<span class="keyword">this</span>);</div><div class="line"></div><div class="line"><span class="keyword">if</span> (<span class="keyword">this</span>.iterationStack.isEmpty()) &#123;   </div><div class="line">    <span class="keyword">this</span>.currentIteration = <span class="literal">null</span>;</div><div class="line">&#125; <span class="keyword">else</span> &#123;   </div><div class="line">    <span class="keyword">this</span>.currentIteration = <span class="keyword">this</span>.iterationStack.remove(<span class="keyword">this</span>.iterationStack.size() - <span class="number">1</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>回到compileJobGraph方法的上下文中，在对OptimizedPlan进行遍历之后，会对收集到的迭代节点进行处理。通过遍历迭代描述符（IterationDescriptor）并判断其代表的节点属于哪种迭代类型来进行特定的处理：</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">for</span> (<span class="keyword">IterationDescriptor </span><span class="keyword">iteration </span>: this.<span class="keyword">iterations.values()) </span>&#123;   </div><div class="line">    <span class="meta">if</span> (<span class="keyword">iteration.getIterationNode() </span>instanceof <span class="keyword">BulkIterationPlanNode) </span>&#123;      </div><div class="line">        finalizeBulkIteration(<span class="keyword">iteration); </span>  </div><div class="line">    &#125; <span class="meta">else</span> <span class="meta">if</span> (<span class="keyword">iteration.getIterationNode() </span>instanceof WorksetIterationPlanNode) &#123;      </div><div class="line">        finalizeWorksetIteration(<span class="keyword">iteration); </span>  </div><div class="line">    &#125; <span class="meta">else</span> &#123;      </div><div class="line">        throw new CompilerException()<span class="comment">;   </span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>到此，遍历工作已经完成。下面会把链接任务的配置写入其父节点（也就是容器节点）的配置中。接着新建JobGraph对象并进行一系列设置，比如添加JobVertex、为JobVertex设置SlotSharingGroup等。然后将之前注册的缓存文件加入到Job的配置中，释放相关资源后返回JobGraph对象。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/02/21/flink-runtime-generate-job-graph/" data-id="cizfm9odn002iuyvuhihuwwnr" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/02/15/flink-runtime-generate-batch-plan/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink运行时之批处理程序生成计划</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-generate-job-graph" data-title="Flink运行时之生成作业图" data-url="http://vinoyang.com/2017/02/21/flink-runtime-generate-job-graph/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">44</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/02/21/flink-runtime-generate-job-graph/">Flink运行时之生成作业图</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/15/flink-runtime-generate-batch-plan/">Flink运行时之批处理程序生成计划</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/13/flink-batch-optimizer-interesting-properties/">Flink批处理优化器之InterestingProperties</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/05/flink-runtime-generate-stream-graph/">Flink运行时之流处理程序生成流图</a>
+          </li>
+        
+          <li>
+            <a href="/2017/01/26/flink-runtime-specific-task/">Flink运行时之合久必分的特定任务</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
