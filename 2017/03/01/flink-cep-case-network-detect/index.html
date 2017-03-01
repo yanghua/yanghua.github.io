@@ -7,21 +7,18 @@
   
   <title>Flink之CEP案例分析-网络攻击检测 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
-假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+  <meta name="description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink之CEP案例分析-网络攻击检测">
 <meta property="og:url" content="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
-假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+<meta property="og:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2017-03-01T14:06:10.000Z">
+<meta property="og:updated_time" content="2017-03-01T14:08:02.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink之CEP案例分析-网络攻击检测">
-<meta name="twitter:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
-假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+<meta name="twitter:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。">
 <meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -112,6 +109,7 @@
           </div>
         
         <p>上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。</p>
+<a id="more"></a>
 <p>假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报其瞬时流量。</p>
 <p>我们将检测的结果分为三个等级：</p>
 <ul>
@@ -153,7 +151,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/" data-id="cizr1ckp30018s3vuysyhtlgd" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/" data-id="cizr1f4rb0016tevuoon2vcsf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>

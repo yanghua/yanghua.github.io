@@ -99,51 +99,16 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <!-- Table of Contents -->
-        
         <p>上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。</p>
-<p>假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报其瞬时流量。</p>
-<p>我们将检测的结果分为三个等级：</p>
-<ul>
-<li>正常：流量在预设的正常范围内；</li>
-<li>警告：某数据中心在10秒内连续两次上报的流量超过认定的正常值；</li>
-<li>报警：某数据中心在30秒内连续两次匹配警告；</li>
-</ul>
-<p>首先，我们构建source，这里我们选择的是并行source，因此需要继承RichParallelSourceFunction类。所有的数据通过模拟器随机生成，其中数据中心编号为整型且取值范围为[0, 10)，数据生成的事件间隔由PAUSE常量指定，默认为100毫秒：</p>
-<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//parallel source</span></div><div class="line">DataStream&lt;MonitorEvent&gt; inputEventStream = env.addSource(</div><div class="line">    <span class="keyword">new</span> <span class="type">MonitorEventSource</span>(</div><div class="line">        MAX_DATACENTER_ID,</div><div class="line">        STREAM_STD,</div><div class="line">        STREAM_MEAN,</div><div class="line">        PAUSE</div><div class="line">    )</div><div class="line">).assignTimestampsAndWatermarks(<span class="keyword">new</span> <span class="type">IngestionTimeExtractor</span>&lt;MonitorEvent&gt;());</div></pre></td></tr></table></figure>
-<p>下面，我们来构建警告模式，按照我们设定的警告等级，其模式定义如下：</p>
-<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="type">Pattern</span>&lt;<span class="type">MonitorEvent</span>, ?&gt; warningPattern = <span class="type">Pattern</span>.&lt;<span class="type">MonitorEvent</span>&gt;begin(<span class="string">"first"</span>)</div><div class="line">    .sub<span class="keyword">type</span>(<span class="type">NetworkStreamEvent</span>.class)</div><div class="line">    .<span class="keyword">where</span>(evt -&gt; evt.getStream() &gt;= <span class="type">STREAM_THRESHOLD</span>)</div><div class="line">    .next(<span class="string">"second"</span>)</div><div class="line">    .sub<span class="keyword">type</span>(<span class="type">NetworkStreamEvent</span>.class)</div><div class="line">    .<span class="keyword">where</span>(evt -&gt; evt.getStream() &gt;= <span class="type">STREAM_THRESHOLD</span>)</div><div class="line">    .within(<span class="type">Time</span>.seconds(<span class="number">10</span>));</div></pre></td></tr></table></figure>
-<p>根据该模式构建模式流：</p>
-<figure class="highlight coq"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">PatternStream&lt;MonitorEvent&gt; warningPatternStream =</div><div class="line">    CEP.<span class="built_in">pattern</span>(inputEventStream.keyBy(<span class="string">"dataCenterId"</span>), warningPattern);</div></pre></td></tr></table></figure>
-<p>在警告的模式流中筛选出配对的警告事件对，生成警告事件对象流（告警事件对象会算出，前后两个匹配的流量事件的平均值）：</p>
-<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;NetworkStreamWarning&gt; <span class="built_in">warnings</span> = warningPatternStream.select(</div><div class="line">    (Map&lt;String, MonitorEvent&gt; pattern) -&gt; &#123;</div><div class="line">        NetworkStreamEvent <span class="built_in">first</span> = (NetworkStreamEvent) pattern.<span class="built_in">get</span>(<span class="string">"first"</span>);</div><div class="line">        NetworkStreamEvent <span class="built_in">second</span> = (NetworkStreamEvent) pattern.<span class="built_in">get</span>(<span class="string">"second"</span>);</div><div class="line"></div><div class="line">        <span class="built_in">return</span> <span class="built_in">new</span> NetworkStreamWarning(<span class="built_in">first</span>.getDataCenterId(),</div><div class="line">            (<span class="built_in">first</span>.getStream() + <span class="built_in">second</span>.getStream()) / <span class="number">2</span>);</div><div class="line">    &#125;</div><div class="line">);</div></pre></td></tr></table></figure>
-<p>按照设定的等级，告警模式定义如下：</p>
-<figure class="highlight vhdl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Pattern&lt;NetworkStreamWarning, ?&gt; alertPattern = Pattern.&lt;NetworkStreamWarning&gt;</div><div class="line">    <span class="keyword">begin</span>(<span class="string">"first"</span>).<span class="keyword">next</span>(<span class="string">"second"</span>).within(<span class="built_in">Time</span>.seconds(<span class="number">30</span>));</div></pre></td></tr></table></figure>
-<p>在警告事件流中应用告警模式，得到告警模式流：</p>
-<figure class="highlight coq"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">PatternStream&lt;NetworkStreamWarning&gt; alertPatternStream = CEP.<span class="built_in">pattern</span>(warnings.keyBy</div><div class="line">    (<span class="string">"dataCenterId"</span>), alertPattern);</div></pre></td></tr></table></figure>
-<p>在告警模式流中匹配警告模式对，如果模式对中第一个警告对象的平均流量值小于第二个警告对象的平均流量值，则构建告警对象并输出该对象从而形成告警流：</p>
-<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;NetworkStreamAlert&gt; alerts = alertPatternStream.flatSelect(</div><div class="line">    (Map&lt;String, NetworkStreamWarning&gt; pattern, Collector&lt;NetworkStreamAlert&gt; out) -&gt; &#123;</div><div class="line">        NetworkStreamWarning <span class="built_in">first</span> = pattern.<span class="built_in">get</span>(<span class="string">"first"</span>);</div><div class="line">        NetworkStreamWarning <span class="built_in">second</span> = pattern.<span class="built_in">get</span>(<span class="string">"second"</span>);</div><div class="line"></div><div class="line">        //<span class="built_in">first</span> avg &lt; <span class="built_in">second</span> avg</div><div class="line">        <span class="keyword">if</span> (<span class="built_in">first</span>.getAverageStream() &lt; <span class="built_in">second</span>.getAverageStream()) &#123;</div><div class="line">            out.collect(<span class="built_in">new</span> NetworkStreamAlert(<span class="built_in">first</span>.getDataCenterId()));</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">);</div></pre></td></tr></table></figure>
-<p>最终，sink到控制台：</p>
-<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">warnings</span>.<span class="built_in">print</span>();</div><div class="line">alerts.<span class="built_in">print</span>();</div></pre></td></tr></table></figure>
-<p>从上面的代码段可见，CEP的关键是定义合适的模式。关于模式的相关的API，我们之前已进行过分析。为了节省篇幅，本文只列出了核心代码片段。</p>
-<p>需要注意的是，因为包含Java 8的lambdas，当你使用javac作为编译器时，将会得到错误提示：</p>
-<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">Exception <span class="keyword">in</span> thread <span class="string">"main"</span> org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.common</span><span class="selector-class">.functions</span><span class="selector-class">.InvalidTypesException</span>: </div><div class="line">The generic type parameters of <span class="string">'Map'</span> are missing. </div><div class="line">It seems that your compiler has not stored them into the <span class="selector-class">.class</span> file. </div><div class="line">Currently, only the Eclipse JDT compiler preserves the type information necessary to </div><div class="line">use the lambdas feature type-safely. </div><div class="line">See the documentation <span class="keyword">for</span> more information about how to compile jobs containing lambda expressions.</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.validateLambdaGenericParameter</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">1331</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.validateLambdaGenericParameters</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">1317</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.getUnaryOperatorReturnType</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">347</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.cep</span><span class="selector-class">.PatternStream</span><span class="selector-class">.select</span>(PatternStream<span class="selector-class">.java</span>:<span class="number">81</span>)</div><div class="line">at com<span class="selector-class">.diveintoapacheflink</span><span class="selector-class">.chapter11</span><span class="selector-class">.NetworkAttackMonitor</span><span class="selector-class">.main</span>(NetworkAttackMonitor<span class="selector-class">.java</span>:<span class="number">55</span>)</div><div class="line">at ...</div></pre></td></tr></table></figure>
-<p>解决方案是使用Eclipse JDT来编译代码。</p>
-<hr>
-<blockquote>
-<p>微信扫码关注公众号：Apache_Flink</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
-<hr>
-<blockquote>
-<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
-
+        
+          <p class="article-more-link">
+            <a href="/2017/03/01/flink-cep-case-network-detect/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/" data-id="cizr1ckp30018s3vuysyhtlgd" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/" data-id="cizr1f4rb0016tevuoon2vcsf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -186,7 +151,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/02/28/flink-cep-api/" data-id="cizr1ckoy0010s3vux9fvc2og" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/02/28/flink-cep-api/" data-id="cizr1f4ra0014tevu674r45l4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -229,7 +194,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/02/21/flink-runtime-generate-job-graph/" data-id="cizr1ckpv002ms3vungf7zp17" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/02/21/flink-runtime-generate-job-graph/" data-id="cizr1f4s7002qtevu93aloezq" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -272,7 +237,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/02/15/flink-runtime-generate-batch-plan/" data-id="cizr1ckpt002is3vu4krvc9nk" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/02/15/flink-runtime-generate-batch-plan/" data-id="cizr1f4s4002itevung5uezu2" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -315,7 +280,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/02/13/flink-batch-optimizer-interesting-properties/" data-id="cizr1ckpc001ks3vu4ki8lua8" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/02/13/flink-batch-optimizer-interesting-properties/" data-id="cizr1f4rm001itevubdfx0tsh" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -358,7 +323,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/02/05/flink-runtime-generate-stream-graph/" data-id="cizr1ckpw002os3vuigiw27hx" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/02/05/flink-runtime-generate-stream-graph/" data-id="cizr1f4s4002ktevu7pzbcg2d" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -401,7 +366,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/01/26/flink-runtime-specific-task/" data-id="cizr1ckpq002as3vue8uy98aq" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/01/26/flink-runtime-specific-task/" data-id="cizr1f4rz0028tevuf4sj4jpa" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -444,7 +409,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/01/24/flink-runtime-taskmanager-run-task/" data-id="cizr1ckpp0028s3vupd66k4kw" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/01/24/flink-runtime-taskmanager-run-task/" data-id="cizr1f4ry0026tevujt3sxv65" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -487,7 +452,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/01/15/flink-runtime-netty-part-3/" data-id="cizr1ckps002es3vugr47dc9f" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/01/15/flink-runtime-netty-part-3/" data-id="cizr1f4s3002gtevupxbm6iz8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -530,7 +495,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/01/12/flink-runtime-netty-part-2/" data-id="cizr1ckpt002gs3vuh6bzwzlj" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/01/12/flink-runtime-netty-part-2/" data-id="cizr1f4s2002etevuqs4unmx4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
