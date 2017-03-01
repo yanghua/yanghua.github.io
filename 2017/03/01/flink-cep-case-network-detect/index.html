@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink之CEP案例分析-网络攻击检测 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
+假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink之CEP案例分析-网络攻击检测">
+<meta property="og:url" content="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
+假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-03-01T14:06:10.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink之CEP案例分析-网络攻击检测">
+<meta name="twitter:description" content="上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。
+假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-cep-case-network-detect" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/01/flink-cep-case-network-detect/" class="article-date">
+  <time datetime="2017-03-01T13:55:37.000Z" itemprop="datePublished">2017-03-01</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink之CEP案例分析-网络攻击检测
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>上一篇我们介绍了Flink CEP的API，这一篇我们将以结合一个案例来练习使用CEP的API编写应用程序，以强化对API的理解。所选取的案例是对网络遭受的潜在攻击进行检测并给出告警。当下互联网安全形势仍然严峻，网络攻击屡见不鲜且花样众多，这里我们以DDOS（分布式拒绝服务攻击）产生的流入流量来作为遭受攻击的判断依据。</p>
+<p>假定一家云服务提供商，有多个跨地区的数据中心，每个数据中心会定时向监控中心上报其瞬时流量。</p>
+<p>我们将检测的结果分为三个等级：</p>
+<ul>
+<li>正常：流量在预设的正常范围内；</li>
+<li>警告：某数据中心在10秒内连续两次上报的流量超过认定的正常值；</li>
+<li>报警：某数据中心在30秒内连续两次匹配警告；</li>
+</ul>
+<p>首先，我们构建source，这里我们选择的是并行source，因此需要继承RichParallelSourceFunction类。所有的数据通过模拟器随机生成，其中数据中心编号为整型且取值范围为[0, 10)，数据生成的事件间隔由PAUSE常量指定，默认为100毫秒：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//parallel source</span></div><div class="line">DataStream&lt;MonitorEvent&gt; inputEventStream = env.addSource(</div><div class="line">    <span class="keyword">new</span> <span class="type">MonitorEventSource</span>(</div><div class="line">        MAX_DATACENTER_ID,</div><div class="line">        STREAM_STD,</div><div class="line">        STREAM_MEAN,</div><div class="line">        PAUSE</div><div class="line">    )</div><div class="line">).assignTimestampsAndWatermarks(<span class="keyword">new</span> <span class="type">IngestionTimeExtractor</span>&lt;MonitorEvent&gt;());</div></pre></td></tr></table></figure>
+<p>下面，我们来构建警告模式，按照我们设定的警告等级，其模式定义如下：</p>
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="type">Pattern</span>&lt;<span class="type">MonitorEvent</span>, ?&gt; warningPattern = <span class="type">Pattern</span>.&lt;<span class="type">MonitorEvent</span>&gt;begin(<span class="string">"first"</span>)</div><div class="line">    .sub<span class="keyword">type</span>(<span class="type">NetworkStreamEvent</span>.class)</div><div class="line">    .<span class="keyword">where</span>(evt -&gt; evt.getStream() &gt;= <span class="type">STREAM_THRESHOLD</span>)</div><div class="line">    .next(<span class="string">"second"</span>)</div><div class="line">    .sub<span class="keyword">type</span>(<span class="type">NetworkStreamEvent</span>.class)</div><div class="line">    .<span class="keyword">where</span>(evt -&gt; evt.getStream() &gt;= <span class="type">STREAM_THRESHOLD</span>)</div><div class="line">    .within(<span class="type">Time</span>.seconds(<span class="number">10</span>));</div></pre></td></tr></table></figure>
+<p>根据该模式构建模式流：</p>
+<figure class="highlight coq"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">PatternStream&lt;MonitorEvent&gt; warningPatternStream =</div><div class="line">    CEP.<span class="built_in">pattern</span>(inputEventStream.keyBy(<span class="string">"dataCenterId"</span>), warningPattern);</div></pre></td></tr></table></figure>
+<p>在警告的模式流中筛选出配对的警告事件对，生成警告事件对象流（告警事件对象会算出，前后两个匹配的流量事件的平均值）：</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;NetworkStreamWarning&gt; <span class="built_in">warnings</span> = warningPatternStream.select(</div><div class="line">    (Map&lt;String, MonitorEvent&gt; pattern) -&gt; &#123;</div><div class="line">        NetworkStreamEvent <span class="built_in">first</span> = (NetworkStreamEvent) pattern.<span class="built_in">get</span>(<span class="string">"first"</span>);</div><div class="line">        NetworkStreamEvent <span class="built_in">second</span> = (NetworkStreamEvent) pattern.<span class="built_in">get</span>(<span class="string">"second"</span>);</div><div class="line"></div><div class="line">        <span class="built_in">return</span> <span class="built_in">new</span> NetworkStreamWarning(<span class="built_in">first</span>.getDataCenterId(),</div><div class="line">            (<span class="built_in">first</span>.getStream() + <span class="built_in">second</span>.getStream()) / <span class="number">2</span>);</div><div class="line">    &#125;</div><div class="line">);</div></pre></td></tr></table></figure>
+<p>按照设定的等级，告警模式定义如下：</p>
+<figure class="highlight vhdl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Pattern&lt;NetworkStreamWarning, ?&gt; alertPattern = Pattern.&lt;NetworkStreamWarning&gt;</div><div class="line">    <span class="keyword">begin</span>(<span class="string">"first"</span>).<span class="keyword">next</span>(<span class="string">"second"</span>).within(<span class="built_in">Time</span>.seconds(<span class="number">30</span>));</div></pre></td></tr></table></figure>
+<p>在警告事件流中应用告警模式，得到告警模式流：</p>
+<figure class="highlight coq"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">PatternStream&lt;NetworkStreamWarning&gt; alertPatternStream = CEP.<span class="built_in">pattern</span>(warnings.keyBy</div><div class="line">    (<span class="string">"dataCenterId"</span>), alertPattern);</div></pre></td></tr></table></figure>
+<p>在告警模式流中匹配警告模式对，如果模式对中第一个警告对象的平均流量值小于第二个警告对象的平均流量值，则构建告警对象并输出该对象从而形成告警流：</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;NetworkStreamAlert&gt; alerts = alertPatternStream.flatSelect(</div><div class="line">    (Map&lt;String, NetworkStreamWarning&gt; pattern, Collector&lt;NetworkStreamAlert&gt; out) -&gt; &#123;</div><div class="line">        NetworkStreamWarning <span class="built_in">first</span> = pattern.<span class="built_in">get</span>(<span class="string">"first"</span>);</div><div class="line">        NetworkStreamWarning <span class="built_in">second</span> = pattern.<span class="built_in">get</span>(<span class="string">"second"</span>);</div><div class="line"></div><div class="line">        //<span class="built_in">first</span> avg &lt; <span class="built_in">second</span> avg</div><div class="line">        <span class="keyword">if</span> (<span class="built_in">first</span>.getAverageStream() &lt; <span class="built_in">second</span>.getAverageStream()) &#123;</div><div class="line">            out.collect(<span class="built_in">new</span> NetworkStreamAlert(<span class="built_in">first</span>.getDataCenterId()));</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">);</div></pre></td></tr></table></figure>
+<p>最终，sink到控制台：</p>
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">warnings</span>.<span class="built_in">print</span>();</div><div class="line">alerts.<span class="built_in">print</span>();</div></pre></td></tr></table></figure>
+<p>从上面的代码段可见，CEP的关键是定义合适的模式。关于模式的相关的API，我们之前已进行过分析。为了节省篇幅，本文只列出了核心代码片段。</p>
+<p>需要注意的是，因为包含Java 8的lambdas，当你使用javac作为编译器时，将会得到错误提示：</p>
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">Exception <span class="keyword">in</span> thread <span class="string">"main"</span> org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.common</span><span class="selector-class">.functions</span><span class="selector-class">.InvalidTypesException</span>: </div><div class="line">The generic type parameters of <span class="string">'Map'</span> are missing. </div><div class="line">It seems that your compiler has not stored them into the <span class="selector-class">.class</span> file. </div><div class="line">Currently, only the Eclipse JDT compiler preserves the type information necessary to </div><div class="line">use the lambdas feature type-safely. </div><div class="line">See the documentation <span class="keyword">for</span> more information about how to compile jobs containing lambda expressions.</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.validateLambdaGenericParameter</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">1331</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.validateLambdaGenericParameters</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">1317</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.api</span><span class="selector-class">.java</span><span class="selector-class">.typeutils</span><span class="selector-class">.TypeExtractor</span><span class="selector-class">.getUnaryOperatorReturnType</span>(TypeExtractor<span class="selector-class">.java</span>:<span class="number">347</span>)</div><div class="line">at org<span class="selector-class">.apache</span><span class="selector-class">.flink</span><span class="selector-class">.cep</span><span class="selector-class">.PatternStream</span><span class="selector-class">.select</span>(PatternStream<span class="selector-class">.java</span>:<span class="number">81</span>)</div><div class="line">at com<span class="selector-class">.diveintoapacheflink</span><span class="selector-class">.chapter11</span><span class="selector-class">.NetworkAttackMonitor</span><span class="selector-class">.main</span>(NetworkAttackMonitor<span class="selector-class">.java</span>:<span class="number">55</span>)</div><div class="line">at ...</div></pre></td></tr></table></figure>
+<p>解决方案是使用Eclipse JDT来编译代码。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/" data-id="cizr1ckp30018s3vuysyhtlgd" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/02/28/flink-cep-api/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink之CEP-API简介</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-cep-case-network-detect" data-title="Flink之CEP案例分析-网络攻击检测" data-url="http://vinoyang.com/2017/03/01/flink-cep-case-network-detect/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">46</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/01/flink-cep-case-network-detect/">Flink之CEP案例分析-网络攻击检测</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/28/flink-cep-api/">Flink之CEP-API简介</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/21/flink-runtime-generate-job-graph/">Flink运行时之生成作业图</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/15/flink-runtime-generate-batch-plan/">Flink运行时之批处理程序生成计划</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/13/flink-batch-optimizer-interesting-properties/">Flink批处理优化器之InterestingProperties</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
