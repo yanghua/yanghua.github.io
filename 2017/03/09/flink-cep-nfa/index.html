@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink-CEP之NFA | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="$$NFA ^ b$$模型包含两个阶段：第一个阶段是模式匹配阶段，在这个阶段它将会向最终态过渡并随着事件被选择而扩展缓冲区；第二个阶段是匹配提取阶段，该阶段发生在超时或者到达最终态时，将会从缓冲区中检索所产生的匹配。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink-CEP之NFA">
+<meta property="og:url" content="http://vinoyang.com/2017/03/09/flink-cep-nfa/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="$$NFA ^ b$$模型包含两个阶段：第一个阶段是模式匹配阶段，在这个阶段它将会向最终态过渡并随着事件被选择而扩展缓冲区；第二个阶段是匹配提取阶段，该阶段发生在超时或者到达最终态时，将会从缓冲区中检索所产生的匹配。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/ComputationState-properties.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-03-09T15:23:39.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink-CEP之NFA">
+<meta name="twitter:description" content="$$NFA ^ b$$模型包含两个阶段：第一个阶段是模式匹配阶段，在这个阶段它将会向最终态过渡并随着事件被选择而扩展缓冲区；第二个阶段是匹配提取阶段，该阶段发生在超时或者到达最终态时，将会从缓冲区中检索所产生的匹配。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/ComputationState-properties.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-cep-nfa" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/09/flink-cep-nfa/" class="article-date">
+  <time datetime="2017-03-09T15:13:39.000Z" itemprop="datePublished">2017-03-09</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink-CEP之NFA
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>$$NFA ^ b$$模型包含两个阶段：第一个阶段是模式匹配阶段，在这个阶段它将会向最终态过渡并随着事件被选择而扩展缓冲区；第二个阶段是匹配提取阶段，该阶段发生在超时或者到达最终态时，将会从缓冲区中检索所产生的匹配。</p>
+<a id="more"></a>
+<p>首先我们先来看在NFA中如何保存之前“计算”过的状态。这是什么意思呢？NFA作为一个建立在流处理之上的状态机，它以流中的事件作为输入并驱动状态的转换。然而，状态的转换并不是由当前被处理的事件独立决定的，它可能还依赖于之前已经计算过的事件的状态信息。Flink定义了类ComputationState来封装计算过的事件的状态，它包含如下这些属性：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/ComputationState-properties.png" alt=""></p>
+<p>NFA以一个队列保存了其状态机中当前所有的ComputationState。作为一个非确定性有限自动机的实现，NFA以process方法来接收流中的每个事件，进行处理后返回匹配的以及超时的事件序列。</p>
+<p>方法最初首先遍历残留在队列中的ComputationState，它们通常是NFA处理之前的事件所建立的：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span> (int i = <span class="number">0</span>; i &lt; numberComputationStates; i++) &#123;</div><div class="line">    <span class="comment">//队列中出队一个ComputationState</span></div><div class="line">    ComputationState&lt;T&gt; computationState = computationStates.poll();</div><div class="line"></div><div class="line">    final Collection&lt;ComputationState&lt;T&gt;&gt; <span class="keyword">new</span><span class="type">ComputationStates</span>;</div><div class="line"></div><div class="line">    <span class="comment">//如果当前遍历的ComputationState不是起始状态，同时窗口时间大于零</span></div><div class="line">    <span class="comment">//且待处理事件的时间戳跟当前遍历状态的时间戳之差大于窗口时间（说明当前ComputationState已滞后）</span></div><div class="line">    <span class="keyword">if</span> (!computationState.isStartState() &amp;&amp;</div><div class="line">        windowTime &gt; <span class="number">0</span> &amp;&amp;</div><div class="line">        timestamp - computationState.getStartTimestamp() &gt;= windowTime) &#123;</div><div class="line"></div><div class="line">        <span class="comment">//如果NFA被指定处理超时，则根据当前的ComputationState对象提取超时的匹配模式的事件序列，</span></div><div class="line">        <span class="comment">//并将超时的匹配模式的事件序列加入到timeoutResult用于最后的返回</span></div><div class="line">        <span class="keyword">if</span> (handleTimeout) &#123;</div><div class="line">            Collection&lt;Map&lt;<span class="keyword">String</span>, T&gt;&gt; timeoutPatterns = extractPatternMatches(computationState);</div><div class="line"></div><div class="line">            <span class="keyword">for</span> (Map&lt;<span class="keyword">String</span>, T&gt; timeoutPattern : <span class="type">timeoutPatterns</span>) &#123;</div><div class="line">                timeoutResult.add(Tuple2.of(timeoutPattern, timestamp));</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//从共享缓冲区中移除已经超出窗口长度的ComputationState对应的事件信息</span></div><div class="line">        sharedBuffer.release(computationState.getState(), computationState.getEvent(), </div><div class="line">            computationState.getTimestamp());</div><div class="line">        sharedBuffer.remove(computationState.getState(), computationState.getEvent(), </div><div class="line">            computationState.getTimestamp());</div><div class="line"></div><div class="line">        <span class="comment">//不产生新的ComputationState</span></div><div class="line">        <span class="keyword">new</span><span class="type">ComputationStates</span> = Collections.emptyList();</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">//基于当前的ComputationState以及待处理的事件计算新的ComputationState集合</span></div><div class="line">        <span class="keyword">new</span><span class="type">ComputationStates</span> = computeNextStates(computationState, event, timestamp);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//遍历新产生的ComputationState</span></div><div class="line">    <span class="keyword">for</span> (ComputationState&lt;T&gt; <span class="keyword">new</span><span class="type">ComputationState</span>: <span class="keyword">new</span><span class="type">ComputationStates</span>) &#123;</div><div class="line">        <span class="comment">//如果新的ComputationState到达最终态，则提取出其对应的事件匹配，并加入到待返回的结果集中</span></div><div class="line">        <span class="keyword">if</span> (<span class="keyword">new</span><span class="type">ComputationState</span>.isFinalState()) &#123;</div><div class="line">            Collection&lt;Map&lt;<span class="keyword">String</span>, T&gt;&gt; matches = extractPatternMatches(<span class="keyword">new</span><span class="type">ComputationState</span>);</div><div class="line">            result.addAll(matches);</div><div class="line"></div><div class="line">            <span class="comment">//移除已匹配的模式因为它们不再需要了</span></div><div class="line">            sharedBuffer.release(<span class="keyword">new</span><span class="type">ComputationState</span>.getState(), <span class="keyword">new</span><span class="type">ComputationState</span>.getEvent(), </div><div class="line">                <span class="keyword">new</span><span class="type">ComputationState</span>.getTimestamp());</div><div class="line">            sharedBuffer.remove(<span class="keyword">new</span><span class="type">ComputationState</span>.getState(), <span class="keyword">new</span><span class="type">ComputationState</span>.getEvent(), </div><div class="line">                <span class="keyword">new</span><span class="type">ComputationState</span>.getTimestamp());</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">//否则将新的ComputationState加入队列待处理下一个事件时处理</span></div><div class="line">            computationStates.add(<span class="keyword">new</span><span class="type">ComputationState</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来还有一步是基于窗口长度删除共享缓冲区内的元素超出窗口长度的元素。</p>
+<p>以上这个process方法时NFA处理事件的主干部分，本篇开头提到的两个阶段的逻辑实现处于额外的两个方法中。我们首先来看第一阶段，也就是如何实现模式匹配的细节。这个过程被封装在cpmputeNextStates方法中，它根据当前的ComputationState以及事件计算接下来的ComputationState集合。它会以栈结构来存储State，并依次出栈进行遍历（首先被加入栈然后立即出栈的是当前ComputationState的State），根据正在遍历的State，获取在该状态上支持的状态转换集合。</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span> (StateTransition&lt;T&gt; stateTransition: <span class="type">stateTransitions</span>) &#123;</div><div class="line">    <span class="keyword">try</span> &#123;</div><div class="line">        <span class="comment">//如果状态转换不需要条件或当前事件满足过滤条件</span></div><div class="line">        <span class="keyword">if</span> (stateTransition.getCondition() == <span class="literal">null</span> || stateTransition.getCondition().filter(event)) &#123;</div><div class="line">            <span class="comment">//枚举当前状态转换所对应的操作</span></div><div class="line">            <span class="keyword">switch</span> (stateTransition.getAction()) &#123;</div><div class="line">                <span class="keyword">case</span> PROCEED:<span class="type"></span></div><div class="line">                    <span class="comment">//在状态转换图中“前进”到下一个目标状态</span></div><div class="line">                    states.push(stateTransition.getTargetState());</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                <span class="keyword">case</span> IGNORE:<span class="type"></span></div><div class="line">                    <span class="comment">//将当前计算状态加入结果集</span></div><div class="line">                    resultingComputationStates.add(computationState);</div><div class="line"></div><div class="line">                    <span class="comment">//为共享缓冲区中对应的状态的引用计数器加一</span></div><div class="line">                    sharedBuffer.lock(computationState.getState(), computationState.getEvent(), </div><div class="line">                        computationState.getTimestamp());</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                <span class="keyword">case</span> TAKE:<span class="type"></span></div><div class="line">                    final State&lt;T&gt; <span class="keyword">new</span><span class="type">State</span> = stateTransition.getTargetState();</div><div class="line">                    final DeweyNumber oldVersion;</div><div class="line">                    final DeweyNumber <span class="keyword">new</span><span class="type">ComputationStateVersion</span>;</div><div class="line">                    final State&lt;T&gt; previousState = computationState.getState();</div><div class="line">                    final T previousEvent = computationState.getEvent();</div><div class="line">                    final long previousTimestamp;</div><div class="line">                    final long startTimestamp;</div><div class="line"></div><div class="line">                    <span class="comment">//如果当前的计算状态是起始状态，构建新的计算状态版本</span></div><div class="line">                    <span class="keyword">if</span> (computationState.isStartState()) &#123;</div><div class="line">                        oldVersion = <span class="keyword">new</span> <span class="type">DeweyNumber</span>(startEventCounter++);</div><div class="line">                        <span class="keyword">new</span><span class="type">ComputationStateVersion</span> = oldVersion.addStage();</div><div class="line">                        startTimestamp = timestamp;</div><div class="line">                        previousTimestamp = <span class="number">-1</span>L;</div><div class="line">                    &#125; <span class="keyword">else</span> &#123;</div><div class="line">                        startTimestamp = computationState.getStartTimestamp();</div><div class="line">                        previousTimestamp = computationState.getTimestamp();</div><div class="line">                        oldVersion = computationState.getVersion();</div><div class="line"></div><div class="line">                        <span class="comment">//如果新状态即为计算状态，则将版本号加一，否则新状态为当前状态的下一个状态，则版本号新增一级</span></div><div class="line">                        <span class="keyword">if</span> (<span class="keyword">new</span><span class="type">State</span>.equals(computationState.getState())) &#123;</div><div class="line">                            <span class="keyword">new</span><span class="type">ComputationStateVersion</span> = oldVersion.increase();</div><div class="line">                        &#125; <span class="keyword">else</span> &#123;</div><div class="line">                            <span class="keyword">new</span><span class="type">ComputationStateVersion</span> = oldVersion.addStage();</div><div class="line">                        &#125;</div><div class="line">                    &#125;</div><div class="line"></div><div class="line">                    <span class="comment">//如果原状态是起始状态，则直接向共享缓冲区中加入新状态，原状态和新状态的关系可通过oldVersion来遍历</span></div><div class="line">                    <span class="keyword">if</span> (previousState.isStart()) &#123;</div><div class="line">                        sharedBuffer.put(<span class="keyword">new</span><span class="type">State</span>, event, timestamp, oldVersion);</div><div class="line">                    &#125; <span class="keyword">else</span> &#123;</div><div class="line">                        <span class="comment">//如果原状态为非起始状态，则需要结合之前的状态等信息，以便校验</span></div><div class="line">                        sharedBuffer.put(<span class="keyword">new</span><span class="type">State</span>, event, timestamp, previousState,</div><div class="line">                                        previousEvent, previousTimestamp, oldVersion);</div><div class="line">                    &#125;</div><div class="line"></div><div class="line">                    <span class="comment">//在共享缓冲区中为新状态增加引用计数</span></div><div class="line">                    sharedBuffer.lock(<span class="keyword">new</span><span class="type">State</span>, event, timestamp);</div><div class="line"></div><div class="line">                    <span class="comment">//以新状态构建新的计算状态实例并加入最终的结果集</span></div><div class="line">                    resultingComputationStates.add(<span class="keyword">new</span> <span class="type">ComputationState</span>&lt;T&gt;(</div><div class="line">                        <span class="keyword">new</span><span class="type">State</span>, event, timestamp, <span class="keyword">new</span><span class="type">ComputationStateVersion</span>, startTimestamp));</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">catch</span> (Exception e) &#123;</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">RuntimeException</span>(<span class="string">"Failure happened in filter function."</span>, e);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>第二个阶段是模式提取阶段，在NFA中对应方法extractPatternMatches，其实最核心的逻辑是我们在上一篇分析SharedBuffer中的extractPatterns方法。通过extractPatterns获取到所有的路径之后，它会遍历所有的路径，并重新更改其存储结构同时为这些路径指定新的名称：</p>
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// generate the correct names from the collection of LinkedHashMultimaps</span></div><div class="line"><span class="keyword">for</span> (LinkedHashMultimap&lt;State&lt;T&gt;, T&gt; path: paths) &#123;</div><div class="line">    Map&lt;<span class="keyword">String</span>, T&gt; resultPath = <span class="keyword">new</span> <span class="keyword">HashMap</span>&lt;&gt;();</div><div class="line">    <span class="keyword">for</span> (State&lt;T&gt; <span class="built_in">key</span>: path.keySet()) &#123;</div><div class="line">        <span class="built_in">int</span> counter = <span class="number">0</span>;</div><div class="line">        Set&lt;T&gt; events = path.<span class="built_in">get</span>(<span class="built_in">key</span>);</div><div class="line"></div><div class="line">            <span class="comment">// we iterate over the elements in insertion order</span></div><div class="line">        <span class="keyword">for</span> (T event: events) &#123;</div><div class="line">            resultPath.put(</div><div class="line">                events.<span class="built_in">size</span>() &gt; <span class="number">1</span> ? generateStateName(<span class="built_in">key</span>.getName(), counter): <span class="built_in">key</span>.getName(),</div><div class="line">                        <span class="comment">// copy the element so that the user can change it</span></div><div class="line">                serializer.isImmutableType() ? event : serializer.<span class="built_in">copy</span>(event)</div><div class="line">            );</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    result.<span class="built_in">add</span>(resultPath);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/03/09/flink-cep-nfa/" data-id="cj02jmxyx000iyfvu7lbpa9se" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/03/05/flink-cep-versioned-shared-buffer/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink-CEP之带版本的共享缓冲区</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-cep-nfa" data-title="Flink-CEP之NFA" data-url="http://vinoyang.com/2017/03/09/flink-cep-nfa/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">49</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/09/flink-cep-nfa/">Flink-CEP之NFA</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/05/flink-cep-versioned-shared-buffer/">Flink-CEP之带版本的共享缓冲区</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/03/flink-cep-paper-and-design-for-state/">Flink-CEP论文与源码解读之状态与状态转换</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/01/flink-cep-case-network-detect/">Flink之CEP案例分析-网络攻击检测</a>
+          </li>
+        
+          <li>
+            <a href="/2017/02/28/flink-cep-api/">Flink之CEP-API简介</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
