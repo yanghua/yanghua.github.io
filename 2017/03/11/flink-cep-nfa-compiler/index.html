@@ -7,19 +7,19 @@
   
   <title>Flink-CEP之NFA编译器 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+  <meta name="description" content="$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink-CEP之NFA编译器">
 <meta property="og:url" content="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+<meta property="og:description" content="$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2017-03-11T14:10:33.000Z">
+<meta property="og:updated_time" content="2017-03-11T14:12:27.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink-CEP之NFA编译器">
-<meta name="twitter:description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+<meta name="twitter:description" content="$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
 <meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -106,10 +106,10 @@
         
           <div id="toc" class="toc-article">
             <strong class="toc-title">文章目录</strong>
-            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#11-3-4-NFA编译器"><span class="toc-number">1.</span> <span class="toc-text">11.3.4 NFA编译器</span></a></li></ol>
+            
           </div>
         
-        <h1 id="11-3-4-NFA编译器"><a href="#11-3-4-NFA编译器" class="headerlink" title="11.3.4 NFA编译器"></a>11.3.4 NFA编译器</h1><p>$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：</p>
+        <p>$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：</p>
 <a id="more"></a>
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png" alt=""></p>
 <p>编译的核心逻辑见方法compileFactory，它接收一个Pattern对象，在介绍Pattern API时我们已经提及过，Pattern可以通过前置指针形成一个Pattern链，而该方法所接收的对象处于链头（第一个构建的Pattern对象看成是链尾），方法中会对Pattern链进行遍历，具体过程如下：</p>
@@ -129,7 +129,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/" data-id="cj05bwn2c000ju9vu441br28s" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/" data-id="cj05bz1la000jvivuewm6k2qf" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
