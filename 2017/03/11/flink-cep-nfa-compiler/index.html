@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink-CEP之NFA编译器 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink-CEP之NFA编译器">
+<meta property="og:url" content="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-03-11T14:10:33.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink-CEP之NFA编译器">
+<meta name="twitter:description" content="11.3.4 NFA编译器$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-cep-nfa-compiler" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/11/flink-cep-nfa-compiler/" class="article-date">
+  <time datetime="2017-03-11T13:51:40.000Z" itemprop="datePublished">2017-03-11</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink-CEP之NFA编译器
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#11-3-4-NFA编译器"><span class="toc-number">1.</span> <span class="toc-text">11.3.4 NFA编译器</span></a></li></ol>
+          </div>
+        
+        <h1 id="11-3-4-NFA编译器"><a href="#11-3-4-NFA编译器" class="headerlink" title="11.3.4 NFA编译器"></a>11.3.4 NFA编译器</h1><p>$$NFA ^ b$$编译器的作用是将模式对象编译成NFA或者NFAFactory（用来创建多种NFA对象）。这个编译的过程，需要对模式进行拆分从而构建状态以及根据条件构建状态转换信息，最终根据构建好的状态集合来创建NFA。示意图如下：</p>
+<a id="more"></a>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/NFA-compiler.png" alt=""></p>
+<p>编译的核心逻辑见方法compileFactory，它接收一个Pattern对象，在介绍Pattern API时我们已经提及过，Pattern可以通过前置指针形成一个Pattern链，而该方法所接收的对象处于链头（第一个构建的Pattern对象看成是链尾），方法中会对Pattern链进行遍历，具体过程如下：</p>
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> &lt;T&gt; NFAFactory&lt;T&gt; compileFactory(</div><div class="line">    Pattern&lt;T, ?&gt; pattern,</div><div class="line">    TypeSerializer&lt;T&gt; inputTypeSerializer,</div><div class="line">    boolean timeoutHandling) &#123;</div><div class="line">    <span class="keyword">if</span> (pattern == <span class="literal">null</span>) &#123;</div><div class="line">        <span class="comment">//如果模式为null，返回一个NFA工厂的实现，且不传递任何状态，意味着将创建一个空的NFA对象</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">NFAFactoryImpl</span>&lt;T&gt;(inputTypeSerializer, <span class="number">0</span>, </div><div class="line">            Collections.&lt;State&lt;T&gt;&gt;emptyList(), timeoutHandling);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">//构建一个Map来存储所有生成的状态</span></div><div class="line">        Map&lt;<span class="keyword">String</span>, State&lt;T&gt;&gt; states = <span class="keyword">new</span> <span class="type">HashMap</span>&lt;&gt;();</div><div class="line">        long windowTime;</div><div class="line"></div><div class="line">        Pattern&lt;T, ?&gt; succeedingPattern;</div><div class="line">        State&lt;T&gt; succeedingState;</div><div class="line">        Pattern&lt;T, ?&gt; currentPattern = pattern;</div><div class="line"></div><div class="line">        <span class="comment">//构建最终态，并加入到Map中，这里将会从Pattern的尾部向头部进行遍历，所以构建的第一个状态是尾部的最终态</span></div><div class="line">        State&lt;T&gt; currentState = <span class="keyword">new</span> <span class="type">State</span>&lt;&gt;(currentPattern.getName(), State.StateType.Final);</div><div class="line">        states.put(currentPattern.getName(), currentState);</div><div class="line"></div><div class="line">        <span class="comment">//提取当前Pattern对象的窗口时间</span></div><div class="line">        windowTime = currentPattern.getWindowTime() != <span class="literal">null</span> </div><div class="line">            ? currentPattern.getWindowTime().toMilliseconds() </div><div class="line">            : <span class="type">0L</span>;</div><div class="line"></div><div class="line">        <span class="comment">//不断向前遍历（不包含第一个Pattern对象）</span></div><div class="line">        <span class="keyword">while</span> (currentPattern.getPrevious() != <span class="literal">null</span>) &#123;</div><div class="line">            <span class="comment">//相关变量交换</span></div><div class="line">            succeedingPattern = currentPattern;</div><div class="line">            succeedingState = currentState;</div><div class="line">            currentPattern = currentPattern.getPrevious();</div><div class="line"></div><div class="line">            <span class="comment">//获得窗口时间</span></div><div class="line">            Time currentWindowTime = currentPattern.getWindowTime();</div><div class="line"></div><div class="line">            <span class="comment">//如果当前Pattern的窗口时间比其之前Pattern的窗口时间小，则将之前Pattern的窗口时间更新为新的窗口时间</span></div><div class="line">            <span class="keyword">if</span> (currentWindowTime != <span class="literal">null</span> &amp;&amp; currentWindowTime.toMilliseconds() &lt; windowTime) &#123;</div><div class="line">                windowTime = currentWindowTime.toMilliseconds();</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//获取或构建状态</span></div><div class="line">            <span class="keyword">if</span> (states.containsKey(currentPattern.getName())) &#123;</div><div class="line">                currentState = states.<span class="keyword">get</span>(currentPattern.getName());</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                currentState = <span class="keyword">new</span> <span class="type">State</span>&lt;&gt;(currentPattern.getName(), State.StateType.Normal);</div><div class="line">                states.put(currentState.getName(), currentState);</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">//为当前状态设置跟后一个状态之间的转换（边），注意状态转换是“TAKE”，这里同时传入了Pattern所注入的条件</span></div><div class="line">            currentState.addStateTransition(<span class="keyword">new</span> <span class="type">StateTransition</span>&lt;T&gt;(</div><div class="line">                StateTransitionAction.TAKE,</div><div class="line">                succeedingState,</div><div class="line">                (FilterFunction&lt;T&gt;) succeedingPattern.getFilterFunction()));</div><div class="line"></div><div class="line">            <span class="comment">//如果后一个模式是非紧邻模式，则为当前状态构建自循环的“IGNORE”转换</span></div><div class="line">            <span class="keyword">if</span> (succeedingPattern instanceof FollowedByPattern) &#123;</div><div class="line">                currentState.addStateTransition(<span class="keyword">new</span> <span class="type">StateTransition</span>&lt;T&gt;(</div><div class="line">                    StateTransitionAction.IGNORE,</div><div class="line">                    currentState,</div><div class="line">                    <span class="literal">null</span></div><div class="line">                ));</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        final State&lt;T&gt; beginningState;</div><div class="line"></div><div class="line">        <span class="comment">//获取或构建起始状态</span></div><div class="line">        <span class="keyword">if</span> (states.containsKey(BEGINNING_STATE_NAME)) &#123;</div><div class="line">            beginningState = states.<span class="keyword">get</span>(BEGINNING_STATE_NAME);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            beginningState = <span class="keyword">new</span> <span class="type">State</span>&lt;&gt;(BEGINNING_STATE_NAME, State.StateType.Start);</div><div class="line">            states.put(BEGINNING_STATE_NAME, beginningState);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">//添加状态转换（起始状态，只能通过“TAKE”向下一状态转换）</span></div><div class="line">        beginningState.addStateTransition(<span class="keyword">new</span> <span class="type">StateTransition</span>&lt;T&gt;(</div><div class="line">            StateTransitionAction.TAKE,</div><div class="line">            currentState,</div><div class="line">            (FilterFunction&lt;T&gt;) currentPattern.getFilterFunction()</div><div class="line">        ));</div><div class="line"></div><div class="line">        <span class="comment">//以所有的状态构建NFAFactoryImpl对象，它将用来创建NFA对象</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> <span class="type">NFAFactoryImpl</span>&lt;T&gt;(inputTypeSerializer, windowTime, </div><div class="line">            <span class="keyword">new</span> <span class="type">HashSet</span>&lt;&gt;(states.values()), timeoutHandling);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>代码段中的NFAFactory用于创建NFA的实例对象，NFAFactoryImpl是其唯一的实现，创建过程中，会将上面收集到的状态集合加入到NFA对象中去。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/" data-id="cj05bwn2c000ju9vu441br28s" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/03/09/flink-cep-nfa/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink-CEP之NFA</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-cep-nfa-compiler" data-title="Flink-CEP之NFA编译器" data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">50</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/11/flink-cep-nfa-compiler/">Flink-CEP之NFA编译器</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/09/flink-cep-nfa/">Flink-CEP之NFA</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/05/flink-cep-versioned-shared-buffer/">Flink-CEP之带版本的共享缓冲区</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/03/flink-cep-paper-and-design-for-state/">Flink-CEP论文与源码解读之状态与状态转换</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/01/flink-cep-case-network-detect/">Flink之CEP案例分析-网络攻击检测</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
