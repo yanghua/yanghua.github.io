@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink-CEP之模式流与运算符 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="之前我们分析了CEP的API，接下来我们将分析CEP API的内部实现包括模式流与运算符。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink-CEP之模式流与运算符">
+<meta property="og:url" content="http://vinoyang.com/2017/03/16/flink-cep-pattern-stream-and-operator/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="之前我们分析了CEP的API，接下来我们将分析CEP API的内部实现包括模式流与运算符。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/cep-operator-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-03-16T15:12:52.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink-CEP之模式流与运算符">
+<meta name="twitter:description" content="之前我们分析了CEP的API，接下来我们将分析CEP API的内部实现包括模式流与运算符。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/cep-operator-class-diagram.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-cep-pattern-stream-and-operator" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/16/flink-cep-pattern-stream-and-operator/" class="article-date">
+  <time datetime="2017-03-16T13:59:59.000Z" itemprop="datePublished">2017-03-16</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink-CEP之模式流与运算符
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#模式流"><span class="toc-number">1.</span> <span class="toc-text">模式流</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#运算符"><span class="toc-number">2.</span> <span class="toc-text">运算符</span></a></li></ol>
+          </div>
+        
+        <p>之前我们分析了CEP的API，接下来我们将分析CEP API的内部实现包括模式流与运算符。</p>
+<a id="more"></a>
+<h1 id="模式流"><a href="#模式流" class="headerlink" title="模式流"></a>模式流</h1><p>模式流（PatternStream）是CEP模式匹配的流抽象，一个PatternStream对象表示模式检测到的序列所对应的流。该序列以映射来表示，以模式名关联一组事件对象。</p>
+<p>为了使用PatternStream，我们首先要构建它，为此Flink提供了一个名为CEP的帮助类，它定义了一个pattern静态方法：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">DataStream&lt;<span class="built_in">String</span>&gt; inputStream = ...</div><div class="line"><span class="built_in">Pattern</span>&lt;<span class="built_in">String</span>, ?&gt; pattern = ...</div><div class="line"></div><div class="line">PatternStream&lt;<span class="built_in">String</span>&gt; patternStream = CEP.pattern(inputStream, pattern);</div></pre></td></tr></table></figure>
+<p>该方法接收初始事件流DataStream对象以及用于匹配的Pattern对象，在pattern方法内部通过将这两个参数传递给PatternStream的构造方法来构建该对象的。</p>
+<p>从之前的案例代码中我们看到，通常会在PatternStream上调用select或flatSelect来获取某个模式下匹配到的事件来实现我们的业务逻辑。而在select/flatSelect方法内部，其实仍然是借助于常规DataStream实现的，我们以其中select方法（存在多个重载）一个作为示例：</p>
+<figure class="highlight pf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">public <span class="variable">&lt;R&gt;</span> DataStream<span class="variable">&lt;R&gt;</span> select(final PatternSelectFunction<span class="variable">&lt;T, R&gt;</span> patternSelectFunction, </div><div class="line">    TypeInformation<span class="variable">&lt;R&gt;</span> <span class="keyword">out</span>TypeInfo) &#123;</div><div class="line">    DataStream<span class="variable">&lt;Map&lt;String, T&gt;</span>&gt; patternStream = CEPOperatorUtils.createPatternStream(inputStream, pattern);</div><div class="line"></div><div class="line">    return patternStream</div><div class="line">        .map(new PatternSelectMapper<span class="variable">&lt;&gt;</span>(</div><div class="line">            patternStream.getExecutionEnvironment().clean(patternSelectFunction)))</div><div class="line">        .returns(<span class="keyword">out</span>TypeInfo);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>方法的第一行，借助于CEPOperatorUtils这一帮助类构建DataStream<map<string, t="">&gt;通用流对象，接下来在DataStream上调用map转换函数，在PatternStream内部实现了UDF：PatternSelectMapper。PatternSelectMapper对象接收PatternSelectFunction的实例，并在其map方法中对所有的元素调用patternSelectFunction的select方法进行选择。那么帮助类CEPOperatorUtils是如何创建DataStream对象的呢？我们对其createPatternStream方法展开分析一下。方法内第一个关键步骤是通过NFA编译器将模式编译为NFA工厂（用于后续创建NFA实例）：</map<string,></p>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">final</span> NFACompiler.NFAFactory&lt;T&gt; nfaFactory = NFACompiler.compileFactory(pattern, inputSerializer, <span class="literal">false</span>);</div></pre></td></tr></table></figure>
+<p>接着，会判断初始输入流是否是基于键分组的（KeyedStream），这是为了采用不同的运算符对初始输入流进行转换，如果是KeyedStream，则将其初始输入流进行强制转换为KeyedStream并采用KeyedCEPPatternOperator：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">patternStream = keyedStream.transform(</div><div class="line">    <span class="string">"KeyedCEPPatternOperator"</span>,</div><div class="line">    (TypeInformation&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, T&gt;&gt;) (TypeInformation&lt;?&gt;) TypeExtractor.getForClass(<span class="built_in">Map</span>.<span class="keyword">class</span>),</div><div class="line">    <span class="keyword">new</span> KeyedCEPPatternOperator&lt;&gt;(</div><div class="line">        inputSerializer,</div><div class="line">        isProcessingTime,</div><div class="line">        keySelector,</div><div class="line">        keySerializer,</div><div class="line">        nfaFactory)</div><div class="line">);</div></pre></td></tr></table></figure>
+<p>如果是普通未分组的数据流，则采用CEPPatternOperator：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">patternStream = inputStream.transform(</div><div class="line">    <span class="string">"CEPPatternOperator"</span>,</div><div class="line">    (TypeInformation&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, T&gt;&gt;) (TypeInformation&lt;?&gt;) TypeExtractor.getForClass(<span class="built_in">Map</span>.<span class="keyword">class</span>),</div><div class="line">    <span class="keyword">new</span> CEPPatternOperator&lt;T&gt;(</div><div class="line">        inputSerializer,</div><div class="line">        isProcessingTime,</div><div class="line">        nfaFactory</div><div class="line">    )</div><div class="line">).setParallelism(<span class="number">1</span>);</div></pre></td></tr></table></figure>
+<p>从上面我们看到无论是哪种运算符都要求传递NFA工厂，说明NFA是在运算符内部工作的。另外需要注意的是，如果是普通数据流，其并行度被设置为1，也就是整个数据流没办法分区以并行执行，而是作为一个全局数据流参与模式匹配。这一点其实不难想象，因为我们在分析模式时，其有事件选择策略（严格紧邻还是非严格紧邻），也就是说事件前后顺序是模式的一部分，那么这时候如果普通事件流再分区执行，将会打破这种顺序，从而导致匹配失效。</p>
+<p>通过对PatternStream的解析可知，它其实不同于DataStream API里的各种数据流对象，它并不是�DataStream的特例，也不是由转换函数得来，它只是对DataStream的二次封装。</p>
+<p>上面我们提及了两种运算符，但其实并不止这么多，具体它们的实现以及差别，我们接下来会进行详细分析。</p>
+<h1 id="运算符"><a href="#运算符" class="headerlink" title="运算符"></a>运算符</h1><p>CEP的运算符实现有两个考虑因素：是否针对基于键分区的数据流以及是否支持对超时的匹配序列进行处理。因此针对这两个因素的组合将会产生四种运算符的实现，所有运算符相关的类图如下所示：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/cep-operator-class-diagram.png" alt=""></p>
+<p> AbstractCEPBasePatternOperator为所有的运算符提供基础模板，它自身继承自流运算符（AbstractStreamOperator）并扩展了单输入流运算符接口（OneInputStreamOperator）。AbstractCEPBasePatternOperator定义了两对抽象方法，分别是：</p>
+<ul>
+<li>(get/update)NFA：（获得/更新）NFA的实例；</li>
+<li>(get/update)PriorityQueue：（获得/更新）优先级队列；</li>
+</ul>
+<p>其实，这两对方法主要是为了实现基于键分组的运算符提供的，因为它们会利用用户状态API来获取并更新NFA实例以及优先级队列（优先级队列用于缓存事件时间语义时的事件以等待水位线），这一点我们会在下文剖析。借助于这两对抽象方法，提供了对processElement（定义在OneInputStreamOperator接口中）的实现：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="literal">void</span> processElement(StreamRecord&lt;<span class="keyword">IN</span>&gt; element) throws Exception &#123;</div><div class="line">    <span class="keyword">if</span> (isProcessingTime) &#123;</div><div class="line">        <span class="comment">//获得NFA对象，处理事件并更新NFA对象</span></div><div class="line">        NFA&lt;<span class="keyword">IN</span>&gt; nfa = getNFA();</div><div class="line">        processEvent(nfa, element.getValue(), System.currentTimeMillis());</div><div class="line">        updateNFA(nfa);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">//获得优先级队列缓存该元素（直到接收到水位线），更新优先级队列</span></div><div class="line">        PriorityQueue&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;&gt; priorityQueue = getPriorityQueue();</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (getExecutionConfig().isObjectReuseEnabled()) &#123;</div><div class="line">            priorityQueue.offer(<span class="literal">new</span> StreamRecord&lt;<span class="keyword">IN</span>&gt;(inputSerializer.copy(element.getValue()), </div><div class="line">                element.getTimestamp()));</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            priorityQueue.offer(element);</div><div class="line">        &#125;</div><div class="line">        updatePriorityQueue(priorityQueue);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从代码实现来看，真正执行模式匹配的是processEvent方法。AbstractCEPBasePatternOperator有两个抽象派生类，分别是：</p>
+<ul>
+<li>AbstractCEPPatternOperator：普通的CEP模式运算符；</li>
+<li>AbstractKeyedCEPPatternOperator：基于键分区的CEP模式运算符</li>
+</ul>
+<p>由于AbstractCEPPatternOperator相对较为简单，因此我们先分析它的实现。AbstractCEPPatternOperator在运行时是单实例的，因为它的并行度为一，因此它不需要用到用户状态API，同时也就不需要实现抽象方法updateNFA以及updatePriorityQueue。它实现了processWatermark方法：</p>
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">public</span> void processWatermark(Watermark <span class="keyword">mark) </span>throws Exception &#123;</div><div class="line">    //如果优先级队列不为空且队首元素的时间戳小于等于水位线的时间戳，则出队元素并调用processEvent方法处理</div><div class="line">    <span class="meta">while</span>(!priorityQueue.isEmpty() &amp;&amp; priorityQueue.peek().getTimestamp() &lt;= <span class="keyword">mark.getTimestamp()) </span>&#123;</div><div class="line">        <span class="keyword">StreamRecord&lt;IN&gt; </span><span class="keyword">streamRecord </span>= priorityQueue.poll()<span class="comment">;</span></div><div class="line"></div><div class="line">        processEvent(nfa, <span class="keyword">streamRecord.getValue(), </span><span class="keyword">streamRecord.getTimestamp());</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    //发射水位线</div><div class="line">    output.emitWatermark(<span class="keyword">mark);</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>由于AbstractCEPPatternOperator最终继承自AbstractStreamOperator，所以它还需要实现运算符状态的快照/恢复方法对。我们可以直接利用运算符状态快照来保存相关状态，这里主要的状态就是NFA对象以及优先级队列。</p>
+<p>接下来，我们来分析AbstractKeyedCEPPatternOperator的实现，不同于AbstractCEPPatternOperator所处理的全局事件流。AbstractKeyedCEPPatternOperator所面对的是基于键分区的事件流，因此除了NFA对象以及优先级队列，还有所有用户的键集合需要存储。且因为是多分区并行执行，那么NFA对象和优先级队列也将会在多个分区内并行存在。这时，将不得不使用用户状态API，以在内部将这些状态是跟键关联（内部是KVState）：</p>
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> transient ValueState&lt;NFA&lt;<span class="keyword">IN</span>&gt;&gt; nfaOperatorState;</div><div class="line"><span class="keyword">private</span> transient ValueState&lt;PriorityQueue&lt;StreamRecord&lt;<span class="keyword">IN</span>&gt;&gt;&gt; priorityQueueOperatorState;</div></pre></td></tr></table></figure>
+<p>因此get/updateNFA方法对是为了配合ValueState的value/update方法对。但键集合仍然可以使用运算符状态来保存。</p>
+<p>AbstractKeyedCEPPatternOperator跟AbstractCEPPatternOperator还有一个区别比较大的地方在于对processWatermark方法的实现，在processWatermark内部它会迭代所有的键，并使得它们内部符合计算条件（参照水位线）的元素都被计算。</p>
+<p>参照我们上面给出的运算符继承关系图，到目前为止，我们已经解析了上面两层运算符。其中，第一层为processElement提供模板实现，第二层为processWatermark（跟事件时间有关）提供模板实现以及对运算符逻辑相关的状态进行维护。而最后一层则才是真正处理事件的模式匹配的processEvent方法的实现，该方法由AbstractCEPBasePatternOperator定义。</p>
+<p>运算符对processEvent方法的实现，其逻辑基本上都是类似的：调用NFA对象的process方法，逐个处理事件，该方法我们在分析NFA时做过重点剖析。下面我们选择四个运算符里最为复杂的基于键分区且支持超时的运算符（TimeoutKeyedCEPPatternOperator）进行分析：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">protected</span> <span class="literal">void</span> processEvent(NFA&lt;<span class="keyword">IN</span>&gt; nfa, <span class="keyword">IN</span> event, long timestamp) &#123;</div><div class="line">    <span class="comment">//调用NFA的process实例方法，会得到由两个集合组成的二元组，其中二元组第一个下标表示匹配模式的事件序列；</span></div><div class="line">    <span class="comment">//第二个下标表示超时的序列</span></div><div class="line">    Tuple2&lt;Collection&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;&gt;, Collection&lt;Tuple2&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;, Long&gt;&gt;&gt; patterns = </div><div class="line">        nfa.process(event, timestamp);</div><div class="line"></div><div class="line">    Collection&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;&gt; matchedPatterns = patterns.f0;</div><div class="line">    Collection&lt;Tuple2&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;, Long&gt;&gt; partialPatterns = patterns.f1;</div><div class="line"></div><div class="line">    <span class="comment">//构建用于输出的流记录对象，其内部存储的数据结构是一个Either对象，它表示这样一个语义：</span></div><div class="line">    <span class="comment">//该对象要么左边有值，要么右边有值</span></div><div class="line">    StreamRecord&lt;Either&lt;Tuple2&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;, Long&gt;, <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;&gt;&gt; streamRecord = </div><div class="line">        <span class="literal">new</span> StreamRecord&lt;Either&lt;Tuple2&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;, Long&gt;, <span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;&gt;&gt;(<span class="built_in">null</span>, timestamp);</div><div class="line"></div><div class="line">    <span class="comment">//如果有匹配模式的事件序列，则加入Either的右对象</span></div><div class="line">    <span class="keyword">if</span> (!matchedPatterns.isEmpty()) &#123;</div><div class="line">        for (<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt; matchedPattern : matchedPatterns) &#123;</div><div class="line">            streamRecord.replace(Either.Right(matchedPattern));</div><div class="line">            output.collect(streamRecord);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">//如果有超时事件序列，则加入Either的左对象</span></div><div class="line">    <span class="keyword">if</span> (!partialPatterns.isEmpty()) &#123;</div><div class="line">        for (Tuple2&lt;<span class="built_in">Map</span>&lt;<span class="built_in">String</span>, <span class="keyword">IN</span>&gt;, Long&gt; partialPattern: partialPatterns) &#123;</div><div class="line">            streamRecord.replace(Either.Left(partialPattern));</div><div class="line">            output.collect(streamRecord);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>其他运算符对processEvent的实现大同小异，由于篇幅有限，不再赘述。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/03/16/flink-cep-pattern-stream-and-operator/" data-id="cj0cjca0k000ndcvuhtgwkzwn" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/03/11/flink-cep-nfa-compiler/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink-CEP之NFA编译器</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-cep-pattern-stream-and-operator" data-title="Flink-CEP之模式流与运算符" data-url="http://vinoyang.com/2017/03/16/flink-cep-pattern-stream-and-operator/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">51</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/16/flink-cep-pattern-stream-and-operator/">Flink-CEP之模式流与运算符</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/11/flink-cep-nfa-compiler/">Flink-CEP之NFA编译器</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/09/flink-cep-nfa/">Flink-CEP之NFA</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/05/flink-cep-versioned-shared-buffer/">Flink-CEP之带版本的共享缓冲区</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/03/flink-cep-paper-and-design-for-state/">Flink-CEP论文与源码解读之状态与状态转换</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
