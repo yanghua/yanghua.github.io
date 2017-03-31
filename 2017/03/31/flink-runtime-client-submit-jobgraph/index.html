@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink运行时之客户端提交作业图-上 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="客户端提交作业图作业图（JobGraph）是Flink的运行时所能理解的作业表示，无论程序通过是DataStream还是DataSet API编写的，它们的JobGraph提交给JobManager以及之后的处理都将得到统一。本篇我们将分析客户端如何提交JobGraph给JobManager。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink运行时之客户端提交作业图-上">
+<meta property="og:url" content="http://vinoyang.com/2017/03/31/flink-runtime-client-submit-jobgraph/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="客户端提交作业图作业图（JobGraph）是Flink的运行时所能理解的作业表示，无论程序通过是DataStream还是DataSet API编写的，它们的JobGraph提交给JobManager以及之后的处理都将得到统一。本篇我们将分析客户端如何提交JobGraph给JobManager。">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/DataStream-client-submit-sequence.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/DataSet-client-submit-sequence.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/multi-client-object-relationship.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/JobClient-Actor-SubmitJobGraph.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-03-31T13:10:47.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink运行时之客户端提交作业图-上">
+<meta name="twitter:description" content="客户端提交作业图作业图（JobGraph）是Flink的运行时所能理解的作业表示，无论程序通过是DataStream还是DataSet API编写的，它们的JobGraph提交给JobManager以及之后的处理都将得到统一。本篇我们将分析客户端如何提交JobGraph给JobManager。">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/DataStream-client-submit-sequence.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-runtime-client-submit-jobgraph" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/31/flink-runtime-client-submit-jobgraph/" class="article-date">
+  <time datetime="2017-03-31T12:58:12.000Z" itemprop="datePublished">2017-03-31</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink运行时之客户端提交作业图-上
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#客户端提交作业图"><span class="toc-number">1.</span> <span class="toc-text">客户端提交作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#流处理程序提交作业图"><span class="toc-number">2.</span> <span class="toc-text">流处理程序提交作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#批处理程序提交作业图"><span class="toc-number">3.</span> <span class="toc-text">批处理程序提交作业图</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#公共的提交流程"><span class="toc-number">4.</span> <span class="toc-text">公共的提交流程</span></a></li></ol>
+          </div>
+        
+        <h1 id="客户端提交作业图"><a href="#客户端提交作业图" class="headerlink" title="客户端提交作业图"></a>客户端提交作业图</h1><p>作业图（JobGraph）是Flink的运行时所能理解的作业表示，无论程序通过是DataStream还是DataSet API编写的，它们的JobGraph提交给JobManager以及之后的处理都将得到统一。本篇我们将分析客户端如何提交JobGraph给JobManager。</p>
+<a id="more"></a>
+<h1 id="流处理程序提交作业图"><a href="#流处理程序提交作业图" class="headerlink" title="流处理程序提交作业图"></a>流处理程序提交作业图</h1><p>在前面讲解Flink的核心概念的时候我们谈到了Flink利用了“惰性求值”的概念，只有当最终调用execute方法时，才会真正开始执行。因此，execute方法是我们的切入点。</p>
+<p>DataStream API所编写的程序生成作业图之后，在提交时产生的方法调用时序图示意如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/DataStream-client-submit-sequence.png" alt=""></p>
+<blockquote>
+<p>上图中的多个run方法是同名的方法重载。</p>
+</blockquote>
+<p>从时序图中可以看到，ClusterClient对其自身抽象方法submitJob的调用是触发作业图提交的方法。随后真正的提交逻辑由JobClient实现。</p>
+<p>ClusterClient封装了提交一个程序到远程集群的必要的功能，而StandaloneClusterClient则扩展了ClusterClient的功能，它专门针对独立的集群提供服务，这两个类都位于flink-clients模块中。JobClient则负责将用户的Job提交给JobManager，它充当了提交代理的角色，并返回表示作业执行结果的JobExecutionResult对象。</p>
+<blockquote>
+<p>JobClient是提交所有类型的Job的统一入口，具体的提交细节我们将会在“公共的提交流程”中详细分析。</p>
+</blockquote>
+<h1 id="批处理程序提交作业图"><a href="#批处理程序提交作业图" class="headerlink" title="批处理程序提交作业图"></a>批处理程序提交作业图</h1><p>利用DataSet API所编写的程序生成作业图之后，在提交时产生的方法调用的时序图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/DataSet-client-submit-sequence.png" alt=""></p>
+<blockquote>
+<p>上图中出现多个重名的run方法为同名方法重载。</p>
+</blockquote>
+<p>从上图中可以看到，批处理程序的JobGraph跟流处理程序的JobGraph在提交之前有非常明显的不同。它引入了PlanExecutor作为Flink程序的计划执行器。而RemoteExecutor是PlanExecutor的实现，用于将程序提交给远程的Flink集群。具体的提交动作被进一步委托给ClusterClient及其实现（StandaloneClusterClient）最终同样被JobClient代理提交给JobManager。</p>
+<h1 id="公共的提交流程"><a href="#公共的提交流程" class="headerlink" title="公共的提交流程"></a>公共的提交流程</h1><p>从前面的时序图可见Flink对于不同类型的程序的提交流程最终是殊途同归的。因此，接下来我们将对公共的提交流程进行分析。一个程序的JobGraph真正被提交始于对JobClient的submitJobAndWait方法的调用。</p>
+<p>submitJobAndWait方法用于将一个JobGraph发送到指定的JobClient actor，随后它会将该JobGraph转发给JobManager。该方法会一直阻塞，直到该作业执行完成或者感知不到JobManager的存活。如果作业被顺利执行完成则返回JobExecutionResult对象而如果JobManager产生故障，则抛出抛出JobExecutionException异常。</p>
+<p>一个JobGraph从提交开始会经过多个对象层层递交，各个对象之间的交互关系如下图所示：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/multi-client-object-relationship.png" alt=""></p>
+<p>JobClient在其中起到了“桥接”作用，它桥接了同步的方法调用和异步的消息通信。更具体得说，JobClient可以看做是一个“静态类”提供了一些静态方法，这里我们主要关注上面的submitJobAndWait方法，该方法内部封装了Actor之间的异步通信（具体的通信对象是JobClientActor，它负责跟JobManager的ActorSystem的Actor对象进行通信），并以阻塞的形式返回结果。而ClusterClient只需调用JobClient的submitJobAndWait方法，而无需关注其内部是如何实现的。</p>
+<p>通过调用JobClient的submitJobAndWait静态方法，会触发基于Akka的Actor之间的消息通信来完成后续的提交JobGraph的动作。这之间的交互示意图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/JobClient-Actor-SubmitJobGraph.png" alt=""></p>
+<p>这里总共有两个ActorSystem，一个归属于JobClient，另一个归属于JobManager。在submitJobAndWait方法中，其首先会创建一个JobClientActor的ActorRef：</p>
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">ActorRef jobClientActor</span> = actorSystem.actorOf(jobClientActorProps);</div></pre></td></tr></table></figure>
+<p>然后向其发起一个SubmitJobAndWait消息，该消息将JobGraph的实例提交给JobClientActor。发起模式是<strong>ask</strong>，它表示需要一个应答消息。</p>
+<blockquote>
+<p>Akka的消息通信模型有两种：</p>
+<ol>
+<li>Fire and forget：消息的生产者不期望从消息的消费者那里得到应答。这种消息会以异步的形式发送，发送方法在发送完成之后立即返回。Akka的actor使用tell方法发送这种消息。</li>
+<li>Send and receive：消息的生产者期待并将等待从消费者那里得到应答。这种消息也会以异步的形式发送，发送完成后会返回一个Future对象，该对象表示一个潜在的应答。Akka的actor使用ask方法发送这种消息，并通过Future来获取响应。</li>
+</ol>
+</blockquote>
+<p>JobClient向JobClientActor发送消息的代码段如下：</p>
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">Future</span>&lt;Object&gt; <span class="keyword">future</span> = Patterns.ask(jobClientActor,</div><div class="line">                                     <span class="keyword">new</span> JobClientMessages.SubmitJobAndWait(jobGraph),</div><div class="line">                                     <span class="keyword">new</span> Timeout(AkkaUtils.INF_TIMEOUT()));</div><div class="line">answer = <span class="keyword">Await</span>.result(<span class="keyword">future</span>, AkkaUtils.INF_TIMEOUT());</div></pre></td></tr></table></figure>
+<p>该SubmitJobAndWait消息被JobClientActor接收后，最终通过调用tryToSubmitJob方法触发真正的提交动作。在tryToSubmitJob方法中，一个JobGraph的提交将会分为两步：</p>
+<ol>
+<li>将用户程序相关的Jar包上传至JobManager；</li>
+<li>给JobManager Actor发送封装JobGraph的SubmitJob消息；</li>
+</ol>
+<p>随后，JobManager Actor会接收到来自JobClientActor的SubmitJob消息，进而触发submitJob方法，该方法的执行主体已经是JobManager了。submitJob包含的逻辑较为复杂，且任何一个检测或者子调用所产生的异常都可能会导致提交失败。我们列举一下该方法完成的主要任务：</p>
+<ol>
+<li>向BlobLibraryCacheManager注册该Job；</li>
+<li>构建ExecutionGraph对象；</li>
+<li>对JobGraph中的每个顶点进行初始化；</li>
+<li>将DAG拓扑中从source开始排序，排序后的顶点集合附加到ExecutionGraph对象；</li>
+<li>获取检查点相关的配置，并将其设置到ExecutionGraph对象；</li>
+<li>向ExecutionGraph注册相关的listener；</li>
+<li>执行恢复操作或者将JobGraph信息写入SubmittedJobGraphStore以在后续用于恢复目的；</li>
+<li>响应给客户端JobSubmitSuccess消息；</li>
+<li>对ExecutionGraph对象进行调度执行；</li>
+</ol>
+<p>如果提交流程顺利，用户程序包以及描述Job的JobGraph将会被JobManager接收，随后JobManager会对Job进行调度、部署并执行。JobClient会阻塞等待提交结果返回。在得到返回结果之后，先进行解析判断它是否是Job被成功执行后返回的结果：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (answer <span class="keyword">instanceof</span> JobManagerMessages.JobResultSuccess) &#123;</div><div class="line">    SerializedJobExecutionResult result = ((JobManagerMessages.JobResultSuccess) answer).result();</div><div class="line">    <span class="keyword">if</span> (result != <span class="keyword">null</span>) &#123;</div><div class="line">        <span class="keyword">try</span> &#123;</div><div class="line">            <span class="function"><span class="keyword">return</span> result.<span class="title">toJobExecutionResult</span><span class="params">(classLoader)</span></span>;</div><div class="line">         &#125; <span class="keyword">catch</span> (Throwable t) &#123;</div><div class="line">             <span class="keyword">throw</span> <span class="keyword">new</span> JobExecutionException(jobGraph.getJobID(),</div><div class="line">             <span class="string">"Job was successfully executed but JobExecutionResult could not be deserialized."</span>);</div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">         <span class="keyword">throw</span> <span class="keyword">new</span> JobExecutionException(jobGraph.getJobID(),</div><div class="line">         <span class="string">"Job was successfully executed but result contained a null JobExecutionResult."</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>还是失败后返回的结果：</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">if (answer <span class="keyword">instanceof </span><span class="keyword">JobManagerMessages.JobResultFailure) </span>&#123;</div><div class="line">    LOG.info(<span class="string">"Job execution failed"</span>)<span class="comment">;</span></div><div class="line">    SerializedThrowable serThrowable = ((<span class="keyword">JobManagerMessages.JobResultFailure) </span>answer).cause()<span class="comment">;</span></div><div class="line">    if (serThrowable != null) &#123;</div><div class="line">        Throwable <span class="built_in">cause</span> = serThrowable.deserializeError(classLoader)<span class="comment">;</span></div><div class="line">        if (<span class="built_in">cause</span> <span class="keyword">instanceof </span><span class="keyword">JobExecutionException) </span>&#123;</div><div class="line">            throw (<span class="keyword">JobExecutionException) </span><span class="built_in">cause</span><span class="comment">;</span></div><div class="line">        &#125; else &#123;</div><div class="line">            throw new <span class="keyword">JobExecutionException(jobGraph.getJobID(), </span><span class="string">"Job execution failed"</span>, <span class="built_in">cause</span>)<span class="comment">;</span></div><div class="line">        &#125;</div><div class="line">    &#125; else &#123;</div><div class="line">        throw new <span class="keyword">JobExecutionException(jobGraph.getJobID(),</span></div><div class="line">        <span class="string">"Job execution failed with null as failure cause."</span>)<span class="comment">;</span></div><div class="line">    &#125;</div><div class="line">&#125; else &#123;</div><div class="line">    throw new <span class="keyword">JobExecutionException(jobGraph.getJobID(),</span></div><div class="line">        <span class="string">"Unknown answer from JobManager after submitting the job: "</span> + answer)<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>以上就是批处理作业和流处理作业共同的提交流程，这中间涉及了JobManager接收到用户提交后一系列处理，这部分的处理细节我们随后进行分析。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/03/31/flink-runtime-client-submit-jobgraph/" data-id="cj0xukr3v002q2lvu2x1pg7dd" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/03/28/flink-batch-optimizer-cost-estimator/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink批处理优化器之成本估算</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-runtime-client-submit-jobgraph" data-title="Flink运行时之客户端提交作业图-上" data-url="http://vinoyang.com/2017/03/31/flink-runtime-client-submit-jobgraph/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">53</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/03/31/flink-runtime-client-submit-jobgraph/">Flink运行时之客户端提交作业图-上</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/28/flink-batch-optimizer-cost-estimator/">Flink批处理优化器之成本估算</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/16/flink-cep-pattern-stream-and-operator/">Flink-CEP之模式流与运算符</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/11/flink-cep-nfa-compiler/">Flink-CEP之NFA编译器</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/09/flink-cep-nfa/">Flink-CEP之NFA</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
