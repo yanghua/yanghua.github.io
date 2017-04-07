@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink批处理优化器之范围分区重写采用算法 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
+
+水塘抽样法是一种在线抽样法，可以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink批处理优化器之范围分区重写采用算法">
+<meta property="og:url" content="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
+
+水塘抽样法是一种在线抽样法，可以">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/range-rewriter-sample-branch.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-04-07T10:26:12.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink批处理优化器之范围分区重写采用算法">
+<meta name="twitter:description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
+
+水塘抽样法是一种在线抽样法，可以">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-batch-optimizer-range-partition-algor" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/04/07/flink-batch-optimizer-range-partition-algor/" class="article-date">
+  <time datetime="2017-04-07T10:18:08.000Z" itemprop="datePublished">2017-04-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink批处理优化器之范围分区重写采用算法
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#采样算法"><span class="toc-number">1.</span> <span class="toc-text">采样算法</span></a></li></ol>
+          </div>
+        
+        <h1 id="采样算法"><a href="#采样算法" class="headerlink" title="采样算法"></a>采样算法</h1><p>上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。</p>
+<blockquote>
+<p>水塘抽样法是一种在线抽样法，可以在不知道样本总量或因样本数量太大而无法载入内存的情况下实现等概率抽样。</p>
+</blockquote>
+<p>在实现时，Flink参考了IBM研究中心对该算法进行改进的一篇论文（见本章参考文献[2]），该论文对水塘抽样算法进行了改进以支持对大规模数据流进行随机采样，当输入元素是分布式且跨多个站点，这些站点之间的通信基于一个中央协调器。该算法被封装在ReservoirSamplerWithoutReplacement和ReservoirSamplerWithReplacement这两个类中。它们的继承关系图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png" alt=""></p>
+<p>这两个采样类的实现基本都遵循如下两步：第一步，在每个分区中为其中的每个元素生成权重，选择权重最大的top K个元素作为每个分区的输出；第二步，从第一步的每个分区收集的K个元素中（此时总共是K * 分区个数的元素数目）选择权重最大的top K个元素。对于这两个采样类而言，第二步两者都是一致的，这部分的逻辑被封装在它们的父类DistributedRandomSampler中。区别在于第一步，ReservoirSamplerWithoutReplacement为每个输入元素生成一个随机数作为其权重，所以其不会重复选择元素，而ReservoirSamplerWithReplacement在第一步会为每个元素生成k次权重，这会导致一个元素可能会在计算top K时被多次选中。</p>
+<p>就实现而言，第一步在DistributedRandomSampler中被定义为抽象方法sampleInPartition供子类实现，并要求在单个分区上执行，第二步则由DistributedRandomSampler自行实现，方法名为sampleInCoordinator，在一个全局归约函数中执行。</p>
+<p>Flink基于MapPartition实现了一个UDF名为SampleInPartition，将两个采样算法的第一步应用其中，其对应的计划节点的并行度跟改写前的source节点的并行度一致。而对于第二步，Flink基于GroupReduceFunction实现了一个名为SampleInCoordinator的UDF用于归并所有来自各个SampleInPartition的样本输出，它会在全局归约函数中执行协调端的总体采样逻辑。用户必须确保该计划节点的并行度为1，才能使其成为唯一的中央协调器。当采样的样本数据确定之后就可以确定边界了，承担该职责的是范围分区构建器（RangeBoundaryBuilder），它是函数RichMapPartitionFunction的UDF实现，其计划节点的并行度跟SampleInCoordinator所对应的并行度保持一致。采样分支的并行化Dataflow示意图如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/range-rewriter-sample-branch.png" alt=""></p>
+<p>下面我们来分析一下代码实现，先确定的是样本总量（也就是top K的K的值），计算方式为每个分区的样本数乘以通道连接的下游目标范围分区的并行度（因为其关系到最终范围的划分边界）：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">final</span> <span class="keyword">int</span> sampleSize = SAMPLES_PER_PARTITION * targetParallelism;</div></pre></td></tr></table></figure>
+<p>这里，SAMPLES_PER_PARTITION常量表示每个分区的采样数，默认值为1000条。</p>
+<p>在样本总量确定之后，就可以进行采样了，采样的具体实现并没什么特别的，就是按照上面的分析来实现，不再细述。我们主要来看一下如何根据最终的样本数据确定范围分区的每个分区的边界。</p>
+<p>第一步对样本进行排序：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Collections.sort(sampledData, <span class="keyword">new</span> Comparator&lt;T&gt;() &#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">compare</span><span class="params">(T first, T second)</span> </span>&#123;</div><div class="line">        <span class="function"><span class="keyword">return</span> comparator.<span class="title">compare</span><span class="params">(first, second)</span></span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;);</div></pre></td></tr></table></figure>
+<p>第二步采用平均划分法来计算每个分区的边界，边界被存储于一个二维数组中，因为根据样本提取的临界值将会作为比较器的键存储在Object[]中。</p>
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">int boundarySize = parallelism - 1;</div><div class="line">Object[<span class="string"></span>][<span class="symbol"></span>] boundaries = new Object[<span class="string">boundarySize</span>][<span class="symbol"></span>];</div><div class="line">if (sampledData.size() &gt; 0) &#123;</div><div class="line"><span class="code">    //计算拆分的段</span></div><div class="line"><span class="code">    double avgRange = sampledData.size() / (double) parallelism;</span></div><div class="line"><span class="code">    int numKey = comparator.getFlatComparators().length;</span></div><div class="line"><span class="code">    //每个并行度（分区）一个边界值</span></div><div class="line"><span class="code">    for (int i = 1; i &lt; parallelism; i++) &#123;</span></div><div class="line"><span class="code">        //计算得到靠近段尾的采样记录作为边界界定标准</span></div><div class="line"><span class="code">        T record = sampledData.get((int) (i * avgRange));</span></div><div class="line"><span class="code">        Object[] keys = new Object[numKey];</span></div><div class="line"><span class="code">        comparator.extractKeys(record, keys, 0);</span></div><div class="line"><span class="code">        boundaries[i-1] = keys;</span></div><div class="line"><span class="code">    &#125;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>计算得到的boundaries会被输出到广播通道：</p>
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">final NamedChannel <span class="keyword">broadcastChannel </span>= new NamedChannel(<span class="string">"RangeBoundaries"</span>, rbPlanNode)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannel.setShipStrategy(ShipStrategyType.BROADCAST, </span>DataExchangeMode.PIPELINED)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannel.setTarget(ariPlanNode);</span></div><div class="line">List&lt;NamedChannel&gt; <span class="keyword">broadcastChannels </span>= new ArrayList&lt;&gt;(<span class="number">1</span>)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannels.add(broadcastChannel);</span></div><div class="line">ariPlanNode.setBroadcastInputs(<span class="keyword">broadcastChannels);</span></div></pre></td></tr></table></figure>
+<p>广播通道连接着采样分支的尾部和数据处理分支的头部。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/" data-id="cj17osm0h001yh2vucdd49bbq" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/04/05/flink-batch-optimizer-range-partition-rewrite/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink批处理优化器之范围分区重写</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-batch-optimizer-range-partition-algor" data-title="Flink批处理优化器之范围分区重写采用算法" data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">56</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/04/07/flink-batch-optimizer-range-partition-algor/">Flink批处理优化器之范围分区重写采用算法</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/05/flink-batch-optimizer-range-partition-rewrite/">Flink批处理优化器之范围分区重写</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/02/flink-runtime-client-submit-jobgraph-submitJob-method/">Flink运行时之客户端提交作业图-下</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/31/flink-runtime-client-submit-jobgraph/">Flink运行时之客户端提交作业图-上</a>
+          </li>
+        
+          <li>
+            <a href="/2017/03/28/flink-batch-optimizer-cost-estimator/">Flink批处理优化器之成本估算</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
