@@ -99,44 +99,16 @@
     
     <div class="article-entry" itemprop="articleBody">
       
-        <!-- Table of Contents -->
+        <h1 id="采样算法"><a href="#采样算法" class="headerlink" title="采样算法"></a>采样算法</h1><p>上一篇我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（<a href="https://en.wikipedia.org/wiki/Reservoir_sampling）来解决这个问题。">https://en.wikipedia.org/wiki/Reservoir_sampling）来解决这个问题。</a></p>
         
-        <h1 id="采样算法"><a href="#采样算法" class="headerlink" title="采样算法"></a>采样算法</h1><p>上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。</p>
-<blockquote>
-<p>水塘抽样法是一种在线抽样法，可以在不知道样本总量或因样本数量太大而无法载入内存的情况下实现等概率抽样。</p>
-</blockquote>
-<p>在实现时，Flink参考了IBM研究中心对该算法进行改进的一篇论文（见本章参考文献[2]），该论文对水塘抽样算法进行了改进以支持对大规模数据流进行随机采样，当输入元素是分布式且跨多个站点，这些站点之间的通信基于一个中央协调器。该算法被封装在ReservoirSamplerWithoutReplacement和ReservoirSamplerWithReplacement这两个类中。它们的继承关系图如下：</p>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png" alt=""></p>
-<p>这两个采样类的实现基本都遵循如下两步：第一步，在每个分区中为其中的每个元素生成权重，选择权重最大的top K个元素作为每个分区的输出；第二步，从第一步的每个分区收集的K个元素中（此时总共是K * 分区个数的元素数目）选择权重最大的top K个元素。对于这两个采样类而言，第二步两者都是一致的，这部分的逻辑被封装在它们的父类DistributedRandomSampler中。区别在于第一步，ReservoirSamplerWithoutReplacement为每个输入元素生成一个随机数作为其权重，所以其不会重复选择元素，而ReservoirSamplerWithReplacement在第一步会为每个元素生成k次权重，这会导致一个元素可能会在计算top K时被多次选中。</p>
-<p>就实现而言，第一步在DistributedRandomSampler中被定义为抽象方法sampleInPartition供子类实现，并要求在单个分区上执行，第二步则由DistributedRandomSampler自行实现，方法名为sampleInCoordinator，在一个全局归约函数中执行。</p>
-<p>Flink基于MapPartition实现了一个UDF名为SampleInPartition，将两个采样算法的第一步应用其中，其对应的计划节点的并行度跟改写前的source节点的并行度一致。而对于第二步，Flink基于GroupReduceFunction实现了一个名为SampleInCoordinator的UDF用于归并所有来自各个SampleInPartition的样本输出，它会在全局归约函数中执行协调端的总体采样逻辑。用户必须确保该计划节点的并行度为1，才能使其成为唯一的中央协调器。当采样的样本数据确定之后就可以确定边界了，承担该职责的是范围分区构建器（RangeBoundaryBuilder），它是函数RichMapPartitionFunction的UDF实现，其计划节点的并行度跟SampleInCoordinator所对应的并行度保持一致。采样分支的并行化Dataflow示意图如下：</p>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/range-rewriter-sample-branch.png" alt=""></p>
-<p>下面我们来分析一下代码实现，先确定的是样本总量（也就是top K的K的值），计算方式为每个分区的样本数乘以通道连接的下游目标范围分区的并行度（因为其关系到最终范围的划分边界）：</p>
-<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">final</span> <span class="keyword">int</span> sampleSize = SAMPLES_PER_PARTITION * targetParallelism;</div></pre></td></tr></table></figure>
-<p>这里，SAMPLES_PER_PARTITION常量表示每个分区的采样数，默认值为1000条。</p>
-<p>在样本总量确定之后，就可以进行采样了，采样的具体实现并没什么特别的，就是按照上面的分析来实现，不再细述。我们主要来看一下如何根据最终的样本数据确定范围分区的每个分区的边界。</p>
-<p>第一步对样本进行排序：</p>
-<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">Collections.sort(sampledData, <span class="keyword">new</span> Comparator&lt;T&gt;() &#123;</div><div class="line"></div><div class="line">    <span class="meta">@Override</span></div><div class="line">    <span class="keyword">public</span> <span class="function"><span class="keyword">int</span> <span class="title">compare</span><span class="params">(T first, T second)</span> </span>&#123;</div><div class="line">        <span class="function"><span class="keyword">return</span> comparator.<span class="title">compare</span><span class="params">(first, second)</span></span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;);</div></pre></td></tr></table></figure>
-<p>第二步采用平均划分法来计算每个分区的边界，边界被存储于一个二维数组中，因为根据样本提取的临界值将会作为比较器的键存储在Object[]中。</p>
-<figure class="highlight markdown"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">int boundarySize = parallelism - 1;</div><div class="line">Object[<span class="string"></span>][<span class="symbol"></span>] boundaries = new Object[<span class="string">boundarySize</span>][<span class="symbol"></span>];</div><div class="line">if (sampledData.size() &gt; 0) &#123;</div><div class="line"><span class="code">    //计算拆分的段</span></div><div class="line"><span class="code">    double avgRange = sampledData.size() / (double) parallelism;</span></div><div class="line"><span class="code">    int numKey = comparator.getFlatComparators().length;</span></div><div class="line"><span class="code">    //每个并行度（分区）一个边界值</span></div><div class="line"><span class="code">    for (int i = 1; i &lt; parallelism; i++) &#123;</span></div><div class="line"><span class="code">        //计算得到靠近段尾的采样记录作为边界界定标准</span></div><div class="line"><span class="code">        T record = sampledData.get((int) (i * avgRange));</span></div><div class="line"><span class="code">        Object[] keys = new Object[numKey];</span></div><div class="line"><span class="code">        comparator.extractKeys(record, keys, 0);</span></div><div class="line"><span class="code">        boundaries[i-1] = keys;</span></div><div class="line"><span class="code">    &#125;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure>
-<p>计算得到的boundaries会被输出到广播通道：</p>
-<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">final NamedChannel <span class="keyword">broadcastChannel </span>= new NamedChannel(<span class="string">"RangeBoundaries"</span>, rbPlanNode)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannel.setShipStrategy(ShipStrategyType.BROADCAST, </span>DataExchangeMode.PIPELINED)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannel.setTarget(ariPlanNode);</span></div><div class="line">List&lt;NamedChannel&gt; <span class="keyword">broadcastChannels </span>= new ArrayList&lt;&gt;(<span class="number">1</span>)<span class="comment">;</span></div><div class="line"><span class="keyword">broadcastChannels.add(broadcastChannel);</span></div><div class="line">ariPlanNode.setBroadcastInputs(<span class="keyword">broadcastChannels);</span></div></pre></td></tr></table></figure>
-<p>广播通道连接着采样分支的尾部和数据处理分支的头部。</p>
-<hr>
-<blockquote>
-<p>微信扫码关注公众号：Apache_Flink</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
-<hr>
-<blockquote>
-<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
-</blockquote>
-<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
-
+          <p class="article-more-link">
+            <a href="/2017/04/07/flink-batch-optimizer-range-partition-algor/#more">Read More</a>
+          </p>
+        
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/" data-id="cj17osm0h001yh2vucdd49bbq" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/" data-id="cj17oymv2001yjkvuo0ikovwu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -179,7 +151,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/04/05/flink-batch-optimizer-range-partition-rewrite/" data-id="cj17osm0f001wh2vu80g7qfm2" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/04/05/flink-batch-optimizer-range-partition-rewrite/" data-id="cj17oymuz001sjkvu1ht8ufa4" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -222,7 +194,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/04/02/flink-runtime-client-submit-jobgraph-submitJob-method/" data-id="cj17osm120030h2vu1fa12dq9" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/04/02/flink-runtime-client-submit-jobgraph-submitJob-method/" data-id="cj17oymvl0032jkvuitxqrhkv" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -265,7 +237,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/31/flink-runtime-client-submit-jobgraph/" data-id="cj17osm140034h2vuiwhq1egs" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/31/flink-runtime-client-submit-jobgraph/" data-id="cj17oymvk0030jkvu2ey5ret0" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -308,7 +280,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/28/flink-batch-optimizer-cost-estimator/" data-id="cj17osm0c001sh2vuynzxpn16" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/28/flink-batch-optimizer-cost-estimator/" data-id="cj17oymv1001wjkvu03ha35ax" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -351,7 +323,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/16/flink-cep-pattern-stream-and-operator/" data-id="cj17oslzk000uh2vu5ht3f659" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/16/flink-cep-pattern-stream-and-operator/" data-id="cj17oymub000sjkvucejlym90" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -394,7 +366,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/" data-id="cj17oslzc000lh2vuwia42h1o" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/11/flink-cep-nfa-compiler/" data-id="cj17oymu3000mjkvu9gi9uweg" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -437,7 +409,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/09/flink-cep-nfa/" data-id="cj17oslz9000kh2vujl9m64k7" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/09/flink-cep-nfa/" data-id="cj17oymu2000ljkvul9iae98s" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -480,7 +452,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/05/flink-cep-versioned-shared-buffer/" data-id="cj17oslzh000qh2vuc4e65i40" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/05/flink-cep-versioned-shared-buffer/" data-id="cj17oymu6000ojkvu69ojispu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
@@ -523,7 +495,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/03/03/flink-cep-paper-and-design-for-state/" data-id="cj17oslzj000sh2vu9kn05f1b" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/03/03/flink-cep-paper-and-design-for-state/" data-id="cj17oymu7000qjkvu6hiaq1p8" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>

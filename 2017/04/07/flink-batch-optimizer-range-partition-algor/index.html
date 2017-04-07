@@ -7,26 +7,20 @@
   
   <title>Flink批处理优化器之范围分区重写采用算法 | yanghua</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
-
-水塘抽样法是一种在线抽样法，可以">
+  <meta name="description" content="采样算法上一篇我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（https://en.wikipedia.org/wiki/Reservoi">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Flink批处理优化器之范围分区重写采用算法">
 <meta property="og:url" content="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/index.html">
 <meta property="og:site_name" content="yanghua">
-<meta property="og:description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
-
-水塘抽样法是一种在线抽样法，可以">
+<meta property="og:description" content="采样算法上一篇我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（https://en.wikipedia.org/wiki/Reservoi">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/range-rewriter-sample-branch.png">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
 <meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
-<meta property="og:updated_time" content="2017-04-07T10:26:12.000Z">
+<meta property="og:updated_time" content="2017-04-07T10:31:09.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Flink批处理优化器之范围分区重写采用算法">
-<meta name="twitter:description" content="采样算法上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。
-
-水塘抽样法是一种在线抽样法，可以">
+<meta name="twitter:description" content="采样算法上一篇我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（https://en.wikipedia.org/wiki/Reservoi">
 <meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png">
   
     <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
@@ -116,11 +110,12 @@
             <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#采样算法"><span class="toc-number">1.</span> <span class="toc-text">采样算法</span></a></li></ol>
           </div>
         
-        <h1 id="采样算法"><a href="#采样算法" class="headerlink" title="采样算法"></a>采样算法</h1><p>上一小节我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（见本章参考文献[1]）来解决这个问题。</p>
+        <h1 id="采样算法"><a href="#采样算法" class="headerlink" title="采样算法"></a>采样算法</h1><p>上一篇我们分析了RangePartitionRewriter的数据处理分支，接下来我们开始分析采样分支，采样分支的核心在于采样算法。因为范围分区输入端每个分区的数据量无从得知，也就是说我们无法得出采样比例。此时，如果先对每分区内的所有数据进行遍历，再记录出数据总量会显得很低效，因此Flink选择借助于水塘抽样算法（<a href="https://en.wikipedia.org/wiki/Reservoir_sampling）来解决这个问题。" target="_blank" rel="external">https://en.wikipedia.org/wiki/Reservoir_sampling）来解决这个问题。</a></p>
+<a id="more"></a>
 <blockquote>
 <p>水塘抽样法是一种在线抽样法，可以在不知道样本总量或因样本数量太大而无法载入内存的情况下实现等概率抽样。</p>
 </blockquote>
-<p>在实现时，Flink参考了IBM研究中心对该算法进行改进的一篇论文（见本章参考文献[2]），该论文对水塘抽样算法进行了改进以支持对大规模数据流进行随机采样，当输入元素是分布式且跨多个站点，这些站点之间的通信基于一个中央协调器。该算法被封装在ReservoirSamplerWithoutReplacement和ReservoirSamplerWithReplacement这两个类中。它们的继承关系图如下：</p>
+<p>在实现时，Flink参考了IBM研究中心对该算法进行改进的一篇论文（Tirthapura, S., &amp; Woodruff, D. P. (2011). Optimal Random Sampling from Distributed Streams Revisited. Lecture Notes in Computer Science），该论文对水塘抽样算法进行了改进以支持对大规模数据流进行随机采样，当输入元素是分布式且跨多个站点，这些站点之间的通信基于一个中央协调器。该算法被封装在ReservoirSamplerWithoutReplacement和ReservoirSamplerWithReplacement这两个类中。它们的继承关系图如下：</p>
 <p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/smapler-class-diagram.png" alt=""></p>
 <p>这两个采样类的实现基本都遵循如下两步：第一步，在每个分区中为其中的每个元素生成权重，选择权重最大的top K个元素作为每个分区的输出；第二步，从第一步的每个分区收集的K个元素中（此时总共是K * 分区个数的元素数目）选择权重最大的top K个元素。对于这两个采样类而言，第二步两者都是一致的，这部分的逻辑被封装在它们的父类DistributedRandomSampler中。区别在于第一步，ReservoirSamplerWithoutReplacement为每个输入元素生成一个随机数作为其权重，所以其不会重复选择元素，而ReservoirSamplerWithReplacement在第一步会为每个元素生成k次权重，这会导致一个元素可能会在计算top K时被多次选中。</p>
 <p>就实现而言，第一步在DistributedRandomSampler中被定义为抽象方法sampleInPartition供子类实现，并要求在单个分区上执行，第二步则由DistributedRandomSampler自行实现，方法名为sampleInCoordinator，在一个全局归约函数中执行。</p>
@@ -151,7 +146,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/" data-id="cj17osm0h001yh2vucdd49bbq" class="article-share-link">Share</a>
+      <a data-url="http://vinoyang.com/2017/04/07/flink-batch-optimizer-range-partition-algor/" data-id="cj17oymv2001yjkvuo0ikovwu" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
