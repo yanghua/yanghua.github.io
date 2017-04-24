@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>浅谈Flink批处理优化器之Join优化 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="跟传统的关系型数据库类似，Flink提供了优化器“hint”（提示）以告诉优化器选择一些执行策略。目前优化提示主要针对批处理中的连接（join）。在批处理中共有三个跟连接有关的转换函数：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈Flink批处理优化器之Join优化">
+<meta property="og:url" content="http://vinoyang.com/2017/04/24/flink-batch-optimizer-join-optimize/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="跟传统的关系型数据库类似，Flink提供了优化器“hint”（提示）以告诉优化器选择一些执行策略。目前优化提示主要针对批处理中的连接（join）。在批处理中共有三个跟连接有关的转换函数：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-04-24T14:20:47.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="浅谈Flink批处理优化器之Join优化">
+<meta name="twitter:description" content="跟传统的关系型数据库类似，Flink提供了优化器“hint”（提示）以告诉优化器选择一些执行策略。目前优化提示主要针对批处理中的连接（join）。在批处理中共有三个跟连接有关的转换函数：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-batch-optimizer-join-optimize" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/04/24/flink-batch-optimizer-join-optimize/" class="article-date">
+  <time datetime="2017-04-24T14:16:16.000Z" itemprop="datePublished">2017-04-24</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅谈Flink批处理优化器之Join优化
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>跟传统的关系型数据库类似，Flink提供了优化器“hint”（提示）以告诉优化器选择一些执行策略。目前优化提示主要针对批处理中的连接（join）。在批处理中共有三个跟连接有关的转换函数：</p>
+<a id="more"></a>
+<ul>
+<li>join：默认为等值连接（Equi-join），维基百科将其归类为内连接（inner join）的一种 <a href="https://en.wikipedia.org/wiki/Join_(SQL)；" target="_blank" rel="external">https://en.wikipedia.org/wiki/Join_(SQL)；</a></li>
+<li>outerJoin：外连接，具体细分为left-outer join、right-outer join、full-outer join；</li>
+<li>cross：交叉连接，求两个数据集的笛卡尔积；</li>
+</ul>
+<p>完全展开之后共有五种，这也符合ANSI-standard SQL对连接种类的划分。</p>
+<blockquote>
+<p>下文当我们提及“join”时，主要指equi-join，而当我们想表达outer-join时，我们会直接使用“外连接”，当我们想泛指时，我们将使用“连接”这个词。</p>
+</blockquote>
+<p>常用来实现连接的算法有：hash join、sort-merge join以及nested loop join，下面我们对这三种算法进行简单介绍。首先，当基于hash算法实现连接时，通常划分为两个阶段：</p>
+<ol>
+<li>build：为参与连接的两个数据集中较小的数据集准备好哈希表，哈希表中的记录包含着连接的属性以及它对应的行。因为哈希表是通过对连接属性应用一个哈希函数来访问的，因此通过它将比扫描初始的数据集更快地发现给定的连接属性对应的行；</li>
+<li>probe：一旦哈希表构建完成，会扫描更大的数据集并通过从更小的数据集匹配哈希表以发现相关的行；</li>
+</ol>
+<p>而使用sort-merge算法实现连接时，通常也划分为两个阶段：</p>
+<ol>
+<li>sort：对两个数据集在它们的连接键属性上进行排序；</li>
+<li>merge：合并排过序的数据集；</li>
+</ol>
+<p>nested loop实现连接相对更容易理解，它使用两层嵌套循环分别作用于两个参与连接的数据集。</p>
+<blockquote>
+<p>在Flink的DataSet API中，hash和sort-merge算法都可被选择用于实现join和outerJoin，而nested loop只用于实现cross join。</p>
+</blockquote>
+<p>通过上面的介绍，我们得知当选择hash算法来实现连接时，需要确定以哪个输入端作为build端，哪个输入端作为probe端，这是影响其执行效率的因素之一（因为通常选择数据量较小的数据集作为build端）。因此，以hash算法来实现连接时，而不同的选择显然对应着不同的运算符描述器，列举如下：</p>
+<ul>
+<li>HashJoinBuildFirstProperties</li>
+<li>HashJoinBuildSecondProperties</li>
+<li>HashLeftOuterJoinBuildFirstDescriptor</li>
+<li>HashLeftOuterJoinBuildSecondDescriptor</li>
+<li>HashRightOuterJoinBuildFirstDescriptor</li>
+<li>HashRightOuterJoinBuildSecondDescriptor</li>
+<li>HashFullOuterJoinBuildFirstDescriptor</li>
+<li>HashFullOuterJoinBuildSecondDescriptor</li>
+</ul>
+<p>而当以sort-merge算法来实现连接时，不会区分输入端的特殊职责，也就不存在build阶段和probe阶段，因此运算符描述器只有如下四种：</p>
+<ul>
+<li>SortMergeInnerJoinDescriptor：</li>
+<li>SortMergeLeftOuterJoinDescriptor：</li>
+<li>SortMergeRightOuterJoinDescriptor：</li>
+<li>SortMergeFullOuterJoinDescriptor：</li>
+</ul>
+<blockquote>
+<p>以上这么多运算符描述器，主要是为它们设置不同的执行策略（DriverStrategy），不同的执行策略直接导致了不同的执行成本。</p>
+</blockquote>
+<p>为了理清算法跟参与连接的输入端的关系，Flink将它们区分成两种不同策略的：本地策略以及传输（ship）策略。其中传输策略表示如何移动两个输入端中的数据使得它们具备连接的条件；本地策略则指两个已在本地的输入端数据集所执行的连接算法。</p>
+<p>我们来解释一下这两种策略，假设有两个待连接的数据集（R和S）。传输策略有如下两种：</p>
+<ul>
+<li>Broadcast-Forward strategy (BF)：该策略会将一个完整的数据集，比如R，广播到数据集S的每一个分区上，而数据集S的所有数据则一直处于本地，无需网络传输；</li>
+<li>Repartition-Repartition strategy (RR)：以相同的分区函数以及用于连接的键属性分区两个数据集R、S；</li>
+</ul>
+<p>正如上面已经提及的，本地策略也即连接的实现算法也有两种：</p>
+<ul>
+<li>Sort-Merge-Join strategy (SM)：首先对两个输入端的数据集在它们的连接键属性上进行排序（排序阶段），然后合并排过序的数据集（合并阶段）；</li>
+<li>Hybrid-Hash-Join strategy (HH)：分为构建阶段和探索阶段；</li>
+</ul>
+<p>在不指定“Hint”的情况下，Flink在进行批处理优化时会根据成本自动选择传输策略以及本地策略。优化器的一个关键特征是它会根据已经存在的数据属性来进行推理。就连接运算而言，如果某一个输入端的数据量远小于另一输入端，Flink会倾向于选择BF传输策略，将较小的输入端广播给较大的输入端的每一个分区，并在本地策略中选择HH且以较小的输入端作为HH的构建端；如果优化器得知某个（或两个）输入端已排好序，那么生成的候选计划将不再重分区该输入端，此时它更倾向于选择RR传输策略以及SM本地策略。</p>
+<p>除了优化器的自动选择，当用户对数据集非常了解的情况下，Flink定义了JoinHint允许用户为join（inner join）指定连接策略给予优化器提示。JoinHint提供了人为选择连接策略的灵活性，其使用方式有两种，一种是直接指定两个输入端的大小：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt; input1 = <span class="comment">// [...]</span></div><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt; input2 = <span class="comment">// [...]</span></div><div class="line"></div><div class="line">DataSet&lt;Tuple2&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;, Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt;&gt;</div><div class="line">    result1 = input1.joinWithTiny(input2)    <span class="comment">//提示优化器第二个数据集比第一个数据集小得多</span></div><div class="line">        .<span class="keyword">where</span>(<span class="number">0</span>)</div><div class="line">        .equalTo(<span class="number">0</span>);</div><div class="line"></div><div class="line">DataSet&lt;Tuple2&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;, Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt;&gt;</div><div class="line">    result2 = input1.joinWithHuge(input2)    <span class="comment">//提示优化器第二个数据集比第一个数据集大得多</span></div><div class="line">        .<span class="keyword">where</span>(<span class="number">0</span>)</div><div class="line">        .equalTo(<span class="number">0</span>);</div></pre></td></tr></table></figure>
+<p>另一种是直接指定连接策略：</p>
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">DataSet<span class="params">&lt;SomeType&gt;</span> input1 = <span class="comment">// [...]</span></div><div class="line">DataSet<span class="params">&lt;AnotherType&gt;</span> input2 = <span class="comment">// [...]</span></div><div class="line"></div><div class="line">DataSet<span class="params">&lt;Tuple2&lt;SomeType, AnotherType&gt;</span> result =</div><div class="line">      input1.join(input2, JoinHint.BROADCAST_HASH_FIRST)</div><div class="line">            .where(<span class="string">"id"</span>).equalTo(<span class="string">"key"</span>);</div></pre></td></tr></table></figure>
+<p>当前有如下的这些策略可供选择：</p>
+<ul>
+<li>OPTIMIZER_CHOOSES：将选择权交予Flink优化器，相当于没有给提示；</li>
+<li>BROADCAST_HASH_FIRST：广播第一个输入端，同时基于它构建一个哈希表，而第二个输入端作为探索端，选择这种策略的场景是第一个输入端规模很小；</li>
+<li>BROADCAST_HASH_SECOND：广播第二个输入端并基于它构建哈希表，第一个输入端作为探索端，选择这种策略的场景是第二个输入端的规模很小；</li>
+<li>REPARTITION_HASH_FIRST：该策略会导致两个输入端都会被重分区，但会基于第一个输入端构建哈希表。该策略适用于第一个输入端数据量小于第二个输入端的数据量，但这两个输入端的规模仍然很大，优化器也是当没有办法估算大小，没有已存在的分区以及排序顺序可被使用时系统默认采用的策略；</li>
+<li>REPARTITION_HASH_SECOND：该策略会导致两个输入端都会被重分区，但会基于第二个输入端构建哈希表。该策略适用于两个输入端的规模都很大，但第二个输入端的数据量小于第一个输入端的情况；</li>
+<li>REPARTITION_SORT_MERGE：输入端被以流的形式进行连接并合并成排过序的输入。该策略适用于一个或两个输入端都已排过序的情况；</li>
+</ul>
+<p>对应到优化器中，JoinHint被用来指定创建何种运算符描述器，由于JoinHint只适应于join，所以它只对应如下这些运算符描述器：</p>
+<ul>
+<li>HashJoinBuildFirstProperties</li>
+<li>HashJoinBuildSecondProperties</li>
+<li>SortMergeInnerJoinDescriptor</li>
+</ul>
+<p>因此，如果用户给出了JoinHint，则数据属性（其实这里主要是DriverStrategy）会通过以上三种运算符描述器来提供：</p>
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line">joinHint = joinHint == <span class="keyword">null</span> ? JoinHint.OPTIMIZER_CHOOSES : joinHint;</div><div class="line"></div><div class="line"><span class="keyword">switch</span> (joinHint) &#123;</div><div class="line">    <span class="keyword">case</span> BROADCAST_HASH_FIRST:</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildFirstProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2, <span class="keyword">true</span>, <span class="keyword">false</span>, <span class="keyword">false</span>));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">case</span> BROADCAST_HASH_SECOND:</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildSecondProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2, <span class="keyword">false</span>, <span class="keyword">true</span>, <span class="keyword">false</span>));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">case</span> REPARTITION_HASH_FIRST:</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildFirstProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">true</span>));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">case</span> REPARTITION_HASH_SECOND:</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildSecondProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">true</span>));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">case</span> REPARTITION_SORT_MERGE:</div><div class="line">        list.add(<span class="keyword">new</span> SortMergeInnerJoinDescriptor(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2, <span class="keyword">false</span>, <span class="keyword">false</span>, <span class="keyword">true</span>));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">case</span> OPTIMIZER_CHOOSES:</div><div class="line">        list.add(<span class="keyword">new</span> SortMergeInnerJoinDescriptor(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2));</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildFirstProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2));</div><div class="line">        list.add(<span class="keyword">new</span> HashJoinBuildSecondProperties(<span class="keyword">this</span>.keys1, <span class="keyword">this</span>.keys2));</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="keyword">default</span>:</div><div class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> CompilerException(<span class="string">"Unrecognized join hint: "</span> + joinHint);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>由代码段可见，当将选择权交给优化器时，它会将三种运算符描述器都作为数据属性，供后续生成候选计划时再剔除。</p>
+<p>除了针对join的提示外，Flink还提供了针对求交叉连接的提示CrossHint，该提示主要是针对输入端的数据量大小。使用示例如下：</p>
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt; input1 = <span class="comment">// [...]</span></div><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt; input2 = <span class="comment">// [...]</span></div><div class="line"></div><div class="line">DataSet&lt;Tuple4&lt;<span class="built_in">Integer</span>, <span class="built_in">String</span>, <span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt;</div><div class="line">    udfResult = input1.crossWithTiny(input2)        <span class="comment">//提示第二个数据集非常小</span></div><div class="line">    <span class="comment">// apply any Cross function (or projection)</span></div><div class="line">    .<span class="keyword">with</span>(<span class="literal">new</span> MyCrosser());</div><div class="line"></div><div class="line">DataSet&lt;Tuple3&lt;<span class="built_in">Integer</span>, <span class="built_in">Integer</span>, <span class="built_in">String</span>&gt;&gt;</div><div class="line">    projectResult = input1.crossWithHuge(input2)    <span class="comment">//提示第二个数据集非常大</span></div><div class="line">    <span class="comment">// apply a projection (or any Cross function)</span></div><div class="line">    .projectFirst(<span class="number">0</span>,<span class="number">1</span>).projectSecond(<span class="number">1</span>);</div></pre></td></tr></table></figure>
+<p>不同于Join提示，Cross提示被表述为不同的API。从代码层面上来看，CrossHint有三个枚举值：</p>
+<ul>
+<li>OPTIMIZER_CHOOSES：将选择权交给Flink优化器；</li>
+<li>FIRST_IS_SMALL：第一个输入端小于第二个输入端；</li>
+<li>SECOND_IS_SMALL：第二个输入端数据量小于第一个输入端；</li>
+</ul>
+<p>在创建相关运算符描述器CrossHint被用来指定特定的构造参数，比如是允许第一个输入端广播还是第二个输入端广播。交叉连接的实现算法为nested-loop，关于运算符描述器，考虑到以哪个数据集作为内、外层循环以及以阻塞模型还是流模型来处理这两个因素，有四种实现：</p>
+<ul>
+<li>CrossBlockOuterFirstDescriptor：以第二个输入端作为内循环，第一个输入端作为外循环且以阻塞形式处理；</li>
+<li>CrossBlockOuterSecondDescriptor：以第一个输入端作为内循环，第二个输入端作为外循环且以阻塞形式处理；</li>
+<li>CrossStreamOuterFirstDescriptor：以第二个输入端作为内循环，第一个输入端作为外循环且以流模型处理；</li>
+<li>CrossStreamOuterSecondDescriptor：以第一个输入端作为内循环，第二个输入端作为外循环且以流模型处理；</li>
+</ul>
+<p>且需要注意的是，不同的处理模型，哪个输入端作为内外循环是相反的：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (hint == CrossHint.SECOND_IS_SMALL) &#123;</div><div class="line">    ArrayList&lt;OperatorDescriptorDual&gt; <span class="built_in">list</span> = <span class="keyword">new</span> ArrayList&lt;OperatorDescriptorDual&gt;();</div><div class="line">    <span class="built_in">list</span>.add(<span class="keyword">new</span> CrossBlockOuterSecondDescriptor(<span class="literal">false</span>, <span class="literal">true</span>));</div><div class="line">    <span class="built_in">list</span>.add(<span class="keyword">new</span> CrossStreamOuterFirstDescriptor(<span class="literal">false</span>, <span class="literal">true</span>));</div><div class="line">    <span class="keyword">this</span>.dataProperties = <span class="built_in">list</span>;</div><div class="line">&#125;</div><div class="line"><span class="keyword">else</span> <span class="keyword">if</span> (hint == CrossHint.FIRST_IS_SMALL) &#123;</div><div class="line">    ArrayList&lt;OperatorDescriptorDual&gt; <span class="built_in">list</span> = <span class="keyword">new</span> ArrayList&lt;OperatorDescriptorDual&gt;();</div><div class="line">    <span class="built_in">list</span>.add(<span class="keyword">new</span> CrossBlockOuterFirstDescriptor(<span class="literal">true</span>, <span class="literal">false</span>));</div><div class="line">    <span class="built_in">list</span>.add(<span class="keyword">new</span> CrossStreamOuterSecondDescriptor(<span class="literal">true</span>, <span class="literal">false</span>));</div><div class="line">    <span class="keyword">this</span>.dataProperties = <span class="built_in">list</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>但广播哪个输入端是一致的。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/04/24/flink-batch-optimizer-join-optimize/" data-id="cj1w7n5j8006r8svu5dbrki7m" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/04/09/flink-batch-optimizer-data-properties/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink批处理优化器之数据属性</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-batch-optimizer-join-optimize" data-title="浅谈Flink批处理优化器之Join优化" data-url="http://vinoyang.com/2017/04/24/flink-batch-optimizer-join-optimize/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">58</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/04/24/flink-batch-optimizer-join-optimize/">浅谈Flink批处理优化器之Join优化</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/09/flink-batch-optimizer-data-properties/">Flink批处理优化器之数据属性</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/07/flink-batch-optimizer-range-partition-algor/">Flink批处理优化器之范围分区重写采用算法</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/05/flink-batch-optimizer-range-partition-rewrite/">Flink批处理优化器之范围分区重写</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/02/flink-runtime-client-submit-jobgraph-submitJob-method/">Flink运行时之客户端提交作业图-下</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
