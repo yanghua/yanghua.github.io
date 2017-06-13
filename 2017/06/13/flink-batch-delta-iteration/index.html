@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="google-site-verification" content="6q22x_DFglYGJjD5t1d95nBYd_U8cDU04B-Haky8KHs" />
+  <meta name="baidu-site-verification" content="yEdVDDBr1C" />
+  
+  <title>Flink批处理中的增量迭代 | yanghua</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="对某些迭代而言并不是单次迭代产生的下一次工作集中的每个元素都需要重新参与下一轮迭代，有时只需要重新计算部分数据同时选择性地更新解集，这种形式的迭代就是增量迭代。增量迭代能够使得一些算法执行得更高效，它可以让算法专注于工作集中的“热点”数据部分，这导致工作集中的绝大部分数据冷却得非常快，因此随后的迭代面对的数据规模将会大幅缩小。增量迭代的示意图如下：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink批处理中的增量迭代">
+<meta property="og:url" content="http://vinoyang.com/2017/06/13/flink-batch-delta-iteration/index.html">
+<meta property="og:site_name" content="yanghua">
+<meta property="og:description" content="对某些迭代而言并不是单次迭代产生的下一次工作集中的每个元素都需要重新参与下一轮迭代，有时只需要重新计算部分数据同时选择性地更新解集，这种形式的迭代就是增量迭代。增量迭代能够使得一些算法执行得更高效，它可以让算法专注于工作集中的“热点”数据部分，这导致工作集中的绝大部分数据冷却得非常快，因此随后的迭代面对的数据规模将会大幅缩小。增量迭代的示意图如下：">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-problem.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-initialition.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-NeighborWithParentIDJoin.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-RootIdFilter.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-1.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-1.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-2.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-2.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-5.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-5.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-6.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-6.png">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg">
+<meta property="og:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png">
+<meta property="og:updated_time" content="2017-06-13T15:36:54.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Flink批处理中的增量迭代">
+<meta name="twitter:description" content="对某些迭代而言并不是单次迭代产生的下一次工作集中的每个元素都需要重新参与下一轮迭代，有时只需要重新计算部分数据同时选择性地更新解集，这种形式的迭代就是增量迭代。增量迭代能够使得一些算法执行得更高效，它可以让算法专注于工作集中的“热点”数据部分，这导致工作集中的绝大部分数据冷却得非常快，因此随后的迭代面对的数据规模将会大幅缩小。增量迭代的示意图如下：">
+<meta name="twitter:image" content="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration.png">
+  
+    <link rel="alternative" href="/atom.xml" title="yanghua" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  <!-- <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css"> -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">yanghua</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">alone coder</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+          <a class="main-nav-link" href="/projects">Projects</a>
+        
+          <a class="main-nav-link" href="/about">About</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-github-link" class="nav-icon" href="https://github.com/yanghua" target="_blank" title="GitHub"></a>
+        
+        
+          <a id="nav-weibo-link" class="nav-icon" href="http://weibo.com/yanghua1127" target="_blank" title="Sina Weibo"></a>
+        
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" results="0" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://vinoyang.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-flink-batch-delta-iteration" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/06/13/flink-batch-delta-iteration/" class="article-date">
+  <time datetime="2017-06-13T15:23:12.000Z" itemprop="datePublished">2017-06-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Flink批处理中的增量迭代
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <!-- Table of Contents -->
+        
+          <div id="toc" class="toc-article">
+            <strong class="toc-title">文章目录</strong>
+            
+          </div>
+        
+        <p>对某些迭代而言并不是单次迭代产生的下一次工作集中的每个元素都需要重新参与下一轮迭代，有时只需要重新计算部分数据同时选择性地更新解集，这种形式的迭代就是增量迭代。增量迭代能够使得一些算法执行得更高效，它可以让算法专注于工作集中的“热点”数据部分，这导致工作集中的绝大部分数据冷却得非常快，因此随后的迭代面对的数据规模将会大幅缩小。增量迭代的示意图如下：</p>
+<a id="more"></a>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration.png" alt="delta-iteration"></p>
+<p>我们来梳理一下上图中的流程：</p>
+<ol>
+<li>Iteration Input：从source或之前的运算符中读取的初始工作集与解集作为首次迭代的输入；</li>
+<li>Step Function：也即步函数，将会在每次迭代时被执行。它可以是由map、reduce等运算符组成的任意数据流形成的逻辑体；</li>
+<li>Next Workset/Update Solution Set：下一个工作集驱动着迭代计算并且将会被反馈给迭代头。除此之外，解集将会被更新并间接地向前推进。这两个数据集都可以通过步函数的不同的运算符进行更新；</li>
+<li>Iteration Result：在最后一次迭代之后产生最终的解集被写入到sink或者被用于后续运算符的输入；</li>
+</ol>
+<p>增量迭代可以指定三种终止条件：</p>
+<ul>
+<li>空工作集收敛标准；</li>
+<li>最大迭代次数；</li>
+<li>自定义的聚合器收敛；</li>
+</ul>
+<blockquote>
+<p>在1.1版本中，没有发现可定义收敛标准的地方；</p>
+</blockquote>
+<p>跟批量迭代一样，对于增量迭代我们同样先结合案例来分析解决方案并给出代码实现。</p>
+<p>现在给定一系列的事件以及它们两两之间的关联关系（连接起来是多个树结构），找到每个事件对应的根节点。事件之间的关联关系如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-problem.png" alt="delta-iteration-problem"></p>
+<p>给定顶点数组和边数组作为输入，顶点和边都以二元组来表示。上图对应的顶点和边如下所示：</p>
+<table>
+<thead>
+<tr>
+<th><strong>Vertex</strong></th>
+<th><strong>Edge</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt;1,1&gt;</td>
+<td>&lt;1,2&gt;</td>
+</tr>
+<tr>
+<td>&lt;2,2&gt;</td>
+<td>&lt;2,3&gt;</td>
+</tr>
+<tr>
+<td>&lt;3,3&gt;</td>
+<td>&lt;2,4&gt;</td>
+</tr>
+<tr>
+<td>&lt;4,4&gt;</td>
+<td>&lt;4,5&gt;</td>
+</tr>
+<tr>
+<td>&lt;5,5&gt;</td>
+<td>&lt;6,7&gt;</td>
+</tr>
+<tr>
+<td>&lt;6,6&gt;</td>
+<td>&lt;5,8&gt;</td>
+</tr>
+<tr>
+<td>&lt;7,7&gt;</td>
+<td>&lt;9,10&gt;</td>
+</tr>
+<tr>
+<td>&lt;8,8&gt;</td>
+<td>&lt;9,11&gt;</td>
+</tr>
+<tr>
+<td>&lt;9,9&gt;</td>
+<td>&lt;8,12&gt;</td>
+</tr>
+<tr>
+<td>&lt;10,10&gt;</td>
+<td>&lt;10,13&gt;</td>
+</tr>
+<tr>
+<td>&lt;11,11&gt;</td>
+<td>&lt;1,14&gt;</td>
+</tr>
+<tr>
+<td>&lt;12,12&gt;</td>
+<td>&lt;11,15&gt;</td>
+</tr>
+<tr>
+<td>&lt;13,13&gt;</td>
+<td></td>
+</tr>
+<tr>
+<td>&lt;14,14&gt;</td>
+<td></td>
+</tr>
+<tr>
+<td>&lt;15,15&gt;</td>
+</tr>
+</tbody>
+</table>
+<p>最终我们期望得到的结果数据集如下，其中第一个元素表示事件编号，第二个元素表示对应的根节点编号：</p>
+<table>
+<thead>
+<tr>
+<th>Final DataSet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>&lt;1,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;2,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;3,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;4,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;5,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;6,6&gt;</td>
+</tr>
+<tr>
+<td>&lt;7,6&gt;</td>
+</tr>
+<tr>
+<td>&lt;8,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;9,9&gt;</td>
+</tr>
+<tr>
+<td>&lt;10,9&gt;</td>
+</tr>
+<tr>
+<td>&lt;11,9&gt;</td>
+</tr>
+<tr>
+<td>&lt;12,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;13,9&gt;</td>
+</tr>
+<tr>
+<td>&lt;14,1&gt;</td>
+</tr>
+<tr>
+<td>&lt;15,9&gt;</td>
+</tr>
+</tbody>
+</table>
+<p>由于增量迭代比批量迭代更抽象、复杂，这里我们会将每个迭代步骤图形化，以方便理解。</p>
+<p>首先第一步是初始化顶点数据集以及边数据集，这两个数据集中的元素就是上文我们第一个表格里的二元组集合，这里顶点的二元组集合同时也是增量迭代的工作集：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; verticesAsWorkset = generateWorksetWithVertices(env);</div><div class="line">DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; edges = generateDefaultEdgeDataSet(env);</div></pre></td></tr></table></figure>
+<p>接下来会构建一个增量迭代对象DeltaIteration的实例变量iteration，这里会以verticesAsWorkset作为初始化工作集，并指定最大迭代次数以及用于分区的键。</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">int</span> vertexIdIndex = <span class="number">0</span>;</div><div class="line">DeltaIteration&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; iteration = verticesAsWorkset        </div><div class="line">    .iterateDelta(verticesAsWorkset, MAX_ITERATION_NUM, vertexIdIndex);</div></pre></td></tr></table></figure>
+<p>别看这里区区两行代码，但其内部经历了一系列的初始化过程，示意如下图：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-initialition.png" alt="delta-iteration-initialition"></p>
+<blockquote>
+<p>下文进行源码解读时，会看到iterateDelta方法会触发对初始解集的构建。</p>
+</blockquote>
+<p>在上文我们阐述增量迭代原理时，我们知道在每次迭代过程中会执行步函数，增量迭代在步函数执行之后会产生增量解集（delta solution set），该增量解集会更新或者合并到解集中来。</p>
+<p>接下来是一个完整的步函数，我们会将其进行拆分，第一步将工作集（顶点集合）与边集合进行连接：</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Long</span>, <span class="built_in">Long</span>&gt;&gt; delta = iteration.getWorkset()        </div><div class="line">    .<span class="keyword">join</span>(edges).<span class="keyword">where</span>(<span class="number">0</span>).equalTo(<span class="number">0</span>)        </div><div class="line">    .<span class="keyword">with</span>(<span class="keyword">new</span> NeighborWithParentIDJoin())</div></pre></td></tr></table></figure>
+<p>对于连接所匹配的结果，将会应用一个特定的函数：NeighborWithParentIDJoin。该函数会对连接匹配上的顶点和边产生一个新的顶点元组，第一个字段是边的目的顶点，而第二个字段是匹配顶点的父顶点：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">class</span> NeighborWithParentIDJoin <span class="keyword">implements</span>        </div><div class="line">    JoinFunction&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt; <span class="keyword">join</span>(Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt; vertexAndParent,                                   </div><div class="line">                                   Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt; edgeSourceAndTarget) <span class="keyword">throws</span> Exception &#123;        </div><div class="line">        <span class="keyword">return</span> <span class="keyword">new</span> Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;(edgeSourceAndTarget.f1, vertexAndParent.f1);    </div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>我们以事件编号1和事件编号2为例，展示连接的过程，图示如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-NeighborWithParentIDJoin.png" alt="delta-iteration-NeighborWithParentIDJoin"></p>
+<p>接下来，建立在上面连接产生的数据集的基础上跟解集进行连接，然后在连接产生的数据上应用FlatJoinFunction函数的实现：RootIdFilter。</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Long</span>, <span class="built_in">Long</span>&gt;&gt; delta = ......               </div><div class="line">    .<span class="keyword">join</span>(iteration.getSolutionSet()).<span class="keyword">where</span>(<span class="number">0</span>).equalTo(<span class="number">0</span>)</div><div class="line">    .<span class="keyword">with</span>(<span class="keyword">new</span> RootIdFilter());</div><div class="line">DataSet&lt;Tuple2&lt;<span class="built_in">Long</span>, <span class="built_in">Long</span>&gt;&gt; finalDataSet = iteration.closeWith(delta, delta);</div></pre></td></tr></table></figure>
+<p>RootIdFilter是个过滤器的实现，它会对Join后的结果集进行过滤，它会选择性地输出源节点相同但父节点更小的节点元组。因为从以上树中元素的规律来看，父节点越小，越靠近真正的根节点。注意，它实现的是FlatJoinFunction函数，而不是JoinFunction函数。因为FlatJoinFunction支持输出零个或若干个元素（在这个案例里，该过滤器有可能不输出记录）：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="keyword">class</span> RootIdFilter <span class="keyword">implements</span> FlatJoinFunction&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;,        </div><div class="line">    Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; &#123;    </div><div class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="keyword">join</span>(Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt; candidate, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt; old,                     </div><div class="line">                     Collector&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; collector) <span class="keyword">throws</span> Exception &#123;        </div><div class="line">        <span class="keyword">if</span> (candidate.f1 &lt; old.f1) &#123;            </div><div class="line">            collector.<span class="keyword">collect</span>(candidate);        </div><div class="line">        &#125;    </div><div class="line">    &#125;    </div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>我们仍然以事件编号1及事件编号2作为示例，分析两个连接的过程。首先拿上一步新生成的顶点&lt;2,1&gt;跟解集进行连接（初始解集为原始的顶点数据集，随着迭代越接近最终的解集），以元组的第一个字段作为连接条件，在进行连接之后对于事件编号2产生两个元组，分别是&lt;2,1&gt;，&lt;2,2&gt;。再应用RootIdFilter过滤器，&lt;2,2&gt;被过滤而&lt;2,1&gt;被输出。该输出就对应着生产的delta。随后处于增量解集中的&lt;2,1&gt;会初始解集中的&lt;2,2&gt;进行替换。这段过程，图示如下：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-RootIdFilter.png" alt="delta-iteration-RootIdFilter"></p>
+<p>回过头来看这个完整的步函数，所产生的是一个增量解集delta（也就是RootIdFilter过滤后的输出，比如上面的&lt;2,1&gt;元组），它将会被更新到最终的解集。</p>
+<p>增量迭代最终会调用closeWith方法来关闭一个迭代逻辑并得到最终的结果集finalDataSet。先解释一下closeWith的两个参数的含义：</p>
+<ol>
+<li>solutionSetDelta：也即增量解集，在每次迭代之后，它将会被更新到解集中去；</li>
+<li>newWorkset：新的工作集，它将会被反馈给下一次迭代作为输入；</li>
+</ol>
+<p>这里得到的delta变量不仅仅是增量解集，同时也是新的工作集。所以上图中的&lt;2,1&gt;将会被用来更新&lt;2,2&gt;。</p>
+<p>接下来，我们来分步展示迭代的执行过程以及各个数据集产生的变化。首先，第一次迭代之后：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-1.png" alt="delta-iteration-graph-1"></p>
+<p>对应的数据集变化：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-1.png" alt="delta-iteration-dataset-1"></p>
+<p>第二次迭代之后：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-2.png" alt="delta-iteration-graph-2"></p>
+<p>对应的数据集变化：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-2.png" alt="delta-iteration-dataset-2"></p>
+<p>因篇幅受限，我们略去第三次、第四次迭代产生的变化图示，进入到第五次迭代后：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-5.png" alt="delta-iteration-graph-5"></p>
+<p>与此同时，数据集的变化：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-5.png" alt="delta-iteration-dataset-5"></p>
+<p>可以看到这里新的工作集已经逐渐减少到只剩下一个元组元素&lt;12,1&gt;。当执行完第六次迭代，工作集变为空：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-graph-6.png" alt="delta-iteration-graph-6"></p>
+<p>对应的新工作集为空，意味着增量迭代将会终止执行：</p>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/delta-iteration-dataset-6.png" alt="delta-iteration-dataset-6"></p>
+<p>完整的实现代码如下：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> main(String[] args) <span class="keyword">throws</span> Exception &#123;    </div><div class="line">    ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();        </div><div class="line"></div><div class="line">    DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; verticesAsWorkset = generateWorksetWithVertices(env);    </div><div class="line">    DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; edges = generateDefaultEdgeDataSet(env);    </div><div class="line"></div><div class="line">    <span class="keyword">int</span> vertexIdIndex = <span class="number">0</span>;    </div><div class="line">    DeltaIteration&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; iteration = verticesAsWorkset            </div><div class="line">        .iterateDelta(verticesAsWorkset, MAX_ITERATION_NUM, vertexIdIndex);    </div><div class="line"></div><div class="line">    DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; delta = iteration.getWorkset()            </div><div class="line">        .<span class="keyword">join</span>(edges).where(<span class="number">0</span>).equalTo(<span class="number">0</span>)            </div><div class="line">        .with(<span class="keyword">new</span> NeighborWithParentIDJoin())            </div><div class="line">        .<span class="keyword">join</span>(iteration.getSolutionSet()).where(<span class="number">0</span>).equalTo(<span class="number">0</span>)            </div><div class="line">        .with(<span class="keyword">new</span> RootIdFilter());    </div><div class="line">    DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; finalDataSet = iteration.closeWith(delta, delta);    </div><div class="line"></div><div class="line">    finalDataSet.<span class="keyword">print</span>();</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>接下来我们分析一下增量迭代的API，由于增量迭代与批量迭代设计上的差异，它们的实现也迥然不同。增量迭代用DeltaIteration来表示迭代的数据集对象，而批量迭代用IterativeDataSet来表示。DeltaIteration是一个独立的类，而IterativeDataSet本质上是DataSet的特例。这两者都是通过DataSet的实例方法来进行初始化，IterativeDataSet通过iterate方法，而DeltaIteration则通过iterateDelta方法。</p>
+<p>我们来看一段示例代码：</p>
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">DeltaIteration&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;, Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; iteration =</div><div class="line">    initialState.iterateDelta(initialFeedbackSet, <span class="number">100</span>, <span class="number">0</span>);</div><div class="line"></div><div class="line">DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; delta = iteration.groupBy(<span class="number">0</span>).aggregate(Aggregations.AVG, <span class="number">1</span>)</div><div class="line">                                              .<span class="keyword">join</span>(iteration.getSolutionSet()).where(<span class="number">0</span>).equalTo(<span class="number">0</span>)</div><div class="line">                                              .flatMap(<span class="keyword">new</span> ProjectAndFilter());</div><div class="line"></div><div class="line">DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; feedBack = delta.<span class="keyword">join</span>(someOtherSet).where(...).equalTo(...).with(...);</div><div class="line"></div><div class="line"><span class="comment">// close the delta iteration (delta and new workset are identical)</span></div><div class="line">DataSet&lt;Tuple2&lt;<span class="keyword">Long</span>, <span class="keyword">Long</span>&gt;&gt; result = iteration.closeWith(delta, feedBack);</div></pre></td></tr></table></figure>
+<p>上述代码中initialState是DataSet的实例，iterateDelta以初始化一个DeltaIteration对象iteration。它接收三个参数：</p>
+<ol>
+<li>initialFeedbackSet：它是DataSet的实例，表示参与迭代的初始数据集。在Flink中称之为工作集（workset）;</li>
+<li>100：整型值，表示最大迭代次数为100次；</li>
+<li>0：元组中字段的下标，该下标所表示的字段将会作为解集的键；</li>
+</ol>
+<p>解集是迭代所处的当前状态，通过iteration的getSolutionSet实例方法来进行访问的。解集从何而来？回到DeltaIteration类中，我们看到它内部封装了初始的工作集和初始的解集两个字段：</p>
+<figure class="highlight actionscript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> DataSet&lt;ST&gt; initialSolutionSet;</div><div class="line"><span class="keyword">private</span> <span class="keyword">final</span> DataSet&lt;WT&gt; initialWorkset;</div></pre></td></tr></table></figure>
+<p>它们都是通过DeltaIteration的构造器进行设置的。在DataSet的iterateDelta方法中，我们来看一下这两个参数所传递的值，代码如下：</p>
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span> &lt;R&gt; <span class="function">DeltaIteration&lt;T, R&gt; <span class="title">iterateDelta</span>(<span class="params">DataSet&lt;R&gt; workset, </span></span></div><div class="line">    <span class="keyword">int</span> maxIterations, <span class="keyword">int</span>... keyPositions) &#123;   </div><div class="line">    <span class="comment">//...   </span></div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> DeltaIteration&lt;&gt;(getExecutionEnvironment(), getType(), <span class="keyword">this</span>, workset, keys, maxIterations);</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>从代码段可见，工作集对象是通过参数从外部传入，而初始的解集则为当前DataSet的实例（this引用）。因此对于上面的示例而言，初始的解集就是initialState对象，随着迭代的进行，步函数一轮轮被执行，解集也会被增量地更新从而向前演进，同时作为下一轮迭代的输入。</p>
+<p>iteration通过对一系列转换函数的调用形成了任意数据流组成的步函数最终产生delta这一数据集。增量迭代跟批量迭代类似，都是通过迭代对象的closeWith方法来关闭迭代逻辑。跟批量迭代类似，这里的closeWith方法也返回表示增量迭代结果数据集DeltaIterationResultSet的实例，它也充当迭代尾的角色。</p>
+<p>虽然我们没有应用到聚合器以及收敛标准，而是以空的工作集作为迭代的执行的终止条件。但是，在增量迭代中聚合器、收敛标准同样适用。</p>
+<hr>
+<blockquote>
+<p>微信扫码关注公众号：Apache_Flink</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/Apache_Flink_weixin.jpg" alt="apache_flink_weichat"></p>
+<hr>
+<blockquote>
+<p>QQ扫码关注QQ群：Apache Flink学习交流群（123414680）</p>
+</blockquote>
+<p><img src="http://7xkaaz.com1.z0.glb.clouddn.com/qrcode_for_apache_flink_qq_group.png" alt="qrcode_for_apache_flink_qq_group"></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://vinoyang.com/2017/06/13/flink-batch-delta-iteration/" data-id="cj3vqdppj001qw3vuipiyul67" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/">Flink</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/06/12/flink-table-sql-source/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink-Table-SQL系列之source</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+  <section id="comments">
+    <!-- 多说评论框 start -->
+    <div class="ds-thread" data-thread-key="post-flink-batch-delta-iteration" data-title="Flink批处理中的增量迭代" data-url="http://vinoyang.com/2017/06/13/flink-batch-delta-iteration/"></div>
+    <!-- 多说评论框 end -->
+    <!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+    <script type="text/javascript">
+    var duoshuoQuery = {short_name:'vinoyang'};
+      (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0] 
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+      })();
+      </script>
+    <!-- 多说公共JS代码 end -->
+  </section>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Akka/">Akka</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/">Flink</a><span class="tag-list-count">60</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RabbitMQ/">RabbitMQ</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Zookeeper/">Zookeeper</a><span class="tag-list-count">2</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/async/">async</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/disque/">disque</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/docker/">docker</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/flume/">flume</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/messagebus/">messagebus</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/morphline/">morphline</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/quartz/">quartz</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/rate-limit/">rate-limit</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/redis/">redis</a><span class="tag-list-count">3</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式/">分布式</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/分布式锁/">分布式锁</a><span class="tag-list-count">1</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/日志系统/">日志系统</a><span class="tag-list-count">5</span></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/消息总线/">消息总线</a><span class="tag-list-count">3</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Akka/" style="font-size: 10px;">Akka</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/RabbitMQ/" style="font-size: 10px;">RabbitMQ</a> <a href="/tags/Zookeeper/" style="font-size: 12.5px;">Zookeeper</a> <a href="/tags/async/" style="font-size: 10px;">async</a> <a href="/tags/disque/" style="font-size: 10px;">disque</a> <a href="/tags/docker/" style="font-size: 10px;">docker</a> <a href="/tags/flume/" style="font-size: 15px;">flume</a> <a href="/tags/messagebus/" style="font-size: 10px;">messagebus</a> <a href="/tags/morphline/" style="font-size: 10px;">morphline</a> <a href="/tags/quartz/" style="font-size: 10px;">quartz</a> <a href="/tags/rate-limit/" style="font-size: 10px;">rate-limit</a> <a href="/tags/redis/" style="font-size: 15px;">redis</a> <a href="/tags/分布式/" style="font-size: 10px;">分布式</a> <a href="/tags/分布式锁/" style="font-size: 10px;">分布式锁</a> <a href="/tags/日志系统/" style="font-size: 17.5px;">日志系统</a> <a href="/tags/消息总线/" style="font-size: 15px;">消息总线</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/04/">四月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/01/">一月 2017</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/12/">十二月 2016</a><span class="archive-list-count">7</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/11/">十一月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/10/">十月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/09/">九月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/07/">七月 2016</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/06/">六月 2016</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/05/">五月 2016</a><span class="archive-list-count">10</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/04/">四月 2016</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/03/">三月 2016</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2016/02/">二月 2016</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/12/">十二月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/11/">十一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/10/">十月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/08/">八月 2015</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/07/">七月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/06/">六月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/05/">五月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/04/">四月 2015</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/03/">三月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/02/">二月 2015</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2015/01/">一月 2015</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/12/">十二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/10/">十月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/09/">九月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/06/">六月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/04/">四月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/03/">三月 2014</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2014/02/">二月 2014</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/12/">十二月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/10/">十月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/09/">九月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/07/">七月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/05/">五月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/03/">三月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/02/">二月 2013</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2013/01/">一月 2013</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/12/">十二月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/11/">十一月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/09/">九月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/08/">八月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/06/">六月 2012</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/05/">五月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/04/">四月 2012</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/03/">三月 2012</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/02/">二月 2012</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2012/01/">一月 2012</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/12/">十二月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/11/">十一月 2011</a><span class="archive-list-count">6</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/10/">十月 2011</a><span class="archive-list-count">9</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/09/">九月 2011</a><span class="archive-list-count">8</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/08/">八月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/07/">七月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/06/">六月 2011</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/05/">五月 2011</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/03/">三月 2011</a><span class="archive-list-count">4</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2011/02/">二月 2011</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/07/">七月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/06/">六月 2010</a><span class="archive-list-count">2</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/05/">五月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/04/">四月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/03/">三月 2010</a><span class="archive-list-count">5</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/02/">二月 2010</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2010/01/">一月 2010</a><span class="archive-list-count">1</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2009/10/">十月 2009</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recents</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/06/13/flink-batch-delta-iteration/">Flink批处理中的增量迭代</a>
+          </li>
+        
+          <li>
+            <a href="/2017/06/12/flink-table-sql-source/">Flink-Table-SQL系列之source</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/24/flink-batch-optimizer-join-optimize/">浅谈Flink批处理优化器之Join优化</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/09/flink-batch-optimizer-data-properties/">Flink批处理优化器之数据属性</a>
+          </li>
+        
+          <li>
+            <a href="/2017/04/07/flink-batch-optimizer-range-partition-algor/">Flink批处理优化器之范围分区重写采用算法</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Weibo show</h3>
+    <div class="widget-weibo">
+      <iframe width="100%" height="450" class="share_self"  frameborder="0" scrolling="no" src="http://widget.weibo.com/weiboshow/index.php?language=&width=0&height=550&fansRow=2&ptype=1&speed=0&skin=2&isTitle=0&noborder=0&isWeibo=1&isFans=0&uid=1958166695&verifier=9c2d28b9&colors=dddddd,dddddd,666666,0069a4,dddddd&dpc=1"></iframe>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Github</h3>
+    <div class="widget-github">
+      <script data-name="yanghua" src="http://octocard.in/o.js"></script>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 yanghua1127@gmail.com<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+    <a href="/projects" class="mobile-nav-link">Projects</a>
+  
+    <a href="/about" class="mobile-nav-link">About</a>
+  
+</nav>
+    
+
+<script src="http://apps.bdimg.com/libs/jquery/2.0.3/jquery.min.js"></script>
+<script type="text/javascript">
+//<![CDATA[
+if (typeof jQuery == 'undefined') {
+  document.write(unescape("%3Cscript src='/js/jquery-2.0.3.min.js' type='text/javascript'%3E%3C/script%3E"));
+}
+// ]]>
+</script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "//hm.baidu.com/hm.js?36c1573c11e45ea0f6419af5f2f04760";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+  </div>
+</body>
+</html>
